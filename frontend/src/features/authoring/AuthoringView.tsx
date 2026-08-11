@@ -1,5 +1,16 @@
 import { type FormEvent, type ReactNode, useState } from 'react'
 
+import {
+  AgentTaskList,
+  ApprovalPrompt,
+  ChangeTable,
+  CommandSearch,
+  FilteredTaskTable,
+  LoadingGrid,
+  RecommendationPanel,
+  RecordsGrid,
+  type RecordsGridColumn,
+} from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, ButtonLabel } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
@@ -372,18 +383,14 @@ function requestStateTone(
 
 function LoadingListState({ label }: { label: string }) {
   return (
-    <EmptyState
-      aria-busy="true"
-      aria-label={label}
-      className="max-[680px]:hyphens-none max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-      data-slot-state="loading"
-      role="status"
-    >
-      <p aria-hidden="true" className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-        {label}
-      </p>
-    </EmptyState>
+    <div aria-busy="true" data-slot-state="loading">
+      <LoadingGrid label={label} variant="dots" />
+    </div>
   )
+}
+
+function focusAuthoringRecord(kind: 'source' | 'user' | 'workspace', id: string) {
+  document.getElementById(`authoring-${kind}-${id}`)?.focus()
 }
 
 function AuthoringField({
@@ -498,22 +505,53 @@ function WorkspaceList({
 
   if (workspaces.length === 0) {
     return (
-      <EmptyState
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="empty"
-        role="status"
-      >
-        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Workspaces Yet.</p>
-        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <EmptyState data-slot-state="empty" role="status">
+        <p className="font-medium text-foreground/90">No Workspaces Yet.</p>
+        <p className="text-xs text-muted-foreground">
           Create a workspace above to start indexing sources.
         </p>
       </EmptyState>
     )
   }
 
-  return (
-    <DataList aria-label="Workspaces" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
-      {workspaces.map((workspace) => {
+  const columns: readonly RecordsGridColumn<Workspace>[] = [
+    {
+      header: 'Workspace',
+      id: 'workspace',
+      render: (workspace) => {
+        const isDeleted = Boolean(workspace.deleted_at)
+        return (
+          <div
+            data-deleted={isDeleted ? '' : undefined}
+            id={`authoring-workspace-${workspace.id}`}
+            tabIndex={-1}
+          >
+            <strong
+              className={
+                isDeleted
+                  ? 'break-words text-sm font-semibold text-muted-foreground line-through'
+                  : 'break-words text-sm font-semibold'
+              }
+            >
+              {workspace.name}
+            </strong>
+            <p className="break-all font-mono text-[11px] text-muted-foreground">
+              {workspace.id}
+            </p>
+            {isDeleted ? (
+              <p className="text-xs text-muted-foreground">
+                Deleted {formatOperatorTimestamp(workspace.deleted_at ?? null)}
+              </p>
+            ) : null}
+          </div>
+        )
+      },
+      sortValue: (workspace) => workspace.name,
+    },
+    {
+      header: 'Access',
+      id: 'access',
+      render: (workspace) => {
         const canAccess = workspace.can_access !== false
         const isDeleted = Boolean(workspace.deleted_at)
         const roleLabel = isDeleted
@@ -522,62 +560,85 @@ function WorkspaceList({
             ? titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
             : 'No Access'
         return (
-          <DataListItem
-            className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary p-0 max-[680px]:gap-0"
-            data-deleted={isDeleted ? '' : undefined}
-            key={workspace.id}
-          >
-            <div className="flex items-stretch gap-1 p-1 max-[680px]:gap-0 max-[680px]:p-0">
+          <StatusBadge tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}>
+            {roleLabel}
+          </StatusBadge>
+        )
+      },
+      sortValue: (workspace) =>
+        workspace.deleted_at
+          ? 'Deleted'
+          : titleCaseStatus(workspace.access_role ?? workspace.embedding_mode),
+    },
+    {
+      header: 'Actions',
+      id: 'actions',
+      render: (workspace) => {
+        const canAccess = workspace.can_access !== false
+        const isDeleted = Boolean(workspace.deleted_at)
+        return (
+          <div className="flex min-w-[12rem] flex-wrap gap-2 max-[680px]:gap-1">
             <Button
               aria-label={`Select ${workspace.name}`}
               aria-pressed={workspace.id === activeWorkspaceId}
-              className="max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:basis-full max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:max-w-full h-auto min-w-0 flex-1 justify-between gap-3 max-[680px]:gap-0 whitespace-normal p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary"
               disabled={!canAccess || isDeleted}
               onClick={() => onSelectWorkspace(workspace)}
-              variant="ghost"
+              size="sm"
+              type="button"
+              variant="secondary"
             >
-              <span className="max-[680px]:text-left max-[680px]:max-w-full max-[680px]:truncate grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong
-                  className={
-                    isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
-                      : 'break-words text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
-                  }
-                >
-                  {workspace.name}
-                </strong>
-                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {workspace.id}
-                </small>
-                {isDeleted ? (
-                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    Deleted{' '}
-                    {formatOperatorTimestamp(workspace.deleted_at ?? null)}
-                  </small>
-                ) : null}
-              </span>
-              <StatusBadge
-                className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm shrink-0 max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}
-              >
-                {roleLabel}
-              </StatusBadge>
+              Select
             </Button>
             <Button
               aria-label={`Delete workspace ${workspace.name}`}
-              className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate shrink-0 self-center max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
               disabled={isBusy || !canAccess || isDeleted}
               onClick={() => onDeleteWorkspace(workspace)}
+              size="sm"
               type="button"
               variant="danger"
             >
               Delete
             </Button>
-            </div>
-          </DataListItem>
+          </div>
         )
-      })}
-    </DataList>
+      },
+    },
+  ]
+
+  return (
+    <div className="grid gap-3">
+      {workspaces.length >= 5 ? (
+        <CommandSearch
+          emptyLabel="No matching workspaces."
+          items={workspaces.map((workspace) => ({
+            id: workspace.id,
+            label: workspace.name,
+            meta: workspace.access_role
+              ? titleCaseStatus(workspace.access_role)
+              : workspace.can_access === false
+                ? 'No Access'
+                : undefined,
+          }))}
+          label="Find Workspaces"
+          onSelect={(id) => {
+            const selected = workspaces.find((workspace) => workspace.id === id)
+            if (!selected) return
+            if (selected.can_access !== false && !selected.deleted_at) {
+              onSelectWorkspace(selected)
+            } else {
+              focusAuthoringRecord('workspace', selected.id)
+            }
+          }}
+          placeholder="Search workspaces"
+        />
+      ) : null}
+      <RecordsGrid
+        columns={columns}
+        emptyLabel="No Workspaces Yet."
+        label="Workspaces"
+        rows={workspaces}
+      />
+    </div>
   )
 }
 
@@ -816,104 +877,131 @@ function UserAccessLists({
 
   if (users.length === 0 && memberships.length === 0) {
     return (
-      <EmptyState
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="empty"
-        role="status"
-      >
+      <EmptyState data-slot-state="empty" role="status">
         No Users or Memberships Yet.
       </EmptyState>
     )
   }
 
+  const userColumns: readonly RecordsGridColumn<User>[] = [
+    {
+      header: 'User',
+      id: 'user',
+      render: (user) => (
+        <div
+          data-inactive={!user.is_active ? '' : undefined}
+          id={`authoring-user-${user.id}`}
+          tabIndex={-1}
+        >
+          <strong
+            className={
+              user.is_active
+                ? 'break-words text-sm font-semibold'
+                : 'break-words text-sm font-semibold text-muted-foreground'
+            }
+          >
+            {user.login}
+          </strong>
+          <p className="break-words text-xs text-muted-foreground">
+            {user.display_name}
+          </p>
+          <p className="break-all font-mono text-[11px] text-muted-foreground">
+            {user.id}
+          </p>
+        </div>
+      ),
+      sortValue: (user) => user.login,
+    },
+    {
+      header: 'Role',
+      id: 'role',
+      render: (user) => (
+        <div className="flex flex-wrap gap-2">
+          <Badge>{titleCaseStatus(user.system_role)}</Badge>
+          {!user.is_active ? <StatusBadge tone="warning">Inactive</StatusBadge> : null}
+        </div>
+      ),
+      sortValue: (user) => user.system_role,
+    },
+    {
+      header: 'Actions',
+      id: 'actions',
+      render: (user) => (
+        <Button
+          aria-label={`Deactivate user ${user.login}`}
+          disabled={isBusy || !user.is_active}
+          onClick={() => onDeactivateUser(user)}
+          size="sm"
+          type="button"
+          variant="danger"
+        >
+          Deactivate
+        </Button>
+      ),
+    },
+  ]
+
   return (
-    <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-3 max-[680px]:gap-0 lg:grid-cols-2">
-      {users.length === 0 ? (
-        <EmptyState
-          className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-          data-slot-state="empty"
-          role="status"
-        >
-          No Users Yet.
-        </EmptyState>
-      ) : (
-        <DataList aria-label="Users" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
-          {users.map((user) => (
-            <DataListItem
-              className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0"
-              data-inactive={!user.is_active ? '' : undefined}
-              key={user.id}
-            >
-              <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong
-                  className={
-                    user.is_active
-                      ? 'break-words text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none'
-                      : 'break-words text-sm font-semibold text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
-                  }
-                >
-                  {user.login}
-                </strong>
-                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-words text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {user.display_name}
-                </small>
-                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                  {user.id}
-                </small>
-              </div>
-              <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-                <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(user.system_role)}</Badge>
-                {!user.is_active ? (
-                  <StatusBadge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="warning">
-                    Inactive
-                  </StatusBadge>
-                ) : null}
-                <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                  aria-label={`Deactivate user ${user.login}`}
-                  disabled={isBusy || !user.is_active}
-                  onClick={() => onDeactivateUser(user)}
-                  type="button"
-                  variant="danger"
-                >
-                  Deactivate
-                </Button>
-              </div>
-            </DataListItem>
-          ))}
-        </DataList>
-      )}
+    <div className="grid min-w-0 gap-3 lg:grid-cols-2">
+      <div className="grid min-w-0 content-start gap-3">
+        {users.length === 0 ? (
+          <EmptyState data-slot-state="empty" role="status">
+            No Users Yet.
+          </EmptyState>
+        ) : (
+          <>
+            {users.length >= 5 ? (
+              <CommandSearch
+                emptyLabel="No matching users."
+                items={users.map((user) => ({
+                  id: user.id,
+                  label: user.login,
+                  meta: user.display_name,
+                }))}
+                label="Find Users"
+                onSelect={(id) => focusAuthoringRecord('user', id)}
+                placeholder="Search users"
+              />
+            ) : null}
+            <RecordsGrid
+              columns={userColumns}
+              emptyLabel="No Users Yet."
+              label="Users"
+              rows={users}
+            />
+          </>
+        )}
+      </div>
+
       {memberships.length === 0 ? (
-        <EmptyState
-          className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-          data-slot-state="empty"
-          role="status"
-        >
+        <EmptyState data-slot-state="empty" role="status">
           No Workspace Memberships Yet.
         </EmptyState>
       ) : (
-        <DataList aria-label="Workspace Memberships" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <DataList aria-label="Workspace Memberships">
           {memberships.map((membership) => (
-            <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary grid gap-2 max-[680px]:gap-0" key={membership.id}>
-              <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
-                <strong className="max-[680px]:text-left max-[680px]:font-medium break-all text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+            <DataListItem className="grid gap-2" key={membership.id}>
+              <div className="grid min-w-0 gap-1">
+                <strong className="break-all text-sm font-semibold">
                   {membership.user_id}
                 </strong>
-                <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+                <small className="break-all text-xs text-muted-foreground">
                   {membership.workspace_id}
                 </small>
               </div>
-              <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-                <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{titleCaseStatus(membership.role)}</Badge>
-                <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+              <DataListItemActions>
+                <Badge>{titleCaseStatus(membership.role)}</Badge>
+                <Button
                   aria-label={`Remove membership ${membership.user_id}`}
                   disabled={isBusy}
                   onClick={() => onDeleteMembership(membership)}
+                  size="sm"
                   type="button"
                   variant="danger"
                 >
                   Remove
                 </Button>
-              </div>
+              </DataListItemActions>
             </DataListItem>
           ))}
         </DataList>
@@ -1222,86 +1310,123 @@ function SourceList({
 
   if (sources.length === 0) {
     return (
-      <EmptyState
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="empty"
-        role="status"
-      >
-        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Sources Yet.</p>
-        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <EmptyState data-slot-state="empty" role="status">
+        <p className="font-medium text-foreground/90">No Sources Yet.</p>
+        <p className="text-xs text-muted-foreground">
           Create a source above, then queue ingestion.
         </p>
       </EmptyState>
     )
   }
 
-  return (
-    <DataList aria-label="Sources" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
-      {sources.map((source) => {
+  const columns: readonly RecordsGridColumn<Source>[] = [
+    {
+      header: 'Source',
+      id: 'source',
+      render: (source) => {
         const isDeleted = Boolean(source.deleted_at)
+        return (
+          <div
+            data-deleted={isDeleted ? '' : undefined}
+            id={`authoring-source-${source.id}`}
+            tabIndex={-1}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <strong
+                className={
+                  isDeleted
+                    ? 'break-words text-sm font-semibold text-muted-foreground line-through'
+                    : 'break-words text-sm font-semibold'
+                }
+              >
+                {source.external_id}
+              </strong>
+              {isDeleted ? <StatusBadge tone="danger">Deleted</StatusBadge> : null}
+            </div>
+            <p className="break-all font-mono text-[11px] text-muted-foreground">
+              {source.id}
+            </p>
+            {isDeleted ? (
+              <p className="text-xs text-muted-foreground">
+                Deleted {formatOperatorTimestamp(source.deleted_at ?? null)}
+              </p>
+            ) : null}
+          </div>
+        )
+      },
+      sortValue: (source) => source.external_id,
+    },
+    {
+      header: 'Type and Tags',
+      id: 'metadata',
+      render: (source) => {
         const tags =
           Array.isArray(source.tags) && source.tags.length > 0
             ? source.tags.join(', ')
             : 'No Tags'
         return (
-          <DataListItem
-            className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
-            data-deleted={isDeleted ? '' : undefined}
-            key={source.id}
-          >
-            <div className="grid min-w-0 gap-1 max-[680px]:gap-0">
-              <div className="max-[680px]:items-start flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
-                <strong
-                  className={
-                    isDeleted
-                      ? 'break-words text-sm font-semibold text-muted-foreground line-through decoration-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
-                      : 'break-words text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter'
-                  }
-                >
-                  {source.external_id}
-                </strong>
-                {isDeleted ? (
-                  <StatusBadge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
-                    Deleted
-                  </StatusBadge>
-                ) : null}
-              </div>
-              <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate break-all font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                {source.id}
-              </small>
-              <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                {isDeleted
-                  ? `Deleted ${formatOperatorTimestamp(source.deleted_at ?? null)}`
-                  : `${sourceTypeLabel(source.source_type)} · ${tags}`}
-              </small>
-            </div>
-            <DataListItemActions className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
-              <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">{sourceTypeLabel(source.source_type)}</Badge>
-              <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                aria-label={`Enqueue ingestion for ${source.external_id}`}
-                disabled={isBusy || isDeleted}
-                onClick={() => onEnqueueIngestion(source)}
-                size="sm"
-                type="button"
-                variant="secondary"
-              >
-                Queue
-              </Button>
-              <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                aria-label={`Delete source ${source.external_id}`}
-                disabled={isBusy || isDeleted}
-                onClick={() => onDeleteSource(source)}
-                size="sm"
-                type="button"
-                variant="danger"
-              >
-                Delete
-              </Button>
-            </DataListItemActions>
-          </DataListItem>
+          <span className="text-xs text-muted-foreground">
+            {sourceTypeLabel(source.source_type)} · {tags}
+          </span>
         )
-      })}
-    </DataList>
+      },
+      sortValue: (source) => source.source_type,
+    },
+    {
+      header: 'Actions',
+      id: 'actions',
+      render: (source) => {
+        const isDeleted = Boolean(source.deleted_at)
+        return (
+          <div className="flex min-w-[10rem] flex-wrap gap-2 max-[680px]:gap-1">
+            <Button
+              aria-label={`Enqueue ingestion for ${source.external_id}`}
+              disabled={isBusy || isDeleted}
+              onClick={() => onEnqueueIngestion(source)}
+              size="sm"
+              type="button"
+              variant="secondary"
+            >
+              Queue
+            </Button>
+            <Button
+              aria-label={`Delete source ${source.external_id}`}
+              disabled={isBusy || isDeleted}
+              onClick={() => onDeleteSource(source)}
+              size="sm"
+              type="button"
+              variant="danger"
+            >
+              Delete
+            </Button>
+          </div>
+        )
+      },
+    },
+  ]
+
+  return (
+    <div className="grid gap-3">
+      {sources.length >= 5 ? (
+        <CommandSearch
+          emptyLabel="No matching sources."
+          items={sources.map((source) => ({
+            id: source.id,
+            label: source.external_id,
+            meta: sourceTypeLabel(source.source_type),
+          }))}
+          label="Find Sources"
+          onSelect={(id) => focusAuthoringRecord('source', id)}
+          placeholder="Search sources"
+        />
+      ) : null}
+      <RecordsGrid
+        columns={columns}
+        emptyLabel="No Sources Yet."
+        label="Sources"
+        rows={sources}
+      />
+    </div>
   )
 }
 
@@ -1342,13 +1467,8 @@ function KnowledgeReviewPanel({
       status={<KnowledgeStatus state={state} />}
       title="Pending Proposals"
     >
-      <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-        <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-          disabled={isBusy}
-          onClick={onRefresh}
-          type="button"
-          variant="secondary"
-        >
+      <div className="flex flex-wrap items-center gap-2 max-[680px]:gap-1">
+        <Button disabled={isBusy} onClick={onRefresh} type="button" variant="secondary">
           <ButtonLabel
             busy={isBusy}
             busyLabel="Refreshing…"
@@ -1357,64 +1477,83 @@ function KnowledgeReviewPanel({
         </Button>
       </div>
 
-      {error ? <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
+      {error ? <InlineFeedback tone="danger">{error}</InlineFeedback> : null}
 
       {isBusy && proposals.length === 0 ? (
         <LoadingListState label="Loading Proposals…" />
       ) : state === 'canceled' && proposals.length === 0 ? (
         <EmptyState
           aria-label="Proposals Load Canceled"
-          className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="canceled"
           role="status"
         >
-          <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">Proposals Load Canceled.</p>
-          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="font-medium text-foreground/90">Proposals Load Canceled.</p>
+          <p className="text-xs text-muted-foreground">
             Refresh Again When Ready to Review Knowledge Drafts.
           </p>
         </EmptyState>
       ) : proposals.length === 0 ? (
         <EmptyState
           aria-label="No Pending Proposals"
-          className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
           data-slot-state="empty"
           role="status"
         >
-          <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Pending Proposals.</p>
-          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+          <p className="font-medium text-foreground/90">No Pending Proposals.</p>
+          <p className="text-xs text-muted-foreground">
             Refresh After Chat Surfaces a Knowledge Draft for This Workspace.
           </p>
         </EmptyState>
       ) : (
-        <DataList aria-label="Knowledge Proposals" className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0 max-[680px]:overflow-x-auto">
+        <div aria-label="Knowledge Proposals" className="grid gap-3">
           {proposals.map((proposal) => {
             const draft = proposalDraftText(drafts, proposal)
             const rejectReason = rejectReasons[proposal.id] ?? ''
             const canReject = rejectReason.trim().length > 0
+            const hasChangeComparison =
+              proposal.proposed_text.trim().length > 0 && draft.trim().length > 0
             return (
-              <DataListItem className="max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary" key={proposal.id}>
-                <div className="max-[680px]:overflow-hidden grid min-w-0 gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium break-words max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {proposal.proposed_text}
-                  </strong>
-                  <small
-                    className="max-[680px]:text-left break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                    title={proposal.id}
-                  >
-                    {proposal.id}
-                  </small>
-                  <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {titleCaseStatus(proposal.status)}
-                  </Badge>
-                </div>
-                <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0">
+              <div className="grid gap-3" key={proposal.id}>
+                <RecommendationPanel
+                  acceptLabel={proposalActionLabel('Approve', proposal)}
+                  busy={isBusy}
+                  description={
+                    <div className="grid gap-1">
+                      <strong className="break-words text-foreground">
+                        {proposal.proposed_text}
+                      </strong>
+                      <span className="break-all font-mono text-[11px]">
+                        {proposal.id}
+                      </span>
+                      <Badge className="w-fit">
+                        {titleCaseStatus(proposal.status)}
+                      </Badge>
+                    </div>
+                  }
+                  onAccept={() => onApprove(proposal)}
+                  title={`Knowledge Proposal ${proposal.id}`}
+                />
+
+                {hasChangeComparison ? (
+                  <ChangeTable
+                    label={`Changes for Knowledge Proposal ${proposal.id}`}
+                    rows={[
+                      {
+                        field: 'Knowledge text',
+                        id: `knowledge-text-${proposal.id}`,
+                        original: proposal.proposed_text,
+                        proposed: draft,
+                      },
+                    ]}
+                  />
+                ) : null}
+
+                <div className="grid gap-4 max-[680px]:gap-2">
                   <AuthoringField
                     id={`proposal-refined-${proposal.id}`}
                     label="Refined Text"
                   >
                     {(fieldId) => (
                       <Textarea
-                        className="max-[680px]:text-left max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:py-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                         id={fieldId}
                         name={`proposal-refined-${proposal.id}`}
                         onChange={(event) =>
@@ -1425,48 +1564,40 @@ function KnowledgeReviewPanel({
                       />
                     )}
                   </AuthoringField>
+
+                  <ApprovalPrompt
+                    busy={isBusy}
+                    choices={[
+                      {
+                        id: 'refine',
+                        label: proposalActionLabel('Refine', proposal),
+                      },
+                    ]}
+                    onChoose={(choiceId) => {
+                      if (choiceId === 'refine') onRefine(proposal)
+                    }}
+                    question={`Review Knowledge Proposal ${proposal.id}`}
+                  />
+
                   <AuthoringField
                     id={`proposal-reject-${proposal.id}`}
                     label="Reject Reason"
                   >
                     {(fieldId) => (
                       <Input
-                        className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
                         autoComplete="off"
                         id={fieldId}
                         name={`proposal-reject-${proposal.id}`}
                         onChange={(event) =>
-                          onRejectReasonChange(
-                            proposal.id,
-                            event.currentTarget.value,
-                          )
+                          onRejectReasonChange(proposal.id, event.currentTarget.value)
                         }
                         placeholder="Reject Reason"
                         value={rejectReason}
                       />
                     )}
                   </AuthoringField>
-                  <DataListItemActions className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap max-[680px]:gap-0 max-[680px]:px-0">
-                    <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                      aria-label={proposalActionLabel('Refine', proposal)}
-                      disabled={isBusy}
-                      onClick={() => onRefine(proposal)}
-                      size="sm"
-                      type="button"
-                      variant="secondary"
-                    >
-                      Refine
-                    </Button>
-                    <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                      aria-label={proposalActionLabel('Approve', proposal)}
-                      disabled={isBusy}
-                      onClick={() => onApprove(proposal)}
-                      size="sm"
-                      type="button"
-                    >
-                      Approve
-                    </Button>
-                    <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
+                  <div>
+                    <Button
                       aria-describedby={`proposal-reject-${proposal.id}`}
                       aria-label={proposalActionLabel('Reject', proposal)}
                       disabled={isBusy || !canReject}
@@ -1477,12 +1608,12 @@ function KnowledgeReviewPanel({
                     >
                       Reject
                     </Button>
-                  </DataListItemActions>
+                  </div>
                 </div>
-              </DataListItem>
+              </div>
             )
           })}
-        </DataList>
+        </div>
       )}
     </AuthoringSectionPanel>
   )
@@ -1580,19 +1711,17 @@ function IngestionJobList({
   jobs: IngestionJob[]
   onRetry(job: IngestionJob): void
 }) {
+  const [activeFilter, setActiveFilter] = useState('all')
+
   if (isBusy && jobs.length === 0) {
     return <LoadingListState label="Loading Ingestion Jobs…" />
   }
 
   if (jobs.length === 0) {
     return (
-      <EmptyState
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="empty"
-        role="status"
-      >
-        <p className="max-[680px]:text-left font-medium text-foreground/90 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">No Ingestion Jobs Yet.</p>
-        <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
+      <EmptyState data-slot-state="empty" role="status">
+        <p className="font-medium text-foreground/90">No Ingestion Jobs Yet.</p>
+        <p className="text-xs text-muted-foreground">
           Enqueue a source from the content registry, then run the next job.
         </p>
       </EmptyState>
@@ -1600,99 +1729,146 @@ function IngestionJobList({
   }
 
   const groups = groupJobsByStatus(jobs)
+  const effectiveFilter =
+    activeFilter === 'all' || jobs.some((job) => job.status === activeFilter)
+      ? activeFilter
+      : 'all'
+  const filteredJobs =
+    effectiveFilter === 'all'
+      ? jobs
+      : jobs.filter((job) => job.status === effectiveFilter)
+  const filters = [
+    { id: 'all', label: 'All' },
+    ...groups.map((group) => ({
+      id: group.status,
+      label: jobStatusLabel(group.status),
+    })),
+  ]
+  const columns: readonly RecordsGridColumn<IngestionJob>[] = [
+    {
+      header: 'Status',
+      id: 'status',
+      render: (job) => (
+        <div data-job-status={job.status}>
+          <StatusBadge tone={jobTone(job.status)}>
+            {jobStatusLabel(job.status)}
+          </StatusBadge>
+        </div>
+      ),
+      sortValue: (job) => job.status,
+    },
+    {
+      header: 'Job',
+      id: 'job',
+      render: (job) => {
+        const sourceId = ingestionJobSourceId(job)
+        return (
+          <div className="grid min-w-[12rem] gap-1">
+            <Badge className="w-fit">{titleCaseStatus(job.job_type)}</Badge>
+            {sourceId ? (
+              <span className="break-all text-xs text-muted-foreground">
+                Source {sourceId}
+              </span>
+            ) : null}
+            <span className="break-all font-mono text-[11px] text-muted-foreground">
+              {job.id}
+            </span>
+          </div>
+        )
+      },
+      sortValue: (job) => job.job_type,
+    },
+    {
+      header: 'Schedule',
+      id: 'schedule',
+      render: (job) => {
+        const runAfter = formatRelativeOperatorTimestamp(job.run_after)
+        return (
+          <div className="grid min-w-[10rem] gap-1 text-xs text-muted-foreground">
+            <span>{formatAttempts(job)}</span>
+            <span title={runAfter.absolute}>Run after {runAfter.relative}</span>
+            <span>{formatLockState(job)}</span>
+          </div>
+        )
+      },
+      sortValue: (job) => job.run_after,
+    },
+    {
+      header: 'Result',
+      id: 'result',
+      render: (job) =>
+        job.last_error ? (
+          <InlineFeedback tone="danger">
+            {operatorSafeMessage(job.last_error)}
+          </InlineFeedback>
+        ) : (
+          <span className="text-xs text-muted-foreground">No Error</span>
+        ),
+    },
+    {
+      header: 'Actions',
+      id: 'actions',
+      render: (job) =>
+        isRetryableIngestionJob(job) ? (
+          <Button
+            aria-label={`Retry ingestion job ${job.id}`}
+            disabled={isBusy}
+            onClick={() => onRetry(job)}
+            size="sm"
+            type="button"
+            variant="secondary"
+          >
+            Retry
+          </Button>
+        ) : (
+          <span className="text-xs text-muted-foreground">No Actions</span>
+        ),
+    },
+  ]
 
   return (
-    <div className="min-w-0 grid gap-3 max-[680px]:gap-0" data-slot="ingestion-job-groups">
-      {groups.map((group) => (
-        <div className="min-w-0 grid gap-2 max-[680px]:gap-0" key={group.status}>
-          <p className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs font-medium uppercase tracking-normal text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:px-0">
-            {jobStatusLabel(group.status)}
-            <span className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate ml-1 tabular-nums max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">({group.jobs.length})</span>
-          </p>
-          <DataList aria-label={`Ingestion Jobs ${jobStatusLabel(group.status)}`} className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            {group.jobs.map((job) => {
-              const isRunning = job.status === 'running'
-              const sourceId = ingestionJobSourceId(job)
-              const statusLabel = jobStatusLabel(job.status)
-              const runAfter = formatRelativeOperatorTimestamp(job.run_after)
-              return (
-                <DataListItem
-                  aria-label={
-                    sourceId
-                      ? `Ingestion Job ${statusLabel} for Source ${sourceId}`
-                      : `Ingestion Job ${statusLabel}`
-                  }
-                  className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
-                  data-job-status={job.status}
-                  key={job.id}
-                >
-                  <div className="grid min-w-0 gap-1.5 max-[680px]:gap-0">
-                    <div className="max-[680px]:items-start flex min-w-0 flex-wrap items-center gap-2 max-[680px]:gap-0">
-                      {isRunning ? (
-                        <span
-                          aria-hidden="true"
-                          className="max-[680px]:text-left max-[680px]:motion-reduce:animate-none size-1.5 shrink-0 rounded-full bg-amber-500 motion-safe:animate-pulse"
-                          data-slot="ingestion-job-pulse"
-                        />
-                      ) : null}
-                      <StatusBadge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={jobTone(job.status)}>
-                        {statusLabel}
-                      </StatusBadge>
-                      <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm w-fit max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                        {titleCaseStatus(job.job_type)}
-                      </Badge>
-                    </div>
-                    {sourceId ? (
-                      <small
-                        className="max-[680px]:text-left break-all text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                        title="Source ID From Job Payload"
-                      >
-                        Source {sourceId}
-                      </small>
-                    ) : null}
-                    <small
-                      className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full truncate font-mono text-[11px] text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                      title={job.id}
-                    >
-                      {truncateId(job.id)}
-                    </small>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums text-muted-foreground max-[680px]:gap-x-2 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter">
-                      <span>{formatAttempts(job)}</span>
-                      <span title={runAfter.absolute}>
-                        Run after {runAfter.relative}
-                      </span>
-                      <span>{formatLockState(job)}</span>
-                    </div>
-                    {job.last_error ? (
-                      <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 text-xs max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">
-                        {operatorSafeMessage(job.last_error)}
-                      </InlineFeedback>
-                    ) : null}
-                  </div>
-                  <DataListItemActions className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:flex-col max-[680px]:items-stretch max-[680px]:touch-manipulation max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:flex-wrap justify-start gap-2 md:justify-end max-[680px]:gap-0 max-[680px]:px-0">
-                    {isRetryableIngestionJob(job) ? (
-                      <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-                        aria-label={`Retry ingestion job ${job.id}`}
-                        disabled={isBusy}
-                        onClick={() => onRetry(job)}
-                        size="sm"
-                        type="button"
-                        variant="secondary"
-                      >
-                        Retry
-                      </Button>
-                    ) : null}
-                  </DataListItemActions>
-                </DataListItem>
-              )
-            })}
-          </DataList>
-        </div>
-      ))}
+    <div className="grid gap-4" data-slot="ingestion-job-groups">
+      <AgentTaskList
+        emptyLabel="No Ingestion Jobs Yet."
+        label="Ingestion Jobs"
+        tasks={jobs.map((job) => {
+          const runAfter = formatRelativeOperatorTimestamp(job.run_after)
+          const taskStatus =
+            job.status === 'running' || job.status === 'queued'
+              ? 'running'
+              : job.status === 'processed' ||
+                  job.status === 'succeeded' ||
+                  job.status === 'idle'
+                ? 'completed'
+                : 'failed'
+          return {
+            detail: (
+              <div className="grid gap-1">
+                <span>
+                  {formatAttempts(job)} · Run after {runAfter.relative} ·{' '}
+                  {formatLockState(job)}
+                </span>
+              </div>
+            ),
+            id: job.id,
+            label: `${jobStatusLabel(job.status)} · ${titleCaseStatus(job.job_type)}`,
+            meta: job.id,
+            status: taskStatus,
+          }
+        })}
+      />
+      <FilteredTaskTable
+        activeFilter={effectiveFilter}
+        columns={columns}
+        emptyLabel="No ingestion jobs match this status."
+        filters={filters}
+        label="Ingestion Job Details"
+        onFilterChange={setActiveFilter}
+        rows={filteredJobs}
+      />
     </div>
   )
 }
-
 
 function authoringStatusLabel(state: RequestState): string {
   if (state === 'loading') {
@@ -1778,13 +1954,6 @@ function formatLockState(job: IngestionJob): string {
     return `Locked by ${job.locked_by}`
   }
   return `Locked until ${until.relative}`
-}
-
-function truncateId(value: string): string {
-  if (value.length <= 12) {
-    return value
-  }
-  return `…${value.slice(-8)}`
 }
 
 const JOB_STATUS_ORDER = [

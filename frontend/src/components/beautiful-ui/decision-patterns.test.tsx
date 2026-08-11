@@ -116,6 +116,40 @@ describe('ApprovalPrompt', () => {
 })
 
 describe('RecommendationPanel', () => {
+  test('preserves a caller-supplied acceptance label', async () => {
+    const user = userEvent.setup()
+    const onAccept = vi.fn()
+    render(
+      <RecommendationPanel
+        acceptLabel="Approve proposal-1"
+        description="Review the submitted knowledge."
+        onAccept={onAccept}
+        title="Knowledge Proposal proposal-1"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Approve proposal-1' }))
+
+    expect(onAccept).toHaveBeenCalledTimes(1)
+  })
+
+  test('disables acceptance while busy', () => {
+    render(
+      <RecommendationPanel
+        busy
+        description="Review the submitted knowledge."
+        onAccept={() => undefined}
+        title="Knowledge Proposal proposal-1"
+      />,
+    )
+
+    expect(
+      (screen.getByRole('button', {
+        name: 'Accept recommendation',
+      }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
   test('emits acceptance through its caller callback', async () => {
     const user = userEvent.setup()
     const onAccept = vi.fn()

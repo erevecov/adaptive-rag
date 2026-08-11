@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { cleanup, render, screen } from '@testing-library/react'
+import { cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
@@ -121,6 +121,35 @@ const ingestionRun: IngestionRunResponse = {
   worker_id: 'frontend',
 }
 
+function fiveWorkspaces(): Workspace[] {
+  return [
+    workspace,
+    restrictedWorkspace,
+    ...Array.from({ length: 3 }, (_, index) => ({
+      ...workspace,
+      id: `workspace-${index + 3}`,
+      name: `Workspace ${index + 3}`,
+    })),
+  ]
+}
+
+function fiveUsers(): User[] {
+  return Array.from({ length: 5 }, (_, index) => ({
+    ...user,
+    display_name: `User ${index + 1}`,
+    id: `user-${index + 1}`,
+    login: `user-${index + 1}@example.com`,
+  }))
+}
+
+function fiveSources(): Source[] {
+  return Array.from({ length: 5 }, (_, index) => ({
+    ...source,
+    external_id: `source-${index + 1}.md`,
+    id: `source-${index + 1}`,
+  }))
+}
+
 function noopSubmit(event: React.FormEvent<HTMLFormElement>) {
   event.preventDefault()
 }
@@ -214,6 +243,153 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 }
 
 describe('AuthoringPanel', () => {
+  test('adopts searchable record grids only for long workspace, user, and source collections', async () => {
+    const userDriver = userEvent.setup()
+    const workspaceView = renderAuthoringPanel({ workspaces: fiveWorkspaces() })
+    expect(
+      screen.getByRole('region', { name: 'Workspaces' }).getAttribute('data-slot'),
+    ).toBe('records-grid')
+    const workspaceSearch = screen.getByRole('region', {
+      name: 'Find Workspaces',
+    })
+    expect(workspaceSearch.getAttribute('data-slot')).toBe('command-search')
+    await userDriver.click(
+      within(workspaceSearch).getByRole('button', { name: /^Demo/ }),
+    )
+    expect(workspaceView.props.onSelectWorkspace).toHaveBeenCalledWith(
+      fiveWorkspaces()[0],
+    )
+    vi.mocked(workspaceView.props.onSelectWorkspace).mockClear()
+    await userDriver.click(
+      within(workspaceSearch).getByRole('button', { name: /^Restricted/ }),
+    )
+    expect(workspaceView.props.onSelectWorkspace).not.toHaveBeenCalled()
+    expect(document.activeElement?.id).toBe(
+      `authoring-workspace-${restrictedWorkspace.id}`,
+    )
+    workspaceView.view.unmount()
+
+    const usersView = renderAuthoringPanel({
+      activeSubmodule: 'users',
+      users: fiveUsers(),
+    })
+    expect(
+      screen.getByRole('region', { name: 'Users' }).getAttribute('data-slot'),
+    ).toBe('records-grid')
+    const userSearch = screen.getByRole('region', { name: 'Find Users' })
+    expect(userSearch.getAttribute('data-slot')).toBe('command-search')
+    await userDriver.click(
+      within(userSearch).getByRole('button', { name: /^user-1@example\.com/ }),
+    )
+    expect(document.activeElement?.id).toBe('authoring-user-user-1')
+    usersView.view.unmount()
+
+    const sourcesView = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      sources: fiveSources(),
+    })
+    expect(
+      screen.getByRole('region', { name: 'Sources' }).getAttribute('data-slot'),
+    ).toBe('records-grid')
+    const sourceSearch = screen.getByRole('region', { name: 'Find Sources' })
+    expect(sourceSearch.getAttribute('data-slot')).toBe('command-search')
+    await userDriver.click(
+      within(sourceSearch).getByRole('button', { name: /^source-1\.md/ }),
+    )
+    expect(document.activeElement?.id).toBe('authoring-source-source-1')
+    sourcesView.view.unmount()
+
+    renderAuthoringPanel({ workspaces: [workspace, restrictedWorkspace] })
+    expect(screen.queryByRole('region', { name: 'Find Workspaces' })).toBeNull()
+  })
+
+  test('adopts proposal decision patterns without changing lifecycle callbacks', async () => {
+    const userDriver = userEvent.setup()
+    const ready = renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      proposalRejectReasons: { [proposal.id]: 'Duplicate guidance' },
+    })
+
+    expect(
+      screen.getByRole('article', {
+        name: `Knowledge Proposal ${proposal.id}`,
+      }).getAttribute('data-slot'),
+    ).toBe('recommendation-panel')
+    expect(
+      screen.getByRole('region', {
+        name: `Review Knowledge Proposal ${proposal.id}`,
+      }).getAttribute('data-slot'),
+    ).toBe('approval-prompt')
+    expect(
+      screen.getByRole('region', {
+        name: `Changes for Knowledge Proposal ${proposal.id}`,
+      }).getAttribute('data-slot'),
+    ).toBe('change-table')
+
+    await userDriver.click(
+      screen.getByRole('button', { name: /^Approve / }),
+    )
+    await userDriver.click(screen.getByRole('button', { name: /^Refine / }))
+    await userDriver.click(screen.getByRole('button', { name: /^Reject / }))
+    expect(ready.props.onApproveKnowledgeProposal).toHaveBeenCalledWith(proposal)
+    expect(ready.props.onRefineKnowledgeProposal).toHaveBeenCalledWith(proposal)
+    expect(ready.props.onRejectKnowledgeProposal).toHaveBeenCalledWith(proposal)
+    ready.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'knowledge',
+      knowledgeProposals: [{ ...proposal, refined_text: null }],
+    })
+    expect(screen.queryByRole('region', { name: /Changes for Knowledge Proposal/ })).toBeNull()
+    expect(
+      (screen.getByRole('button', { name: /^Reject / }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+  })
+
+  test('adopts ingestion task patterns while retrying the exact job', async () => {
+    const userDriver = userEvent.setup()
+    const { props, view } = renderAuthoringPanel({ activeSubmodule: 'sources' })
+
+    expect(
+      screen
+        .getByRole('region', { name: 'Ingestion Jobs' })
+        .getAttribute('data-slot'),
+    ).toBe('agent-task-list')
+    expect(
+      view.container.querySelector('[data-slot="filtered-task-table"]'),
+    ).toBeTruthy()
+    await userDriver.click(
+      screen.getByRole('button', { name: `Retry ingestion job ${ingestionJob.id}` }),
+    )
+    expect(props.onRetryIngestionJob).toHaveBeenCalledWith(ingestionJob)
+  })
+
+  test('uses LoadingGrid only for active collection loads', () => {
+    const loading = renderAuthoringPanel({
+      activeSubmodule: 'workspaces',
+      workspaceState: 'loading',
+      workspaces: [],
+    })
+    expect(
+      screen
+        .getByRole('status', { name: 'Loading Workspaces…' })
+        .getAttribute('data-slot'),
+    ).toBe('loading-grid')
+    expect(
+      loading.view.container.querySelector('[data-slot-state="empty"]'),
+    ).toBeNull()
+    loading.view.unmount()
+
+    renderAuthoringPanel({
+      activeSubmodule: 'workspaces',
+      workspaceState: 'idle',
+      workspaces: [],
+    })
+    expect(screen.queryByRole('status', { name: 'Loading Workspaces…' })).toBeNull()
+    expect(screen.getByText('No Workspaces Yet.')).toBeTruthy()
+  })
+
   test('primary Create buttons keep min-h and stable Creating labels', () => {
     const idle = renderAuthoringPanel({ activeSubmodule: 'workspaces' })
     const create = screen.getByRole('button', { name: 'Create Workspace' })
@@ -243,12 +419,18 @@ describe('AuthoringPanel', () => {
       view.container.querySelector('[data-slot="panel"]'),
     ).toBeTruthy()
     expect(
-      view.container.querySelectorAll('[data-slot="data-list-item"]').length,
+      screen
+        .getByRole('region', { name: 'Workspaces' })
+        .querySelectorAll('tbody tr').length,
     ).toBe(2)
     expectNoLegacyAuthoringClasses(view.container)
 
     await userDriver.click(screen.getByRole('button', { name: 'Select Demo' }))
     expect(props.onSelectWorkspace).toHaveBeenCalledWith(workspace)
+    await userDriver.click(
+      screen.getByRole('button', { name: 'Delete workspace Demo' }),
+    )
+    expect(props.onDeleteWorkspace).toHaveBeenCalledWith(workspace)
     expect(
       screen.getByRole('button', { name: 'Select Restricted' }).getAttribute(
         'disabled',
@@ -307,11 +489,11 @@ describe('AuthoringPanel', () => {
     })
 
     expect(screen.queryByText('No Workspaces Yet.')).toBeNull()
-    const loadingState = view.container.querySelector(
-      '[data-slot="empty-state"][data-slot-state="loading"]',
-    )
+    const loadingState = view.container.querySelector('[data-slot-state="loading"]')
     expect(loadingState).toBeTruthy()
-    expect(loadingState?.textContent).toContain('Loading Workspaces')
+    expect(
+      loadingState?.querySelector('[data-slot="loading-grid"]')?.textContent,
+    ).toContain('Loading Workspaces')
     view.unmount()
   })
 
@@ -344,6 +526,10 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Enqueue ingestion for notes.md' }),
     ).toBeTruthy()
+    await userDriver.click(
+      screen.getByRole('button', { name: 'Delete source notes.md' }),
+    )
+    expect(props.onDeleteSource).toHaveBeenCalledWith(source)
     expect(screen.getByText('Attempt 1/3')).toBeTruthy()
     expect(screen.getByText('No Ingestion Job Was Processed.')).toBeTruthy()
     const lastRun = view.container.querySelector(
@@ -381,7 +567,12 @@ describe('AuthoringPanel', () => {
       '[data-slot-state="loading"]',
     )
     expect(loadingState).toBeTruthy()
-    expect(loadingState?.className).toMatch(/motion-safe:animate-pulse/)
+    expect(
+      loadingState?.querySelector('[data-slot="loading-grid"]'),
+    ).toBeTruthy()
+    expect(
+      loadingState?.querySelector('[data-slot="loading-mark"]')?.innerHTML,
+    ).toMatch(/motion-safe:animate-pulse/)
     loading.view.unmount()
 
     renderAuthoringPanel({
@@ -486,6 +677,14 @@ describe('AuthoringPanel', () => {
     expect(screen.getByText('Working').getAttribute('data-slot')).toBe('badge')
     expect(
       (screen.getByRole('button', { name: /^Reject / }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    expect(
+      (screen.getByRole('button', { name: /^Approve / }) as HTMLButtonElement)
+        .disabled,
+    ).toBe(true)
+    expect(
+      (screen.getByRole('button', { name: /^Refine / }) as HTMLButtonElement)
         .disabled,
     ).toBe(true)
   })

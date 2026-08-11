@@ -9,7 +9,9 @@ export type RecommendationAlternative = {
 }
 
 export type RecommendationPanelProps = {
+  acceptLabel?: ReactNode
   alternatives?: readonly RecommendationAlternative[]
+  busy?: boolean
   confidence?: number | null
   description: ReactNode
   onAccept(): void
@@ -26,7 +28,9 @@ function displayConfidence(confidence: number | null | undefined): number | null
 }
 
 export function RecommendationPanel({
+  acceptLabel = 'Accept recommendation',
   alternatives = [],
+  busy = false,
   confidence,
   description,
   onAccept,
@@ -37,6 +41,7 @@ export function RecommendationPanel({
 
   return (
     <article
+      aria-busy={busy || undefined}
       aria-label={title}
       className="grid gap-3 rounded-[2px] border border-border bg-card p-3 motion-safe:transition-colors max-[680px]:gap-2 max-[680px]:p-2"
       data-slot="recommendation-panel"
@@ -82,7 +87,7 @@ export function RecommendationPanel({
         </ul>
       ) : null}
       <div>
-        <Button onClick={onAccept}>Accept recommendation</Button>
+        <Button disabled={busy} onClick={onAccept}>{acceptLabel}</Button>
       </div>
     </article>
   )
