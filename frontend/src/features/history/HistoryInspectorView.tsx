@@ -1348,27 +1348,12 @@ function InternalActionStepper({
           No tool or retrieval activity stored for this session.
         </EmptyState>
       ) : (
-        <>
-          {/* Native details kept collapsed audit records mounted. Preserve that
-              inert read-only contract while ReasoningTrace owns disclosure. */}
-          <div data-slot="internal-action-records" hidden>
-            {steps.map((step) => (
-              <div key={step.id}>
-                <strong>{step.label}</strong>
-                {step.detail}
-                {typeof step.elapsedMs === 'number' ? (
-                  <small>{step.elapsedMs} ms</small>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <ReasoningTrace
-            defaultExpanded={defaultOpen}
-            key={defaultOpen ? 'pipeline-open' : 'pipeline-closed'}
-            label="Pipeline activity"
-            steps={steps}
-          />
-        </>
+        <ReasoningTrace
+          defaultExpanded={defaultOpen}
+          key={defaultOpen ? 'pipeline-open' : 'pipeline-closed'}
+          label={`Pipeline activity · ${stepCount} ${stepCount === 1 ? 'Step' : 'Steps'}`}
+          steps={steps}
+        />
       )}
     </div>
   )
@@ -1381,9 +1366,9 @@ function toReasoningTraceSteps(detail: ChatSessionDetailResponse): TraceStep[] {
         <div className="grid gap-1 max-[680px]:gap-0.5">
           <Badge>Tool Call {titleCaseToken(call.status)}</Badge>
           <p>{formatJsonValue(call.arguments)}</p>
+          <small>{formatUnknownMs(call.latency_ms)}</small>
         </div>
       ),
-      elapsedMs: call.latency_ms,
       id: `tool-${call.tool_call_id}`,
       label: call.tool_name,
       status: traceStatus(call.status),
@@ -1393,6 +1378,7 @@ function toReasoningTraceSteps(detail: ChatSessionDetailResponse): TraceStep[] {
         <div className="grid gap-1 max-[680px]:gap-0.5">
           <Badge>Retrieval {titleCaseToken(run.strategy)}</Badge>
           <p>Top {run.top_k}</p>
+          <small>{formatUnknownMs(run.latency_ms)}</small>
           {run.retrieved_chunks.length > 0 ? (
             <ul className="grid gap-1">
               {run.retrieved_chunks.map((chunk) => (
@@ -1405,7 +1391,6 @@ function toReasoningTraceSteps(detail: ChatSessionDetailResponse): TraceStep[] {
           ) : null}
         </div>
       ),
-      elapsedMs: run.latency_ms,
       id: `retrieval-${run.retrieval_run_id}`,
       label: run.query,
       status: traceStatus(run.error_message === null ? 'succeeded' : 'failed'),
@@ -1419,9 +1404,9 @@ function toReasoningTraceSteps(detail: ChatSessionDetailResponse): TraceStep[] {
             {formatUnknownTokens(usage.total_tokens)} /{' '}
             {formatUnknownCost(usage.estimated_cost_usd)}
           </p>
+          <small>{formatUnknownMs(usage.latency_ms)}</small>
         </div>
       ),
-      elapsedMs: usage.latency_ms,
       id: `provider-${usage.provider_usage_id}`,
       label: usage.model,
       status: traceStatus(usage.status),
@@ -1433,7 +1418,12 @@ function traceStatus(status: string): TraceStep['status'] {
   if (status === 'succeeded') {
     return 'completed'
   }
-  if (status === 'failed' || status === 'canceled') {
+  if (
+    status === 'failed' ||
+    status === 'canceled' ||
+    status === 'cancelled' ||
+    status === 'blocked'
+  ) {
     return 'failed'
   }
   return 'running'
@@ -1984,6 +1974,10 @@ function formatSessionLatency(usages: ChatHistoryProviderUsage[]): string {
     knownLatencies.reduce((total, value) => total + value, 0) /
     knownLatencies.length
   return `${Math.round(average)} ms`
+}
+
+function formatUnknownMs(value: number | null): string {
+  return value === null ? 'Unknown Latency' : `${value} ms`
 }
 
 function retrievalStrategyLabel(run: ChatHistoryRetrievalRun): string {

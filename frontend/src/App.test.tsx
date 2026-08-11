@@ -1433,7 +1433,7 @@ describe('App chat workspace', () => {
 
     expect(sidebar.getAttribute('data-slot')).toBe('app-sidebar')
     expect(primaryNavigation.getAttribute('data-slot')).toBe(
-      'sidebar-primary-navigation',
+      'workspace-navigation',
     )
     expect(selector.getAttribute('data-slot')).toBe('workspace-selector-trigger')
     expect(selector.closest('[data-slot="workspace-selector"]')).toBeTruthy()
@@ -3817,7 +3817,12 @@ describe('App chat workspace', () => {
     })
     expect(within(sessionContext).getByText('This thread')).toBeTruthy()
     // Pipeline summary still available (collapsed by default).
-    expect(screen.getByText('Pipeline activity')).toBeTruthy()
+    const pipelineToggle = screen.getByRole('button', {
+      name: 'Pipeline activity · 3 Steps',
+    })
+    expect(pipelineToggle.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByText('rag_search')).toBeNull()
+    await user.click(pipelineToggle)
     expect(screen.getByText('rag_search')).toBeTruthy()
     expect(screen.getByText('deployment import failure')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Replay' })).toBeNull()
@@ -4010,6 +4015,11 @@ describe('App chat workspace', () => {
     const stepper = await screen.findByRole('region', {
       name: 'Internal Action Stepper',
     })
+    await user.click(
+      within(stepper).getByRole('button', {
+        name: 'Pipeline activity · 3 Steps',
+      }),
+    )
     expect(within(stepper).getByText('Tool Call Succeeded')).toBeTruthy()
     expect(within(stepper).getByText('Retrieval Dense')).toBeTruthy()
     expect(within(stepper).getByText('Provider Usage Succeeded')).toBeTruthy()

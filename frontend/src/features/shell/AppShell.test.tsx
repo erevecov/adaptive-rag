@@ -63,17 +63,13 @@ describe('AppSidebar Beautiful UI adoption', () => {
       />,
     )
 
-    const navigation = screen.getByRole('navigation', {
+    const navigations = screen.getAllByRole('navigation', {
       name: 'Primary Navigation',
     })
-    expect(navigation.getAttribute('data-slot')).toBe(
-      'sidebar-primary-navigation',
+    expect(navigations).toHaveLength(1)
+    expect(navigations[0]?.getAttribute('data-slot')).toBe(
+      'workspace-navigation',
     )
-    expect(
-      screen
-        .getByRole('navigation', { name: 'Primary navigation destinations' })
-        .getAttribute('data-slot'),
-    ).toBe('workspace-navigation')
     expect(
       screen.getByRole('button', { name: 'Chat' }).getAttribute('aria-current'),
     ).toBe('page')

@@ -576,8 +576,7 @@ export function AppSidebar({
           state={workspaceState}
         />
 
-        <nav
-          aria-label="Primary Navigation"
+        <div
           className={cn(
             'min-w-0 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:pb-0.5 max-[680px]:shadow-primary/95',
             '[&_[data-slot=workspace-navigation]]:gap-0 [&_[data-slot=nav-section]]:gap-0',
@@ -590,10 +589,9 @@ export function AppSidebar({
             'max-[680px]:[&_[data-slot=sidebar-item]]:px-0.5 max-[680px]:[&_[data-slot=sidebar-item]]:text-[0.5625rem]',
             'max-[680px]:[&_[data-slot=sidebar-item]]:hover:bg-primary/65 max-[680px]:[&_[data-slot=sidebar-item][data-active]]:bg-primary/45',
           )}
-          data-slot="sidebar-primary-navigation"
         >
           <WorkspaceNavigation
-            label="Primary navigation destinations"
+            label="Primary Navigation"
             onNavigate={(id) => {
               if (id === 'chat' || id === 'account' || id === 'settings') {
                 onPrimaryViewChange(id)
@@ -619,7 +617,7 @@ export function AppSidebar({
               },
             ]}
           />
-        </nav>
+        </div>
         </div>
 
         {primaryView === 'chat' ? (

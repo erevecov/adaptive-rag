@@ -121,6 +121,11 @@ describe('ContextChunkList', () => {
       />,
     )
 
+    const list = screen.getByRole('list', { name: 'Retrieved context' })
+    expect(list.getAttribute('data-slot')).toBe('context-chunk-list')
+    expect(
+      screen.queryByRole('region', { name: 'Retrieved context' }),
+    ).toBeNull()
     await user.click(screen.getByRole('button', { name: /Guide.pdf/ }))
     expect(onOpenChunk).toHaveBeenCalledWith('chunk-7')
   })

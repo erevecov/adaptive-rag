@@ -625,6 +625,86 @@ describe('WorkspaceInspectorPanel', () => {
     expect(screen.queryByText('No Stored Internal Actions For This Session.')).toBeNull()
   })
 
+  test('maps blocked provider usage to a terminal failed trace step', () => {
+    const blockedDetail: ChatSessionDetailResponse = {
+      ...detail,
+      provider_usage: [
+        {
+          ...detail.provider_usage[0],
+          provider_usage_id: 'usage-blocked',
+          status: 'blocked',
+        },
+      ],
+    }
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={blockedDetail}
+        detailError={null}
+        detailState="succeeded"
+        focusedTurn={{ question: 'What changed?', turnId: 'message-assistant' }}
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClearFocusedTurn={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const trace = container.querySelector('[data-slot="reasoning-trace"]')
+    expect(trace).toBeTruthy()
+    const providerStep = within(trace as HTMLElement)
+      .getByText('qwen-plus')
+      .closest('[data-slot="reasoning-trace-step"]')
+    expect(providerStep?.getAttribute('data-status')).toBe('failed')
+    expect(container.querySelector('[data-status="running"]')).toBeNull()
+  })
+
+  test('keeps one authoritative trace DOM with visible count and exact milliseconds', async () => {
+    const user = userEvent.setup()
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={vi.fn()}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    const toggle = screen.getByRole('button', {
+      name: 'Pipeline activity · 3 Steps',
+    })
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(container.querySelector('[data-slot="internal-action-records"]')).toBeNull()
+    expect(screen.queryByText('retrieve')).toBeNull()
+
+    await user.click(toggle)
+
+    expect(screen.getAllByText('retrieve')).toHaveLength(1)
+    expect(screen.getByText('80 ms')).toBeTruthy()
+    expect(screen.queryByText('0.1s')).toBeNull()
+  })
+
   test('filters session detail to a single turn window', () => {
     const multiTurn: ChatSessionDetailResponse = {
       ...detail,
@@ -1014,7 +1094,7 @@ describe('WorkspaceInspectorPanel', () => {
       container.querySelector('[data-slot="reasoning-trace"]'),
     ).toBeTruthy()
     expect(container.querySelector('[data-slot="records-grid"]')).toBeTruthy()
-    const context = screen.getByRole('region', {
+    const context = screen.getByRole('list', {
       name: 'Retrieved context',
     })
     expect(context.getAttribute('data-slot')).toBe('context-chunk-list')

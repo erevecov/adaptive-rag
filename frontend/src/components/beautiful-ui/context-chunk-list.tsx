@@ -25,15 +25,17 @@ export function ContextChunkList({
 }: ContextChunkListProps) {
   return (
     <section
-      aria-label={label}
       className="grid gap-2 rounded-[2px] border border-border bg-card p-3 motion-safe:transition-colors max-[680px]:p-2"
-      data-slot="context-chunk-list"
     >
       <h2 className="text-sm font-medium">{label}</h2>
       {chunks.length === 0 ? (
         <EmptyState>{emptyLabel}</EmptyState>
       ) : (
-        <ul className="overflow-hidden rounded-[2px] border border-border">
+        <ul
+          aria-label={label}
+          className="overflow-hidden rounded-[2px] border border-border"
+          data-slot="context-chunk-list"
+        >
           {chunks.map((chunk) => (
             <li
               className="grid gap-2 border-b border-border p-3 last:border-b-0 max-[680px]:gap-1 max-[680px]:p-2"
