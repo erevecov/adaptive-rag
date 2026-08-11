@@ -78,6 +78,52 @@ describe('AppSidebar pattern adoption', () => {
     expect(onPrimaryViewChange).toHaveBeenCalledWith('settings')
   })
 
+  test('keeps the open mobile sidebar within a usable 86vw and 280px bound', () => {
+    render(
+      <AppSidebar
+        accountModule="appearance"
+        authoringSubmodule="workspaces"
+        canLoadMoreSessions={false}
+        error={null}
+        isOpen
+        observabilitySubmodule="summary"
+        onAccountModuleChange={vi.fn()}
+        onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
+        onLoadMoreSessions={vi.fn()}
+        onPrimaryViewChange={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={vi.fn()}
+        onSettingsModuleChange={vi.fn()}
+        onSettingsSubmoduleChange={vi.fn()}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onToggle={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        onWorkspaceIdChange={vi.fn()}
+        primaryView="chat"
+        runtimeSubmodule="connections"
+        selectedSessionId={null}
+        sessions={[]}
+        sessionState="succeeded"
+        settingsModule="authoring"
+        statusFilter="active"
+        workspaceId="workspace-1"
+        workspaces={[]}
+        workspaceState="succeeded"
+      />,
+    )
+
+    const sidebar = screen.getByRole('complementary', {
+      name: 'Primary Sidebar',
+    })
+    expect(sidebar.className).toContain('w-[280px]')
+    expect(sidebar.className).toContain(
+      'max-[680px]:w-[min(86vw,280px)]',
+    )
+    expect(sidebar.className).not.toContain('max-[680px]:w-[min(86vw,2px)]')
+  })
+
   test('does not retain obsolete chat radius attributes in shell-owned containers', () => {
     expect(appShellSource).not.toContain('data-chat-radius')
   })
