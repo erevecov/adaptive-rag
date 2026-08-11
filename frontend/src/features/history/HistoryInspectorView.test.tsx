@@ -194,10 +194,20 @@ describe('SessionNavigationPanel', () => {
     const searchbox = screen.getByRole('searchbox', {
       name: 'Search sessions',
     })
-    expect(searchbox.closest('[data-slot="command-search"]')).toBeTruthy()
+    const search = searchbox.closest('[data-slot="command-search"]')
+    expect(search).toBeTruthy()
+    expect(within(search as HTMLElement).queryByRole('list')).toBeNull()
+    expect(
+      within(screen.getByRole('list', { name: 'Workspace Sessions' })).getByRole(
+        'button',
+        { name: /Abrir sesión Architecture review/ },
+      ),
+    ).toBeTruthy()
     await user.type(searchbox, 'Architecture')
     await user.click(
-      screen.getByRole('button', { name: /^Architecture review/ }),
+      within(search as HTMLElement).getByRole('button', {
+        name: /^Architecture review/,
+      }),
     )
     expect(onSelectSession).toHaveBeenCalledWith('session-1')
 

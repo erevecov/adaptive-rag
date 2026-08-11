@@ -22,12 +22,13 @@ export function CommandSearch({
 }: CommandSearchProps) {
   const inputId = useId()
   const [query, setQuery] = useState('')
+  const normalizedQuery = query.trim().toLocaleLowerCase()
   const matches = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase()
-    return normalizedQuery.length === 0
-      ? items
-      : items.filter((item) => item.label.toLocaleLowerCase().includes(normalizedQuery))
-  }, [items, query])
+    if (normalizedQuery.length === 0) return []
+    return items.filter((item) =>
+      item.label.toLocaleLowerCase().includes(normalizedQuery),
+    )
+  }, [items, normalizedQuery])
 
   return (
     <section aria-label={label} className="grid gap-2" data-slot="command-search">
@@ -41,7 +42,7 @@ export function CommandSearch({
         type="search"
         value={query}
       />
-      {matches.length === 0 ? (
+      {normalizedQuery.length === 0 ? null : matches.length === 0 ? (
         <EmptyState>{emptyLabel}</EmptyState>
       ) : (
         <ul className="overflow-hidden rounded-[2px] border border-border">

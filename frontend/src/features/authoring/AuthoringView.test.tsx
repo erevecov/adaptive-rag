@@ -266,6 +266,14 @@ describe('AuthoringPanel', () => {
       name: 'Find Workspaces',
     })
     expect(workspaceSearch.getAttribute('data-slot')).toBe('command-search')
+    expect(within(workspaceSearch).queryByRole('list')).toBeNull()
+    expect(
+      within(screen.getByRole('region', { name: 'Workspaces' })).getByText(
+        'Demo',
+      ),
+    ).toBeTruthy()
+    const workspaceSearchbox = within(workspaceSearch).getByRole('searchbox')
+    await userDriver.type(workspaceSearchbox, 'Demo')
     await userDriver.click(
       within(workspaceSearch).getByRole('button', { name: /^Demo/ }),
     )
@@ -273,6 +281,8 @@ describe('AuthoringPanel', () => {
       fiveWorkspaces()[0],
     )
     vi.mocked(workspaceView.props.onSelectWorkspace).mockClear()
+    await userDriver.clear(workspaceSearchbox)
+    await userDriver.type(workspaceSearchbox, 'Restricted')
     await userDriver.click(
       within(workspaceSearch).getByRole('button', { name: /^Restricted/ }),
     )
@@ -291,6 +301,11 @@ describe('AuthoringPanel', () => {
     ).toBe('records-grid')
     const userSearch = screen.getByRole('region', { name: 'Find Users' })
     expect(userSearch.getAttribute('data-slot')).toBe('command-search')
+    expect(within(userSearch).queryByRole('list')).toBeNull()
+    await userDriver.type(
+      within(userSearch).getByRole('searchbox'),
+      'user-1@example.com',
+    )
     await userDriver.click(
       within(userSearch).getByRole('button', { name: /^user-1@example\.com/ }),
     )
@@ -306,6 +321,11 @@ describe('AuthoringPanel', () => {
     ).toBe('records-grid')
     const sourceSearch = screen.getByRole('region', { name: 'Find Sources' })
     expect(sourceSearch.getAttribute('data-slot')).toBe('command-search')
+    expect(within(sourceSearch).queryByRole('list')).toBeNull()
+    await userDriver.type(
+      within(sourceSearch).getByRole('searchbox'),
+      'source-1.md',
+    )
     await userDriver.click(
       within(sourceSearch).getByRole('button', { name: /^source-1\.md/ }),
     )

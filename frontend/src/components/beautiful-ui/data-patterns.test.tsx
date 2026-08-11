@@ -161,6 +161,31 @@ describe('WorkspaceNavigation', () => {
 })
 
 describe('CommandSearch', () => {
+  test('keeps results hidden for blank and whitespace-only queries', async () => {
+    const user = userEvent.setup()
+    render(
+      <CommandSearch
+        emptyLabel="No matches"
+        items={[
+          { id: 's-1', label: 'Architecture Guide' },
+          { id: 's-2', label: 'Operations Guide' },
+        ]}
+        label="Search sources"
+        onSelect={() => undefined}
+        placeholder="Search"
+      />,
+    )
+
+    const searchbox = screen.getByRole('searchbox')
+    expect(screen.queryByRole('list')).toBeNull()
+    expect(screen.queryByText('No matches')).toBeNull()
+
+    await user.type(searchbox, '   ')
+
+    expect(screen.queryByRole('list')).toBeNull()
+    expect(screen.queryByText('No matches')).toBeNull()
+  })
+
   test('filters case-insensitively and emits the selected id', async () => {
     const user = userEvent.setup()
     const onSelect = vi.fn()
