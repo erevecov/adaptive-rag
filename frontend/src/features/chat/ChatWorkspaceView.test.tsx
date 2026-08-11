@@ -653,6 +653,28 @@ describe('ChatWorkspacePanel', () => {
     expect(view.container.querySelector('[data-slot="chat-message"]')).toBeTruthy()
   })
 
+  test('keeps sample-question controls square and touch accessible', async () => {
+    const user = userEvent.setup()
+    const onQuestionChange = vi.fn()
+    renderChatWorkspace({
+      onQuestionChange,
+      requestState: 'idle',
+      response: null,
+    })
+
+    const sampleQuestion = screen.getByRole('button', {
+      name: 'What is the release mascot?',
+    })
+    expect(sampleQuestion.className).toContain('rounded-[2px]')
+    expect(sampleQuestion.className).not.toContain('rounded-full')
+    expect(sampleQuestion.className).toContain('max-[680px]:min-h-11')
+
+    await user.click(sampleQuestion)
+    expect(onQuestionChange).toHaveBeenCalledWith(
+      'What is the release mascot?',
+    )
+  })
+
   test('docks tools and Ask inside the composer input shell', () => {
     const { view } = renderChatWorkspace({
       requestState: 'idle',

@@ -1020,7 +1020,7 @@ function ResponsePanel({
               {SAMPLE_QUESTIONS.map((sample) => (
                 <Button
                   key={sample}
-                  className="h-auto max-w-full whitespace-normal rounded-full px-2.5 py-1 text-[11px]"
+                  className="h-auto max-w-full whitespace-normal px-2.5 py-1 text-[11px]"
                   onClick={() => onQuestionChange(sample)}
                   size="sm"
                   type="button"
