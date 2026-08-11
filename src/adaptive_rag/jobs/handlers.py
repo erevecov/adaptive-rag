@@ -23,6 +23,7 @@ from adaptive_rag.jobs.errors import BlockedJobError
 from adaptive_rag.jobs.registry import JobHandlerDefinition, JobRegistry
 from adaptive_rag.jobs.service import EnqueueJobRequest, JobService
 from adaptive_rag.jobs.types import JobContext, RetryPolicy
+from adaptive_rag.provider_pricing import sync_provider_model_pricing
 
 
 class IngestSourcePayload(BaseModel):
@@ -36,6 +37,10 @@ class IndexDocumentVersionPayload(BaseModel):
 
     document_version_id: UUID
     source_id: UUID | None = None
+
+
+class ProviderPricingSyncPayload(BaseModel):
+    model_config = ConfigDict(extra="forbid")
 
 
 def build_ingestion_registry(
@@ -122,6 +127,17 @@ def build_ingestion_registry(
         except IndexingPipelineError as exc:
             raise BlockedJobError(str(exc)) from exc
 
+    def provider_model_pricing_sync(
+        context: JobContext,
+        _raw_payload: BaseModel,
+    ) -> dict[str, object]:
+        if context.workspace_id is not None:
+            raise BlockedJobError("provider_model_pricing_sync requires system scope")
+        with session_factory() as session:
+            report = sync_provider_model_pricing(session, dry_run=False)
+            session.commit()
+            return report.as_dict()
+
     registry.register(
         JobHandlerDefinition(
             name="ingest_source",
@@ -148,11 +164,25 @@ def build_ingestion_registry(
             allowed_scopes=frozenset({"workspace"}),
         )
     )
+    registry.register(
+        JobHandlerDefinition(
+            name="provider_model_pricing_sync",
+            version=1,
+            payload_model=ProviderPricingSyncPayload,
+            handler=provider_model_pricing_sync,
+            queue_name="system",
+            retry_policy=RetryPolicy(max_retries=3),
+            lease_seconds=lease_seconds,
+            allowed_scopes=frozenset({"system"}),
+            allow_manual_enqueue=True,
+        )
+    )
     return registry
 
 
 __all__ = [
     "IndexDocumentVersionPayload",
     "IngestSourcePayload",
+    "ProviderPricingSyncPayload",
     "build_ingestion_registry",
 ]

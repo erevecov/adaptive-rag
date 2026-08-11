@@ -38,3 +38,13 @@ def test_ingestion_registry_exposes_typed_versioned_handlers() -> None:
     assert source_payload.source_id == source_id
     assert index_payload.document_version_id == document_version_id
     assert registry.get("ingest_source", 1).queue_name == "ingestion"
+
+
+def test_default_registry_exposes_system_pricing_handler() -> None:
+    registry = build_ingestion_registry(session_factory=lambda: None)  # type: ignore[arg-type]
+
+    definition = registry.get("provider_model_pricing_sync", 1)
+
+    assert definition.queue_name == "system"
+    assert definition.allowed_scopes == frozenset({"system"})
+    assert definition.allow_manual_enqueue is True

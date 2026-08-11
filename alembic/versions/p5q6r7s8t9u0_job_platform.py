@@ -183,9 +183,7 @@ def _create_schedule_table() -> None:
         ),
         sa.CheckConstraint("version > 0", name="job_schedules_version_positive_check"),
     )
-    op.create_index(
-        "ix_job_schedules_workspace_id", "job_schedules", ["workspace_id"]
-    )
+    op.create_index("ix_job_schedules_workspace_id", "job_schedules", ["workspace_id"])
     op.create_index(
         "ix_job_schedules_workspace_created",
         "job_schedules",
@@ -196,6 +194,26 @@ def _create_schedule_table() -> None:
         "job_schedules",
         ["next_run_at"],
         postgresql_where=sa.text("paused_at IS NULL AND archived_at IS NULL"),
+    )
+    op.execute(
+        """
+        INSERT INTO job_schedules (
+            id, scope, workspace_id, name, description, queue_name, job_type,
+            handler_version, payload_json, priority, cron_expression, timezone,
+            misfire_policy, max_catch_up, next_run_at,
+            created_by_actor_type, created_by_actor_id,
+            updated_by_actor_type, updated_by_actor_id
+        ) VALUES (
+            '00000000-0000-0000-0000-000000000701', 'system', NULL,
+            'Daily provider model pricing sync',
+            'Refresh provider model pricing metadata once per UTC day.',
+            'system', 'provider_model_pricing_sync', 1, '{}'::jsonb, 0,
+            '0 0 * * *', 'UTC', 'run_once', 1,
+            ((date_trunc('day', now() AT TIME ZONE 'UTC') + interval '1 day')
+                AT TIME ZONE 'UTC'),
+            'system', 'migration', 'system', 'migration'
+        )
+        """
     )
 
 
@@ -283,9 +301,7 @@ def _expand_jobs() -> None:
     )
 
     op.execute(
-        sa.text(
-            "UPDATE jobs SET payload_json = '{}'::jsonb WHERE payload_json IS NULL"
-        )
+        sa.text("UPDATE jobs SET payload_json = '{}'::jsonb WHERE payload_json IS NULL")
     )
     op.execute(
         sa.text(
@@ -295,12 +311,8 @@ def _expand_jobs() -> None:
             "max_retries = LEAST(GREATEST(max_attempts - 1, 0), 25)"
         )
     )
-    op.alter_column(
-        "jobs", "workspace_id", existing_type=UUID, nullable=True
-    )
-    op.alter_column(
-        "jobs", "payload_json", existing_type=JSONB, nullable=False
-    )
+    op.alter_column("jobs", "workspace_id", existing_type=UUID, nullable=True)
+    op.alter_column("jobs", "payload_json", existing_type=JSONB, nullable=False)
     op.drop_constraint("jobs_status_check", "jobs", type_="check")
     op.create_check_constraint(
         "jobs_status_check",
@@ -458,9 +470,7 @@ def _create_attempts_and_fence() -> None:
         ),
     )
     op.create_index("ix_job_attempts_job_id", "job_attempts", ["job_id"])
-    op.create_index(
-        "ix_job_attempts_workspace_id", "job_attempts", ["workspace_id"]
-    )
+    op.create_index("ix_job_attempts_workspace_id", "job_attempts", ["workspace_id"])
     op.create_index(
         "ix_job_attempts_job_started_at", "job_attempts", ["job_id", "started_at"]
     )
@@ -498,9 +508,7 @@ def _expand_events() -> None:
     op.add_column(
         "job_events", sa.Column("actor_id", sa.String(length=255), nullable=True)
     )
-    op.alter_column(
-        "job_events", "workspace_id", existing_type=UUID, nullable=True
-    )
+    op.alter_column("job_events", "workspace_id", existing_type=UUID, nullable=True)
     op.drop_constraint("job_events_event_type_check", "job_events", type_="check")
     op.create_check_constraint(
         "job_events_event_type_check",
@@ -647,9 +655,7 @@ def downgrade() -> None:
     op.drop_index("uq_jobs_schedule_occurrence", table_name="jobs")
     op.drop_index("ix_jobs_schedule_scheduled_for", table_name="jobs")
     op.drop_index("ix_jobs_queue_status_run_after_priority", table_name="jobs")
-    op.drop_constraint(
-        "fk_jobs_schedule_id_job_schedules", "jobs", type_="foreignkey"
-    )
+    op.drop_constraint("fk_jobs_schedule_id_job_schedules", "jobs", type_="foreignkey")
     op.drop_constraint("fk_jobs_queue_name_job_queues", "jobs", type_="foreignkey")
     for constraint_name in (
         "jobs_idempotency_fingerprint_check",
