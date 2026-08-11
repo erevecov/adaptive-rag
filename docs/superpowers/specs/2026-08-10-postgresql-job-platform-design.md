@@ -1,7 +1,7 @@
 # PostgreSQL Job Platform Design
 
 **Date:** 2026-08-10  
-**Status:** Design approved; written specification pending user review  
+**Status:** Approved
 **Scope:** General-purpose background job queue, durable scheduler, worker fleet,
 operational API/CLI, and web console for Adaptive RAG.
 
@@ -26,6 +26,8 @@ job state, while handler idempotency protects business and external side effects
 ## Goals
 
 - Support any registered Adaptive RAG background handler, not only ingestion.
+- Support both workspace-scoped work and global system maintenance work without a
+  synthetic workspace.
 - Enqueue jobs atomically with application data in the caller's transaction.
 - Run one global worker fleet across workspaces with fair dispatch.
 - Enforce concurrency globally, per queue, per workspace, per handler, and for an
@@ -123,6 +125,8 @@ aware and stored in UTC.
 preserved. The model contains:
 
 - `id`, `workspace_id`;
+- `scope` in `workspace` or `system`; `workspace_id` is required only for
+  workspace scope and null only for system scope;
 - `queue_name` and stable `job_type` handler name;
 - `handler_version`;
 - `status`;
@@ -130,6 +134,8 @@ preserved. The model contains:
 - validated `payload_json`;
 - optional `result_json`, limited to 64 KiB after serialization;
 - optional `idempotency_key`;
+- optional canonical `idempotency_fingerprint`, computed from the enqueue request
+  before runtime defaults such as an immediate `run_after` timestamp are applied;
 - `run_after`;
 - `attempt_count`, counting every successful claim;
 - `retry_count`, counting retryable failures and expired attempts;
@@ -146,11 +152,16 @@ response fields during migration. New clients use `attempt_count`, `retry_count`
 and `max_retries`, which remove the current ambiguity between executions and retry
 budget.
 
-An open-job partial unique constraint enforces idempotency for non-null keys:
+Open-job partial unique constraints enforce idempotency for non-null keys:
 
 ```text
 (workspace_id, job_type, handler_version, idempotency_key)
-WHERE status IN ('queued', 'running', 'blocked')
+WHERE scope = 'workspace'
+  AND status IN ('queued', 'running', 'blocked')
+
+(job_type, handler_version, idempotency_key)
+WHERE scope = 'system'
+  AND status IN ('queued', 'running', 'blocked')
 ```
 
 This key prevents concurrent duplicate enqueue. A terminal job releases the key
@@ -158,7 +169,7 @@ so a future operation may intentionally reuse it. A caller that requires lifetim
 deduplication must use a domain-owned unique record rather than queue state.
 
 On an open-key conflict, enqueue compares the canonical payload, queue, priority,
-and `run_after`. Matching requests return the existing job and report
+and requested `run_after` through that fingerprint. Matching requests return the existing job and report
 `created=false`. A differing request returns `409 idempotency_conflict`; it never
 silently reuses a job created for different work.
 
@@ -167,7 +178,7 @@ silently reuses a job created for different work.
 Every claim inserts a new immutable-identity attempt:
 
 - `id`, also used as the fencing token;
-- `job_id`, `workspace_id`, and monotonic `attempt_number`;
+- `job_id`, scope, nullable `workspace_id`, and monotonic `attempt_number`;
 - `worker_id`;
 - attempt `status`;
 - `started_at`, `heartbeat_at`, `lease_expires_at`, and `finished_at`;
@@ -180,7 +191,9 @@ audit and diagnostics.
 
 ### `job_events`
 
-`job_events` remains append-only and workspace-scoped. It gains optional
+`job_events` remains append-only and carries the job scope. Workspace jobs keep a
+required `workspace_id`; system jobs keep it null and are visible only to global
+administrators. It gains optional
 `attempt_id`, `actor_type`, and `actor_id`. Event metadata is bounded and
 redacted before persistence.
 
@@ -209,16 +222,17 @@ queues can admit work concurrently.
 
 ### `job_queue_workspace_state`
 
-This internal dispatch table stores `(queue_name, workspace_id,
-last_claimed_at)`. It supplies a persistent round-robin cursor across worker
-processes. Priority orders jobs inside one workspace; the cursor prevents a busy
-workspace from starving another workspace with eligible work.
+This internal dispatch table stores `(queue_name, scope_key, last_claimed_at)`,
+where `scope_key` is `system` or `workspace:<uuid>`. It supplies a persistent
+round-robin cursor across worker processes. Priority orders jobs inside one scope;
+the cursor prevents a busy workspace or system-maintenance backlog from starving
+another eligible scope.
 
 ### `job_schedules`
 
 A schedule contains:
 
-- `id`, `workspace_id`, name, and optional description;
+- `id`, scope, nullable `workspace_id`, name, and optional description;
 - target queue, handler name/version, payload, priority, and concurrency key;
 - five-field cron expression and IANA timezone;
 - `misfire_policy` in `skip`, `run_once`, or `catch_up`;
@@ -406,7 +420,7 @@ the schedule or its audit history.
 ### RBAC
 
 - Global administrators can inspect and operate all workspaces, queues, schedules,
-  and workers.
+  workers, and system-scoped jobs and schedules.
 - Workspace administrators can enqueue allowed handlers and operate jobs and
   schedules in their workspace.
 - Contributors and viewers have read-only access to job metadata in their
@@ -530,7 +544,8 @@ The migration is additive before behavior changes:
 
 1. Add new columns with compatible defaults and create new tables and indexes.
 2. Backfill existing jobs with queue `ingestion`, handler version `1`,
-   `attempt_count=attempts`, derived `retry_count`, and compatible retry limits.
+   scope `workspace`, `attempt_count=attempts`, derived `retry_count`, and
+   compatible retry limits.
 3. Preserve all existing job UUIDs and event rows.
 4. Add constraints only after backfill validation.
 5. Route existing repository operations through the new state-transition service.
@@ -538,6 +553,9 @@ The migration is additive before behavior changes:
 7. Add API/CLI/console surfaces.
 8. Remove the old long-transaction execution path only after compatibility tests
    pass.
+9. Register `provider_model_pricing_sync` as a system-scoped handler, migrate its
+   interval state to a durable schedule, and keep existing system-task read/run
+   endpoints as compatibility projections during the transition.
 
 Compatibility responses project `locked_by` and `locked_until` from the current
 attempt, and project `attempts`/`max_attempts` from the new counters. Existing safe
@@ -593,6 +611,7 @@ SQLite substitutes.
 ### API, CLI, and frontend tests
 
 - RBAC for global admin, workspace admin, contributor, and viewer;
+- system-scope access limited to global administrators;
 - cross-workspace isolation and payload/error redaction;
 - cursor pagination and filters;
 - enqueue, cancel, retry, unblock, schedule, queue, and worker operations;
