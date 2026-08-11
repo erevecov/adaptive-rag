@@ -8,6 +8,7 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import pytest
+from click import unstyle
 from sqlalchemy import select
 from typer.testing import CliRunner
 
@@ -81,7 +82,7 @@ def test_job_platform_nested_command_help(
     )
 
     assert result.exit_code == 0
-    assert expected in result.stdout
+    assert expected in unstyle(result.stdout)
 
 
 def test_scheduler_daemon_recovers_after_transient_tick_failure(
