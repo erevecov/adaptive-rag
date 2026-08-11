@@ -27,9 +27,9 @@ describe('EmptyState', () => {
     expect(empty.className).toContain('border-border/80')
     expect(empty.className).toContain('bg-muted/20')
     expect(empty.className).toContain('motion-safe:transition-colors')
+    expect(empty.className).toContain('rounded-[2px]')
     expect(empty.className).toContain('max-[680px]:p-0.5')
     expect(empty.className).toContain('max-[680px]:gap-0.5')
-    expect(empty.className).toContain('max-[680px]:rounded-sm')
     expect(empty.className).toContain('max-[680px]:tracking-tighter')
   })
 
@@ -63,8 +63,8 @@ describe('Callout', () => {
     expect(callout.className).toContain('bg-emerald-500/15')
     expect(callout.className).toContain('leading-relaxed')
     expect(callout.className).toContain('motion-safe:transition-colors')
+    expect(callout.className).toContain('rounded-[2px]')
     expect(callout.className).toContain('max-[680px]:p-0.5')
-    expect(callout.className).toContain('max-[680px]:rounded-sm')
     expect(callout.className).toContain('max-[680px]:tracking-tighter')
   })
 

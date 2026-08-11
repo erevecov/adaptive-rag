@@ -14,7 +14,7 @@ function classTokens(element: Element): string[] {
 function expectSharedControlTokens(element: Element): void {
   const tokens = classTokens(element)
   expect(tokens).toContain('w-full')
-  expect(tokens).toContain('rounded-md')
+  expect(tokens).toContain('rounded-[2px]')
   expect(tokens).toContain('border')
   expect(tokens).toContain('border-input')
   expect(tokens).toContain('bg-background')
