@@ -40,6 +40,7 @@ from adaptive_rag.db.repositories import (
 )
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import InMemoryProviderUsageTracker
 from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import (
@@ -286,14 +287,17 @@ def _get_chat_rerank_provider(
     workspace_id: UUID,
     session: Session,
     usage_tracker: InMemoryProviderUsageTracker,
-) -> RerankProvider:
+) -> RerankProvider | None:
     kwargs = _runtime_factory_kwargs(
         get_cli_rerank_provider,
         workspace_id=workspace_id,
         session=session,
         usage_tracker=usage_tracker,
     )
-    return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+    try:
+        return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+    except ProviderConfigurationError:
+        return None
 
 
 def _get_chat_runner(
@@ -336,7 +340,7 @@ class _LazyCliChatRetrievalSearcher:
         session: Session,
         provider: DenseEmbeddingProvider,
         sparse_provider: SparseEmbeddingProvider,
-        rerank_provider_factory: Callable[[], RerankProvider],
+        rerank_provider_factory: Callable[[], RerankProvider | None],
     ) -> None:
         self._session = session
         self._provider = provider

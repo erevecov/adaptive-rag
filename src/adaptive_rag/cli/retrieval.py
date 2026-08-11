@@ -20,6 +20,7 @@ from adaptive_rag.cli.dependencies import (
 from adaptive_rag.cli.filters import build_retrieval_metadata_filter
 from adaptive_rag.db.session import session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.rerank import RerankProvider
 from adaptive_rag.retrieval import (
     RetrievalRerankOptions,
@@ -178,13 +179,16 @@ def _get_rerank_provider(
     *,
     workspace_id: UUID,
     session: Session,
-) -> RerankProvider:
+) -> RerankProvider | None:
     kwargs = _workspace_runtime_kwargs(
         get_cli_rerank_provider,
         workspace_id=workspace_id,
         session=session,
     )
-    return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+    try:
+        return cast(RerankProvider, cast(Any, get_cli_rerank_provider)(**kwargs))
+    except ProviderConfigurationError:
+        return None
 
 
 def _workspace_runtime_kwargs(
@@ -200,4 +204,3 @@ def _workspace_runtime_kwargs(
     if "session" in parameters:
         kwargs["session"] = session
     return kwargs
-
