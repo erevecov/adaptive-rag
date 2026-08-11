@@ -487,6 +487,68 @@ describe('ObservabilityPanel', () => {
     expect(screen.getByLabelText('Chat Observability Metrics')).toBeTruthy()
   })
 
+  test('keeps stale provider sorting available to mouse input', async () => {
+    const user = userEvent.setup()
+    render(<style>{'.pointer-events-none { pointer-events: none; }'}</style>)
+    const { props, view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+    const staleContent = view.container.querySelector(
+      '[data-slot="observability-stale-failed"]',
+    )
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+    const providerHeader = within(usage).getByRole('columnheader', {
+      name: 'Provider',
+    })
+
+    expect(staleContent).toBeTruthy()
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      expect.stringContaining('refresh failed'),
+      expect.stringContaining('Showing last successful summary'),
+    ])
+    expect(within(usage).getByText('qwen')).toBeTruthy()
+    await user.click(within(providerHeader).getByRole('button', { name: 'Provider' }))
+
+    expect(providerHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(props.onRefresh).not.toHaveBeenCalled()
+    expect(screen.getByText(/Showing last successful summary/)).toBeTruthy()
+    expect(within(usage).getByText('qwen')).toBeTruthy()
+  })
+
+  test('keeps stale provider sorting available to keyboard input', async () => {
+    const user = userEvent.setup()
+    const { view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+    const providerHeader = within(usage).getByRole('columnheader', {
+      name: 'Provider',
+    })
+    const providerSort = within(providerHeader).getByRole('button', {
+      name: 'Provider',
+    })
+
+    providerSort.focus()
+    expect(document.activeElement).toBe(providerSort)
+    await user.keyboard('{Enter}')
+
+    expect(providerHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(
+      view.container.querySelector('[data-slot="observability-stale-failed"]'),
+    ).toBeTruthy()
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      expect.stringContaining('refresh failed'),
+      expect.stringContaining('Showing last successful summary'),
+    ])
+    expect(within(usage).getByText('qwen')).toBeTruthy()
+  })
+
   test('breakdown EmptyStates carry data-slot-state=empty', () => {
     const emptySummary: ChatObservabilitySummary = {
       ...summary,
