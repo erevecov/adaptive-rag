@@ -1523,6 +1523,32 @@ describe('createApiClient', () => {
     } satisfies Partial<ApiClientError>)
   })
 
+  test('maps known error codes when the API omits a message field', async () => {
+    const workspaceId = '11111111-1111-4111-8111-111111111111'
+    const { fetch } = createFetchStub(
+      jsonResponse(
+        { detail: { code: 'membership_already_exists' } },
+        { status: 409, statusText: 'Conflict' },
+      ),
+    )
+    const client = createApiClient({
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await expect(
+      client.addWorkspaceMember(workspaceId, {
+        email: 'existing@example.com',
+        role: 'viewer',
+      }),
+    ).rejects.toMatchObject({
+      code: 'membership_already_exists',
+      message: 'This user is already a member of the workspace.',
+      name: 'ApiClientError',
+      status: 409,
+    } satisfies Partial<ApiClientError>)
+  })
+
   test('streams chat SSE events and resolves the final response', async () => {
     const workspaceId = '11111111-1111-4111-8111-111111111111'
     const { fetch, calls } = createFetchStub(

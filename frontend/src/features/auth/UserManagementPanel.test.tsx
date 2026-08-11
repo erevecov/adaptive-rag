@@ -4,7 +4,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 
-import type { ApiClient, Workspace } from '@/lib/apiClient'
+import { ApiClientError, type ApiClient, type Workspace } from '@/lib/apiClient'
 import {
   GlobalUsersPanel,
   WorkspaceMembersPanel,
@@ -105,5 +105,31 @@ describe('WorkspaceMembersPanel', () => {
     )
     expect(screen.getByText('Existing User')).toBeTruthy()
     expect('createUser' in client).toBe(false)
+  })
+
+  test('shows a clear alert when the user is already a workspace member', async () => {
+    const addWorkspaceMember = vi.fn().mockRejectedValue(
+      new ApiClientError('This user is already a member of the workspace.', {
+        code: 'membership_already_exists',
+        detail: { code: 'membership_already_exists' },
+        status: 409,
+      }),
+    )
+    const client = {
+      addWorkspaceMember,
+      listWorkspaceMembers: vi.fn().mockResolvedValue({ items: [] }),
+    } as unknown as ApiClient
+
+    render(<WorkspaceMembersPanel client={client} workspace={workspace} />)
+
+    await screen.findByRole('heading', { name: 'Workspace members' })
+    await userEvent.type(screen.getByLabelText('User email'), 'existing@example.com')
+    await userEvent.click(screen.getByRole('button', { name: 'Add member' }))
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain(
+      'This user is already a member of the workspace.',
+    )
+    expect(screen.queryByText(/Request failed with status 409/i)).toBeNull()
   })
 })

@@ -2880,6 +2880,38 @@ function isCsrfFailedDetail(payload: unknown): boolean {
   return extractErrorCode(getErrorDetail(payload)) === 'csrf_failed'
 }
 
+/** Fallback copy when the API returns a stable code without a message field. */
+const API_ERROR_CODE_MESSAGES: Record<string, string> = {
+  authentication_required: 'Authentication is required.',
+  csrf_failed: 'Request security validation failed. Refresh and try again.',
+  email_already_exists: 'A user with this email already exists.',
+  initial_membership_required:
+    'Workspace users must start with an initial workspace membership.',
+  invalid_credentials: 'The email or password is incorrect.',
+  invalid_setup_secret: 'The setup secret is invalid.',
+  last_active_superadmin: 'The last active superadmin cannot be removed.',
+  last_active_workspace_admin:
+    'The last active admin for this workspace cannot be removed or demoted.',
+  membership_already_exists: 'This user is already a member of the workspace.',
+  membership_not_found: 'That membership was not found.',
+  membership_user_missing: 'The membership user record is missing.',
+  password_change_required: 'A password change is required before continuing.',
+  password_credential_missing:
+    'No password credential is available for this user.',
+  rate_limited: 'Too many attempts. Try again later.',
+  session_required: 'A browser session is required for this action.',
+  setup_already_complete: 'The first superadmin has already been created.',
+  superadmin_membership_forbidden:
+    'Global superadmins do not use workspace memberships.',
+  superadmin_required: 'A global superadmin is required for this action.',
+  user_not_found: 'No user was found for that email or id.',
+  workspace_access_required: 'You do not have access to this workspace.',
+  workspace_admin_required: 'A workspace admin is required for this action.',
+  workspace_contributor_required:
+    'A workspace contributor or admin is required for this action.',
+  workspace_not_found: 'That workspace was not found.',
+}
+
 function getApiErrorMessage(detail: unknown, status: number): string {
   if (typeof detail === 'string') {
     return detail
@@ -2899,6 +2931,10 @@ function getApiErrorMessage(detail: unknown, status: number): string {
     typeof (detail as { detail: unknown }).detail === 'string'
   ) {
     return (detail as { detail: string }).detail
+  }
+  const code = extractErrorCode(detail)
+  if (code !== null && code in API_ERROR_CODE_MESSAGES) {
+    return API_ERROR_CODE_MESSAGES[code]
   }
   return `Request failed with status ${status}`
 }

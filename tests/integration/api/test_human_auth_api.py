@@ -606,6 +606,17 @@ def test_workspace_admin_adds_existing_user_by_email_with_isolated_roles(
     assert first_role is not None and first_role.role == "contributor"
     assert second_role is not None and second_role.role == "viewer"
 
+    duplicate = client.post(
+        f"/workspaces/{first.id}/members",
+        headers=_csrf_headers(client),
+        json={"email": "viewer@example.com", "role": "viewer"},
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == {
+        "code": "membership_already_exists",
+        "message": "This user is already a member of the workspace.",
+    }
+
 
 def test_legacy_membership_routes_protect_last_workspace_admin(
     client: TestClient, session: Session

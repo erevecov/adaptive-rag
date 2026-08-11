@@ -10,13 +10,14 @@ import {
   PanelTitle,
 } from '@/components/ui/panel'
 import { Select } from '@/components/ui/select'
-import type {
-  AdminUser,
-  ApiClient,
-  SystemRole,
-  Workspace,
-  WorkspaceMember,
-  WorkspaceRole,
+import {
+  ApiClientError,
+  type AdminUser,
+  type ApiClient,
+  type SystemRole,
+  type Workspace,
+  type WorkspaceMember,
+  type WorkspaceRole,
 } from '@/lib/apiClient'
 import { OneTimePasswordDialog } from './OneTimePasswordDialog'
 
@@ -34,6 +35,9 @@ const SYSTEM_ROLE_OPTIONS = [
 type OneTimePassword = { email: string; password: string }
 
 function errorMessage(error: unknown): string {
+  if (error instanceof ApiClientError && error.message.trim()) {
+    return error.message
+  }
   if (error instanceof Error && error.message.trim()) return error.message
   return 'The request could not be completed.'
 }
