@@ -23,7 +23,7 @@ describe('AppShell ≤680 density', () => {
   })
 })
 
-describe('AppSidebar Beautiful UI adoption', () => {
+describe('AppSidebar pattern adoption', () => {
   test('renders primary destinations through WorkspaceNavigation without changing selection callbacks', async () => {
     const user = userEvent.setup()
     const onPrimaryViewChange = vi.fn()
