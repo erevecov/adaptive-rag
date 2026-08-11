@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from time import monotonic
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from sqlalchemy import Connection, Engine, inspect
@@ -468,13 +469,18 @@ def _run_next_general_worker(
     sparse_embedding_provider: SparseEmbeddingProvider | None,
     contextualizer: Contextualizer | None,
 ) -> IngestionRunReport:
+    monotonic_start = monotonic()
+
+    def advancing_now() -> datetime:
+        return now + timedelta(seconds=monotonic() - monotonic_start)
+
     factory = create_session_factory(_session_engine(session))
     registry = build_ingestion_registry(
         session_factory=factory,
         dense_embedding_provider=dense_embedding_provider,
         sparse_embedding_provider=sparse_embedding_provider,
         contextualizer=contextualizer,
-        lease_seconds=lease_seconds,
+        lease_seconds=max(15, lease_seconds),
     )
     report = JobWorker(
         session_factory=factory,
@@ -482,7 +488,7 @@ def _run_next_general_worker(
         queue_names=("ingestion",),
         worker_id=uuid5(NAMESPACE_URL, f"adaptive-rag-worker:{worker_id}"),
         workspace_id=workspace_id,
-        now_source=lambda: now,
+        now_source=advancing_now,
     ).run_once_sync()
     return _ingestion_report_from_worker(
         report=report,

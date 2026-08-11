@@ -118,7 +118,12 @@ def redact_secret_keys(value: object) -> object:
 
 
 def redact_error_message(value: object) -> object:
-    return truncate_utf8(str(value), limit_bytes=MAX_SAFE_ERROR_BYTES)
+    message = (
+        value.public_message
+        if isinstance(value, JobPlatformError)
+        else "job handler failed; see trace ID"
+    )
+    return truncate_utf8(message, limit_bytes=MAX_SAFE_ERROR_BYTES)
 
 
 def truncate_utf8(value: str, *, limit_bytes: int) -> str:

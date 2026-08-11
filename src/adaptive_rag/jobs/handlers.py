@@ -49,7 +49,7 @@ def build_ingestion_registry(
     dense_embedding_provider: DenseEmbeddingProvider | None = None,
     sparse_embedding_provider: SparseEmbeddingProvider | None = None,
     contextualizer: Contextualizer | None = None,
-    lease_seconds: int = 300,
+    lease_seconds: int | None = None,
 ) -> JobRegistry:
     registry = JobRegistry()
 

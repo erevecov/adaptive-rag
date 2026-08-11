@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, SecretStr
 
 from adaptive_rag.jobs import (
     ConcurrencyPolicy,
+    InvalidJobResultError,
     JobHandlerDefinition,
     JobPayloadTooLargeError,
     JobRegistry,
@@ -113,6 +114,14 @@ def test_registry_redacts_results_before_enforcing_the_persisted_limit() -> None
     }
     with pytest.raises(JobResultTooLargeError):
         registry.validate_result("echo", 1, {"data": "x" * (64 * 1024)})
+
+
+def test_registry_classifies_non_json_results_as_permanent_validation_errors() -> None:
+    registry = JobRegistry()
+    registry.register(echo_definition())
+
+    with pytest.raises(InvalidJobResultError):
+        registry.validate_result("echo", 1, {"not_json": object()})
 
 
 @pytest.mark.parametrize(

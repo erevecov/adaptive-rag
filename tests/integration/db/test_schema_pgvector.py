@@ -56,6 +56,7 @@ def test_job_platform_migration_backfills_existing_jobs(
     run_alembic_upgrade(pg_url, target="n4o5p6q7r8s9")
     workspace_id = uuid4()
     job_id = uuid4()
+    running_job_id = uuid4()
     with pg_engine.begin() as connection:
         connection.execute(
             text("INSERT INTO workspaces (id, name) VALUES (:id, 'legacy-jobs')"),
@@ -71,6 +72,17 @@ def test_job_platform_migration_backfills_existing_jobs(
             ),
             {"id": job_id, "workspace_id": workspace_id},
         )
+        connection.execute(
+            text(
+                "INSERT INTO jobs "
+                "(id, workspace_id, job_type, status, payload_json, attempts, "
+                "max_attempts, locked_by, locked_until) VALUES "
+                "(:id, :workspace_id, 'ingest_source', 'running', "
+                "CAST('{}' AS jsonb), 1, 3, 'legacy-worker', "
+                "now() + interval '5 minutes')"
+            ),
+            {"id": running_job_id, "workspace_id": workspace_id},
+        )
 
     run_alembic_upgrade(pg_url)
 
@@ -85,6 +97,28 @@ def test_job_platform_migration_backfills_existing_jobs(
         queue_names = set(
             connection.execute(text("SELECT name FROM job_queues")).scalars()
         )
+        recovered = connection.execute(
+            text(
+                "SELECT status, current_attempt_id, locked_by, locked_until, "
+                "last_error_code FROM jobs WHERE id=:id"
+            ),
+            {"id": running_job_id},
+        ).mappings().one()
+        recovered_attempt = connection.execute(
+            text(
+                "SELECT status, error_code FROM job_attempts WHERE job_id=:id"
+            ),
+            {"id": running_job_id},
+        ).mappings().one()
+        recovered_events = list(
+            connection.execute(
+                text(
+                    "SELECT event_type FROM job_events WHERE job_id=:id "
+                    "ORDER BY created_at, id"
+                ),
+                {"id": running_job_id},
+            ).scalars()
+        )
 
     assert dict(row) == {
         "id": job_id,
@@ -96,6 +130,18 @@ def test_job_platform_migration_backfills_existing_jobs(
         "max_retries": 2,
     }
     assert queue_names == {"default", "ingestion", "system"}
+    assert dict(recovered) == {
+        "status": "queued",
+        "current_attempt_id": None,
+        "locked_by": None,
+        "locked_until": None,
+        "last_error_code": "legacy_attempt_recovered",
+    }
+    assert dict(recovered_attempt) == {
+        "status": "expired",
+        "error_code": "legacy_attempt_recovered",
+    }
+    assert recovered_events[-1] == "expired"
 
 
 def vector_literal(dimensions: int) -> str:

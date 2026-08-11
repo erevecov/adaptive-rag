@@ -25,6 +25,7 @@ def test_compose_includes_frontend_and_migration_docs() -> None:
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
     assert "frontend:" in compose
     assert "alembic upgrade head" in compose
+    assert compose.count("ADAPTIVE_RAG_JOB_DATABASE_URL") >= 3
     assert (ROOT / "frontend" / "Dockerfile").is_file()
     assert (ROOT / "frontend" / "nginx.conf").is_file()
 

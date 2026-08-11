@@ -40,6 +40,7 @@ class ClaimedJob:
     retry_count: int
     max_retries: int
     lease_expires_at: datetime
+    lease_seconds: int
 
 
 class JobDispatcher:
@@ -126,6 +127,7 @@ class JobDispatcher:
                 retry_count=claim.retry_count,
                 max_retries=claim.max_retries,
                 lease_expires_at=claim.lease_expires_at,
+                lease_seconds=claim.lease_seconds,
             )
         return None
 

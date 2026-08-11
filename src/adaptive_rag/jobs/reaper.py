@@ -10,6 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Job, JobAttempt, JobEvent
+from adaptive_rag.jobs.errors import UnknownJobHandlerError
 from adaptive_rag.jobs.registry import JobRegistry
 from adaptive_rag.jobs.types import retry_delay_seconds
 
@@ -64,15 +65,25 @@ class JobReaper:
             job.last_error_code = "attempt_expired"
             job.last_error_message = "attempt lease expired"
             if job.retry_count <= job.max_retries:
-                definition = self._registry.get(job.job_type, job.handler_version)
-                delay = retry_delay_seconds(
-                    definition.retry_policy,
-                    job.retry_count - 1,
-                    random_value=self._random_source(),
-                )
-                job.status = "queued"
-                job.run_after = now + timedelta(seconds=delay)
-                job.finished_at = None
+                try:
+                    definition = self._registry.get(
+                        job.job_type, job.handler_version
+                    )
+                except UnknownJobHandlerError:
+                    job.status = "blocked"
+                    job.last_error = "handler version is not available"
+                    job.last_error_code = "unsupported_handler_version"
+                    job.last_error_message = "handler version is not available"
+                    job.finished_at = None
+                else:
+                    delay = retry_delay_seconds(
+                        definition.retry_policy,
+                        job.retry_count - 1,
+                        random_value=self._random_source(),
+                    )
+                    job.status = "queued"
+                    job.run_after = now + timedelta(seconds=delay)
+                    job.finished_at = None
             else:
                 job.status = "dead_letter"
                 job.finished_at = now
@@ -82,8 +93,8 @@ class JobReaper:
             job.version += 1
             attempt.status = "expired"
             attempt.finished_at = now
-            attempt.error_code = "attempt_expired"
-            attempt.error_message = "attempt lease expired"
+            attempt.error_code = job.last_error_code
+            attempt.error_message = job.last_error_message
             self._session.add(
                 JobEvent(
                     scope=job.scope,

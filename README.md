@@ -84,8 +84,7 @@ citado se ejecuta con runtime settings persistidos.
 El paquete local usa Postgres con pgvector y la API FastAPI:
 
 ```bash
-docker compose up --build postgres api
-docker compose run --rm api alembic upgrade head
+docker compose up --build postgres migrate api
 curl http://localhost:8000/health
 ```
 
@@ -103,7 +102,7 @@ En Docker Compose:
 
 ```bash
 docker compose --profile worker up worker
-docker compose up scheduler
+docker compose up migrate scheduler
 ```
 
 El scheduler materializa cron durable para jobs registrados, incluido el sync

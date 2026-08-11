@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Job, JobEvent, JobQueue, JobSchedule
@@ -335,24 +335,46 @@ class JobScheduleService:
         expected_version: int,
     ) -> JobSchedule:
         self._validate_scope(scope=scope, workspace_id=workspace_id)
+        statement = update(JobSchedule).where(
+            JobSchedule.id == schedule_id,
+            JobSchedule.scope == scope,
+            JobSchedule.archived_at.is_(None),
+            JobSchedule.version == expected_version,
+        )
+        if scope == "workspace":
+            statement = statement.where(JobSchedule.workspace_id == workspace_id)
+        else:
+            statement = statement.where(JobSchedule.workspace_id.is_(None))
+        updated = self._session.execute(
+            statement
+            .values(version=JobSchedule.version + 1)
+            .returning(JobSchedule.id)
+            .execution_options(synchronize_session="fetch")
+        ).scalar_one_or_none()
+        if updated is None:
+            schedule = self._repository.get_scoped(
+                schedule_id=schedule_id,
+                scope=scope,
+                workspace_id=workspace_id,
+            )
+            if schedule is None:
+                raise JobNotFoundError(f"Schedule not found: {schedule_id}")
+            if schedule.archived_at is not None:
+                raise JobStateConflictError("Schedule is archived")
+            raise JobStateConflictError("Schedule version changed")
         schedule = self._repository.get_scoped(
             schedule_id=schedule_id,
             scope=scope,
             workspace_id=workspace_id,
         )
-        if schedule is None:
+        if schedule is None:  # pragma: no cover - protected by the UPDATE target
             raise JobNotFoundError(f"Schedule not found: {schedule_id}")
-        if schedule.archived_at is not None:
-            raise JobStateConflictError("Schedule is archived")
-        if schedule.version != expected_version:
-            raise JobStateConflictError("Schedule version changed")
         return schedule
 
     @staticmethod
     def _touch(*, schedule: JobSchedule, actor: JobActor) -> None:
         schedule.updated_by_actor_type = actor.actor_type
         schedule.updated_by_actor_id = actor.actor_id
-        schedule.version += 1
 
     @staticmethod
     def _validate_scope(*, scope: JobScope, workspace_id: UUID | None) -> None:

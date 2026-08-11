@@ -10,6 +10,8 @@ from pydantic import BaseModel
 
 from adaptive_rag.db.models.user import WORKSPACE_ROLE_VALUES
 from adaptive_rag.jobs.errors import (
+    InvalidJobResultError,
+    JobPlatformError,
     JobResultTooLargeError,
     UnknownJobHandlerError,
 )
@@ -45,7 +47,7 @@ class JobHandlerDefinition:
     queue_name: str
     default_priority: int = 0
     retry_policy: RetryPolicy = field(default_factory=RetryPolicy)
-    lease_seconds: int = 300
+    lease_seconds: int | None = None
     concurrency: ConcurrencyPolicy = field(default_factory=ConcurrencyPolicy)
     concurrency_key: ConcurrencyKeyFactory | None = None
     allowed_scopes: frozenset[JobScope] = frozenset({"workspace"})
@@ -97,12 +99,17 @@ class JobRegistry:
 
     def validate_result(self, name: str, version: int, result: object) -> object:
         definition = self.get(name, version)
-        redacted = definition.redact_result(result)
-        ensure_json_size(
-            redacted,
-            limit_bytes=MAX_RESULT_BYTES,
-            error_type=JobResultTooLargeError,
-        )
+        try:
+            redacted = definition.redact_result(result)
+            ensure_json_size(
+                redacted,
+                limit_bytes=MAX_RESULT_BYTES,
+                error_type=JobResultTooLargeError,
+            )
+        except JobPlatformError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - normalize plugin output failures
+            raise InvalidJobResultError("job result validation failed") from exc
         return redacted
 
     def manual_definitions(
@@ -129,7 +136,9 @@ class JobRegistry:
             raise ValueError("Handler version must be positive")
         if not -1000 <= definition.default_priority <= 1000:
             raise ValueError("Handler priority must be within [-1000, 1000]")
-        if not 15 <= definition.lease_seconds <= 3600:
+        if definition.lease_seconds is not None and not (
+            15 <= definition.lease_seconds <= 3600
+        ):
             raise ValueError("Handler lease must be within [15, 3600] seconds")
         policy = definition.retry_policy
         if not 0 <= policy.max_retries <= 25:

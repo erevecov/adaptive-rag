@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from threading import Barrier
 from uuid import UUID, uuid4
 
@@ -143,6 +143,71 @@ def test_claim_is_committed_before_handler_work(
         assert observed is not None
         assert observed.status == "running"
         assert observed.current_attempt_id == claim.attempt_id
+
+
+def test_queue_default_lease_applies_to_handlers_using_platform_default(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="default_lease_echo",
+            version=1,
+            payload_model=EchoPayload,
+            handler=_echo,
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        queue = session.get(JobQueue, "default")
+        assert queue is not None
+        queue.default_lease_seconds = 90
+        session.commit()
+    _enqueue_ready_job(
+        job_session_factory,
+        registry,
+        job_type="default_lease_echo",
+    )
+
+    claim = _claim_and_commit(job_session_factory, registry, worker_id=uuid4())
+
+    assert claim is not None
+    assert claim.lease_seconds == 90
+    assert claim.lease_expires_at == NOW + timedelta(seconds=90)
+
+
+def test_explicit_300_second_handler_lease_does_not_inherit_queue_default(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="explicit_lease_echo",
+            version=1,
+            payload_model=EchoPayload,
+            handler=_echo,
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+            lease_seconds=300,
+        )
+    )
+    with job_session_factory() as session:
+        queue = session.get(JobQueue, "default")
+        assert queue is not None
+        queue.default_lease_seconds = 15
+        session.commit()
+    _enqueue_ready_job(
+        job_session_factory,
+        registry,
+        job_type="explicit_lease_echo",
+    )
+
+    claim = _claim_and_commit(job_session_factory, registry, worker_id=uuid4())
+
+    assert claim is not None
+    assert claim.lease_seconds == 300
+    assert claim.lease_expires_at == NOW + timedelta(seconds=300)
 
 
 def test_claims_round_robin_across_scopes(

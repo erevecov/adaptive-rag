@@ -98,3 +98,40 @@ def test_worker_batch_respects_local_concurrency() -> None:
         assert len(reports) == 3
 
     asyncio.run(scenario())
+
+
+def test_attempt_heartbeat_is_capped_below_the_handler_lease() -> None:
+    registry = build_ingestion_registry(
+        session_factory=lambda: None,  # type: ignore[arg-type]
+        lease_seconds=15,
+    )
+    worker = JobWorker(
+        session_factory=lambda: None,  # type: ignore[arg-type]
+        registry=registry,
+        queue_names=("ingestion",),
+        heartbeat_interval_seconds=30,
+    )
+
+    assert worker._attempt_heartbeat_interval(15) == 5.0
+
+
+def test_worker_slot_contains_unexpected_failures() -> None:
+    async def scenario() -> None:
+        worker = JobWorker(
+            session_factory=lambda: None,  # type: ignore[arg-type]
+            registry=build_ingestion_registry(
+                session_factory=lambda: None  # type: ignore[arg-type]
+            ),
+            queue_names=("default",),
+        )
+
+        async def fail() -> WorkerRunReport:
+            raise RuntimeError("slot failed")
+
+        worker.run_once = fail  # type: ignore[method-assign]
+
+        report = await worker._run_slot_once()
+
+        assert report.status == "worker_error"
+
+    asyncio.run(scenario())

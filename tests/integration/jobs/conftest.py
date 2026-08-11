@@ -59,12 +59,19 @@ def isolate_job_platform_test(job_engine: Engine) -> Iterator[None]:
         connection.execute(text("DELETE FROM job_events"))
         connection.execute(text("DELETE FROM job_attempts"))
         connection.execute(text("DELETE FROM jobs"))
+        connection.execute(
+            text(
+                "DELETE FROM job_schedules WHERE id != "
+                "'00000000-0000-0000-0000-000000000701'"
+            )
+        )
         connection.execute(text("DELETE FROM job_queue_workspace_state"))
         connection.execute(text("DELETE FROM workspaces"))
         connection.execute(
             text(
                 "UPDATE job_queues SET paused_at = NULL, "
                 "global_concurrency_limit = NULL, "
-                "workspace_concurrency_limit = NULL"
+                "workspace_concurrency_limit = NULL, "
+                "default_lease_seconds = 300"
             )
         )

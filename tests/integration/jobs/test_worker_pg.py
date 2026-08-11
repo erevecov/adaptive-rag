@@ -3,18 +3,27 @@
 from __future__ import annotations
 
 import asyncio
+import subprocess
+import sys
+import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from threading import Barrier, Event, Lock, get_ident
 from uuid import uuid4
 
+import pytest
 from pydantic import BaseModel, ConfigDict
 from sqlalchemy import select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
-from adaptive_rag.db.models import Job, JobAttempt
+from adaptive_rag.db.models import Job, JobAttempt, JobEvent
 from adaptive_rag.db.models import JobWorker as JobWorkerPresence
 from adaptive_rag.db.repositories import SourceRepository, WorkspaceRepository
-from adaptive_rag.ingestion_ops import enqueue_source_ingestion
+from adaptive_rag.db.repositories.job_runtime import JobRuntimeRepository
+from adaptive_rag.ingestion_ops import enqueue_source_ingestion, run_next_ingestion_job
 from adaptive_rag.jobs import (
+    BlockedJobError,
     JobContext,
     JobHandlerDefinition,
     JobRegistry,
@@ -146,6 +155,43 @@ def test_general_worker_runs_ingestion_handler_and_enqueues_indexing(
         assert indexing_job.status == "queued"
 
 
+def test_legacy_one_second_lease_maps_to_the_internal_minimum(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    with job_session_factory() as session:
+        workspace = WorkspaceRepository(session).create(name="legacy-short-lease")
+        source = SourceRepository(session).create(
+            workspace_id=workspace.id,
+            source_type="markdown",
+            external_id="legacy-short-lease.md",
+            extra_metadata={"content": "# Short lease"},
+        )
+        job = enqueue_source_ingestion(
+            session,
+            workspace_id=workspace.id,
+            source_id=source.id,
+        )
+        job.run_after = NOW
+        session.commit()
+        workspace_id = workspace.id
+        job_id = job.id
+
+    with job_session_factory() as session:
+        report = run_next_ingestion_job(
+            session,
+            workspace_id=workspace_id,
+            worker_id="legacy-one-second",
+            lease_seconds=1,
+            now=NOW,
+        )
+
+    with job_session_factory() as session:
+        attempt = session.scalar(select(JobAttempt).where(JobAttempt.job_id == job_id))
+        assert attempt is not None
+        assert attempt.lease_expires_at - attempt.started_at == timedelta(seconds=15)
+        assert report.status == "processed"
+
+
 def test_ingestion_enqueue_uses_platform_idempotency_on_postgresql(
     job_session_factory: sessionmaker[Session],
 ) -> None:
@@ -242,7 +288,9 @@ def test_worker_workspace_filter_does_not_claim_other_workspaces(
         assert session.get(Job, second_job_id).status == "queued"
 
 
+@pytest.mark.parametrize("heartbeat_failure", ["lost_fence", "database_error"])
 def test_worker_refuses_completion_after_heartbeat_loses_fence(
+    heartbeat_failure: str,
     job_session_factory: sessionmaker[Session],
 ) -> None:
     async def scenario() -> None:
@@ -288,7 +336,13 @@ def test_worker_refuses_completion_after_heartbeat_loses_fence(
             now_source=lambda: NOW,
             heartbeat_interval_seconds=0.01,
         )
-        worker._heartbeat_once = lambda _claim: False  # type: ignore[method-assign]
+        if heartbeat_failure == "database_error":
+            def fail_heartbeat(_claim):  # type: ignore[no-untyped-def]
+                raise SQLAlchemyError("database unavailable")
+
+            worker._heartbeat_once = fail_heartbeat  # type: ignore[method-assign]
+        else:
+            worker._heartbeat_once = lambda _claim: False  # type: ignore[method-assign]
 
         report = await asyncio.wait_for(worker.run_once(), timeout=10)
 
@@ -331,6 +385,592 @@ def test_worker_presence_progresses_live_draining_shutdown(
             assert presence.shutdown_at is not None
 
     asyncio.run(scenario())
+
+
+def test_worker_presence_heartbeats_while_a_handler_is_running(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    async def scenario() -> None:
+        entered = asyncio.Event()
+        release = asyncio.Event()
+
+        async def handler(
+            _context: JobContext,
+            payload: BlockingPayload,
+        ) -> dict[str, str]:
+            entered.set()
+            await release.wait()
+            return {"value": payload.value}
+
+        registry = JobRegistry()
+        registry.register(
+            JobHandlerDefinition(
+                name="presence_heartbeat_worker",
+                version=1,
+                payload_model=BlockingPayload,
+                handler=handler,
+                queue_name="default",
+                allowed_scopes=frozenset({"system"}),
+                lease_seconds=60,
+            )
+        )
+        with job_session_factory() as session:
+            JobService(session=session, registry=registry).enqueue(
+                EnqueueJobRequest.system(
+                    job_type="presence_heartbeat_worker",
+                    payload={"value": "done"},
+                )
+            )
+            session.commit()
+
+        worker = JobWorker(
+            session_factory=job_session_factory,
+            registry=registry,
+            queue_names=("default",),
+            presence_heartbeat_interval_seconds=0.01,
+        )
+        task = asyncio.create_task(worker.run(poll_interval_seconds=0.01))
+        await asyncio.wait_for(entered.wait(), timeout=10)
+        with job_session_factory() as observer:
+            initial = observer.get(JobWorkerPresence, worker.worker_id)
+            assert initial is not None
+            initial_heartbeat = initial.heartbeat_at
+
+        for _index in range(500):
+            with job_session_factory() as observer:
+                heartbeat = observer.scalar(
+                    select(JobWorkerPresence.heartbeat_at).where(
+                        JobWorkerPresence.id == worker.worker_id
+                    )
+                )
+            if heartbeat is not None and heartbeat > initial_heartbeat:
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("worker presence did not heartbeat during the handler")
+
+        release.set()
+        worker.request_shutdown()
+        await asyncio.wait_for(task, timeout=10)
+
+    asyncio.run(scenario())
+
+
+def test_worker_supervisor_contains_presence_database_failures(
+    job_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = JobRegistry()
+    worker = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        presence_heartbeat_interval_seconds=0.01,
+        presence_retry_delay_seconds=0,
+    )
+
+    def unavailable() -> None:
+        raise SQLAlchemyError("presence database unavailable")
+
+    monkeypatch.setattr(worker, "_register_presence", unavailable)
+    monkeypatch.setattr(worker, "_heartbeat_presence", unavailable)
+    monkeypatch.setattr(worker, "_mark_presence_draining", unavailable)
+    monkeypatch.setattr(worker, "_mark_presence_shutdown", unavailable)
+
+    async def scenario() -> None:
+        task = asyncio.create_task(worker.run(poll_interval_seconds=0.01))
+        await asyncio.sleep(0.05)
+        worker.request_shutdown()
+        await asyncio.wait_for(task, timeout=2)
+
+    asyncio.run(scenario())
+
+
+def test_worker_registers_presence_after_initial_database_failure(
+    job_session_factory: sessionmaker[Session],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    worker = JobWorker(
+        session_factory=job_session_factory,
+        registry=JobRegistry(),
+        queue_names=("default",),
+        presence_heartbeat_interval_seconds=0.01,
+        presence_retry_delay_seconds=0,
+    )
+    original_register = worker._register_presence
+    attempts = 0
+
+    def initially_unavailable() -> None:
+        nonlocal attempts
+        attempts += 1
+        if attempts <= 3:
+            raise SQLAlchemyError("database unavailable during startup")
+        original_register()
+
+    monkeypatch.setattr(worker, "_register_presence", initially_unavailable)
+
+    async def scenario() -> None:
+        task = asyncio.create_task(worker.run(poll_interval_seconds=0.01))
+        for _index in range(200):
+            with job_session_factory() as observer:
+                presence = observer.get(JobWorkerPresence, worker.worker_id)
+            if presence is not None:
+                break
+            await asyncio.sleep(0.01)
+        else:
+            raise AssertionError("worker did not register after database recovery")
+        worker.request_shutdown()
+        await asyncio.wait_for(task, timeout=2)
+
+    asyncio.run(scenario())
+    assert attempts >= 4
+
+
+def test_sigterm_bounds_drain_for_a_blocked_synchronous_handler(
+    job_database_url: str,
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="blocking_sync_shutdown",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, payload: {"value": payload.value},
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+            lease_seconds=15,
+        )
+    )
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="blocking_sync_shutdown",
+                payload={"value": "never-finished"},
+                run_after=datetime.now(UTC),
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+
+    helper = Path(__file__).with_name("_blocking_sync_worker_process.py")
+    process = subprocess.Popen(
+        [sys.executable, str(helper), job_database_url],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    try:
+        for _index in range(200):
+            with job_session_factory() as observer:
+                status = observer.scalar(select(Job.status).where(Job.id == job_id))
+            if status == "running":
+                break
+            if process.poll() is not None:
+                stdout, stderr = process.communicate()
+                raise AssertionError(
+                    f"worker exited before claim\nSTDOUT:\n{stdout}\nSTDERR:\n{stderr}"
+                )
+            time.sleep(0.05)
+        else:
+            raise AssertionError("synchronous handler did not start")
+
+        started = time.monotonic()
+        process.terminate()
+        return_code = process.wait(timeout=5)
+        elapsed = time.monotonic() - started
+
+        assert return_code == 0
+        assert elapsed < 3
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+
+
+def test_detached_sync_handler_is_fenced_and_retains_local_capacity(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    entered = Event()
+    observed_fence = Event()
+    release = Event()
+
+    def handler(context: JobContext, payload: BlockingPayload) -> object:
+        if payload.value == "first":
+            entered.set()
+            for _index in range(500):
+                if not context.is_lease_healthy():
+                    observed_fence.set()
+                    break
+                time.sleep(0.01)
+            release.wait(timeout=10)
+        return {"value": payload.value}
+
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="detached_capacity",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=handler,
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+            lease_seconds=15,
+        )
+    )
+    with job_session_factory() as session:
+        first = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="detached_capacity",
+                payload={"value": "first"},
+                run_after=datetime.now(UTC) - timedelta(seconds=1),
+            )
+        ).job
+        second = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="detached_capacity",
+                payload={"value": "second"},
+                run_after=datetime.now(UTC),
+            )
+        ).job
+        session.commit()
+        first_id = first.id
+        second_id = second.id
+
+    worker = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        max_concurrency=1,
+    )
+
+    async def scenario() -> None:
+        task = asyncio.create_task(
+            worker.run(poll_interval_seconds=0.01, drain_timeout_seconds=0.05)
+        )
+        started = await asyncio.to_thread(entered.wait, 5)
+        assert started is True
+        worker.request_shutdown()
+        await asyncio.wait_for(task, timeout=2)
+
+    asyncio.run(scenario())
+
+    assert observed_fence.wait(timeout=2) is True
+    capacity_report = worker.run_once_sync()
+    assert capacity_report.status == "local_capacity"
+    with job_session_factory() as session:
+        assert session.get(Job, first_id).status == "running"
+        assert session.get(Job, second_id).status == "queued"
+
+    release.set()
+    for _index in range(200):
+        report = worker.run_once_sync()
+        if report.status != "local_capacity":
+            break
+        time.sleep(0.01)
+    else:
+        raise AssertionError("detached handler did not release local capacity")
+    assert report.status == "succeeded"
+    assert report.job_id == second_id
+
+
+def test_worker_rotates_queue_priority_across_committed_claims(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="worker_queue_rotation",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, payload: {"value": payload.value},
+            queue_name="ingestion",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        service = JobService(session=session, registry=registry)
+        for index in range(3):
+            service.enqueue(
+                EnqueueJobRequest.system(
+                    job_type="worker_queue_rotation",
+                    payload={"value": f"ingestion-{index}"},
+                    queue_name="ingestion",
+                    run_after=NOW,
+                )
+            )
+        service.enqueue(
+            EnqueueJobRequest.system(
+                job_type="worker_queue_rotation",
+                payload={"value": "system"},
+                queue_name="system",
+                run_after=NOW,
+            )
+        )
+        session.commit()
+
+    worker = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("ingestion", "system"),
+        now_source=lambda: NOW,
+    )
+
+    first = worker.run_once_sync()
+    second = worker.run_once_sync()
+
+    assert first.result == {"value": "ingestion-0"}
+    assert second.result == {"value": "system"}
+
+
+def test_concurrent_rotated_claims_do_not_deadlock_queue_rows(
+    job_session_factory: sessionmaker[Session],
+    monkeypatch,
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="deadlock_probe",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, payload: {"value": payload.value},
+            queue_name="ingestion",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    barrier = Barrier(2)
+    guard = Lock()
+    synchronized_threads: set[int] = set()
+    original = JobRuntimeRepository.claim_from_queue
+
+    def synchronized_first_queue(self, **kwargs):  # type: ignore[no-untyped-def]
+        result = original(self, **kwargs)
+        thread_id = get_ident()
+        with guard:
+            first_for_thread = thread_id not in synchronized_threads
+            synchronized_threads.add(thread_id)
+        if first_for_thread:
+            barrier.wait(timeout=10)
+        return result
+
+    monkeypatch.setattr(
+        JobRuntimeRepository,
+        "claim_from_queue",
+        synchronized_first_queue,
+    )
+    worker = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("ingestion", "system"),
+        max_concurrency=2,
+        now_source=lambda: NOW,
+    )
+
+    reports = asyncio.run(asyncio.wait_for(worker._run_batch_once(), timeout=10))
+
+    assert [report.status for report in reports] == ["idle", "idle"]
+
+
+def test_secret_bearing_handler_error_is_safely_finalized(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    def handler(_context: JobContext, _payload: BlockingPayload) -> object:
+        raise RuntimeError("password=do-not-persist token=also-secret")
+
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="secret_failure",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=handler,
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="secret_failure",
+                payload={"value": "fail"},
+                run_after=NOW,
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+
+    report = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        now_source=lambda: NOW,
+    ).run_once_sync()
+
+    with job_session_factory() as session:
+        job = session.get(Job, job_id)
+        attempt = session.scalar(select(JobAttempt).where(JobAttempt.job_id == job_id))
+        events = list(
+            session.scalars(select(JobEvent).where(JobEvent.job_id == job_id))
+        )
+        assert job is not None
+        assert attempt is not None
+        persisted = " ".join(
+            message
+            for message in (
+                job.last_error_message,
+                attempt.error_message,
+                *(event.message for event in events),
+            )
+            if message is not None
+        )
+        assert "do-not-persist" not in persisted
+        assert "also-secret" not in persisted
+        assert job.last_trace_id is not None
+        assert attempt.trace_id == job.last_trace_id
+        assert report.status == "retry_scheduled"
+        assert report.error_message == job.last_error_message
+
+
+def test_worker_report_exposes_only_the_persisted_redacted_result(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="secret_result",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, _payload: {
+                "api_key": "raw-secret",
+                "value": "safe",
+            },
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="secret_result",
+                payload={"value": "run"},
+                run_after=NOW,
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+
+    report = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        now_source=lambda: NOW,
+    ).run_once_sync()
+
+    with job_session_factory() as session:
+        job = session.get(Job, job_id)
+        assert job is not None
+        assert job.result_json == {"api_key": "[REDACTED]", "value": "safe"}
+        assert report.result == job.result_json
+
+
+def test_expected_platform_error_diagnostic_is_not_persisted(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    def handler(_context: JobContext, _payload: BlockingPayload) -> object:
+        raise BlockedJobError("signed_url=https://example.test?token=raw-secret")
+
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="unsafe_blocked_failure",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=handler,
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="unsafe_blocked_failure",
+                payload={"value": "fail"},
+                run_after=NOW,
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+
+    report = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        now_source=lambda: NOW,
+    ).run_once_sync()
+
+    with job_session_factory() as session:
+        job = session.get(Job, job_id)
+        attempt = session.scalar(select(JobAttempt).where(JobAttempt.job_id == job_id))
+        events = list(
+            session.scalars(select(JobEvent).where(JobEvent.job_id == job_id))
+        )
+        assert job is not None
+        assert attempt is not None
+        persisted = " ".join(
+            value
+            for value in (
+                job.last_error_message,
+                attempt.error_message,
+                *(event.message for event in events),
+            )
+            if value is not None
+        )
+        assert "raw-secret" not in persisted
+        assert "signed_url" not in persisted
+        assert job.last_error_code == "job_blocked"
+        assert report.status == "blocked"
+        assert report.error_message == "job is blocked; see trace ID"
+
+
+def test_oversized_result_does_not_escape_or_leave_the_job_running(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = JobRegistry()
+    registry.register(
+        JobHandlerDefinition(
+            name="oversized_result",
+            version=1,
+            payload_model=BlockingPayload,
+            handler=lambda _context, _payload: {"value": "x" * (65 * 1024)},
+            queue_name="default",
+            allowed_scopes=frozenset({"system"}),
+        )
+    )
+    with job_session_factory() as session:
+        job = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type="oversized_result",
+                payload={"value": "fail"},
+                run_after=NOW,
+            )
+        ).job
+        session.commit()
+        job_id = job.id
+
+    report = JobWorker(
+        session_factory=job_session_factory,
+        registry=registry,
+        queue_names=("default",),
+        now_source=lambda: NOW,
+    ).run_once_sync()
+
+    with job_session_factory() as session:
+        job = session.get(Job, job_id)
+        assert job is not None
+        assert job.status == "dead_letter"
+        assert job.current_attempt_id is None
+        assert job.last_error_code == "job_result_too_large"
+        assert report.status == "dead_letter"
 
 
 def test_daemon_worker_reaps_expired_attempt_before_claiming_again(

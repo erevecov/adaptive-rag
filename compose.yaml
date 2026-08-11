@@ -1,7 +1,5 @@
 # Local all-in-one demo stack.
-# 1) docker compose up --build postgres api
-# 2) docker compose exec api uv run alembic upgrade head
-# 3) docker compose up --build frontend
+# 1) docker compose up --build postgres migrate api frontend
 # nginx serves the static build at http://localhost:5173; the browser calls the
 # API directly at the base URL baked into the build (default
 # http://localhost:8000, allowed by API CORS). Override at build time with
@@ -30,11 +28,26 @@ services:
       - .env.example
     environment:
       ADAPTIVE_RAG_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
+      ADAPTIVE_RAG_JOB_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
     command: ["uvicorn", "adaptive_rag.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"
     volumes:
       - ./artifacts:/app/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  migrate:
+    # Fail-closed startup prerequisite: uv run alembic upgrade head
+    build: .
+    env_file:
+      - .env.example
+    environment:
+      ADAPTIVE_RAG_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
+    command: ["uv", "run", "alembic", "upgrade", "head"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -69,6 +82,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
   # Global in-app scheduler (provider model pricing daily, etc.).
   # Not host crontab: runs inside the product stack with DB-backed leases.
@@ -88,6 +103,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
 
 volumes:
   adaptive_rag_pgdata:

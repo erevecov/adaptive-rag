@@ -7,11 +7,13 @@ from uuid import uuid4
 import pytest
 
 from adaptive_rag.jobs import (
+    BlockedJobError,
     JobCancelled,
     JobContext,
     JobPayloadTooLargeError,
     RetryPolicy,
     ensure_json_size,
+    redact_error_message,
     redact_secret_keys,
     retry_delay_seconds,
     truncate_utf8,
@@ -53,6 +55,17 @@ def test_redaction_is_recursive_and_does_not_mutate_input() -> None:
         "nested": [{"access_token": "[REDACTED]"}, {"safe": "value"}],
     }
     assert raw["api_key"] == "top"
+
+
+def test_expected_errors_require_an_explicit_public_message() -> None:
+    unsafe = BlockedJobError("signed_url=https://example.test?token=raw-secret")
+    safe = BlockedJobError(
+        "internal diagnostic",
+        public_message="source input is not ready",
+    )
+
+    assert redact_error_message(unsafe) == "job is blocked; see trace ID"
+    assert redact_error_message(safe) == "source input is not ready"
 
 
 def test_utf8_truncation_never_splits_a_code_point() -> None:

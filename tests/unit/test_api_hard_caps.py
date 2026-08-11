@@ -24,7 +24,7 @@ def test_run_next_job_accepts_lease_seconds_at_bounds() -> None:
     assert high.lease_seconds == 3600
 
 
-def test_run_next_job_rejects_lease_seconds_below_one() -> None:
+def test_run_next_job_rejects_non_positive_lease_seconds() -> None:
     with pytest.raises(ValidationError) as excinfo:
         RunNextIngestionJobRequestBody(lease_seconds=0)
     assert "lease_seconds" in str(excinfo.value)

@@ -69,6 +69,29 @@ const detail: BackgroundJobDetail = {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  window.history.replaceState(null, '', '/')
+})
+
+test('restores validated job filters from the URL', async () => {
+  window.history.replaceState(null, '', '/?status=blocked&queue=system&limit=25')
+  const client = clientStub()
+
+  render(
+    <JobPlatformPanel
+      activeSubmodule="jobs"
+      apiClient={client}
+      canAdminWorkspace
+      isSuperadmin={false}
+      workspaceId="workspace-1"
+    />,
+  )
+
+  await waitFor(() =>
+    expect(client.listBackgroundJobs).toHaveBeenCalledWith(
+      'workspace-1',
+      expect.objectContaining({ limit: 25, queue: 'system', status: 'blocked' }),
+    ),
+  )
 })
 
 test('filters jobs and opens an event detail drawer', async () => {
@@ -135,6 +158,54 @@ test('admin confirms cancellation while a viewer sees no mutations', async () =>
   )
   await screen.findByRole('button', { name: /index_document_version/i })
   expect(screen.queryByRole('button', { name: /cancel|retry|unblock/i })).toBeNull()
+})
+
+test('dead-letter retry preserves the retry count by default', async () => {
+  const client = clientStub()
+  const dead = { ...job, current_attempt_id: null, status: 'dead_letter' }
+  client.listBackgroundJobs = vi.fn(async () => ({ items: [dead], next_cursor: null }))
+  client.retryBackgroundJob = vi.fn(async () => ({ ...dead, status: 'queued' }))
+  render(
+    <JobPlatformPanel
+      activeSubmodule="jobs"
+      apiClient={client}
+      canAdminWorkspace
+      isSuperadmin={false}
+      workspaceId="workspace-1"
+    />,
+  )
+
+  await userEvent.click(await screen.findByRole('button', { name: 'Retry Job' }))
+  await userEvent.click(screen.getByRole('button', { name: 'Confirm Retry' }))
+
+  expect(client.retryBackgroundJob).toHaveBeenCalledWith('workspace-1', job.id, {
+    reset_retry_count: false,
+    version: job.version,
+  })
+})
+
+test('superadmin can switch the console to system jobs', async () => {
+  const client = clientStub()
+  const systemJob: BackgroundJob = { ...job, scope: 'system', workspace_id: null }
+  client.listAdminBackgroundJobs = vi.fn(async () => ({
+    items: [systemJob],
+    next_cursor: null,
+  }))
+  client.listAdminJobHandlers = vi.fn(async () => [])
+  render(
+    <JobPlatformPanel
+      activeSubmodule="jobs"
+      apiClient={client}
+      canAdminWorkspace
+      isSuperadmin
+      workspaceId="workspace-1"
+    />,
+  )
+
+  await userEvent.click(screen.getByRole('button', { name: 'System' }))
+
+  await waitFor(() => expect(client.listAdminBackgroundJobs).toHaveBeenCalled())
+  expect(await screen.findByRole('button', { name: /index_document_version/i })).toBeTruthy()
 })
 
 test('polls only while visible and removes its timers on unmount', async () => {

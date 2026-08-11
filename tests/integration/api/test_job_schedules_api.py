@@ -58,3 +58,34 @@ def test_stale_schedule_version_returns_conflict() -> None:
     )
 
     assert response.status_code == 409
+
+
+def test_superadmin_controls_system_schedules() -> None:
+    setup = make_job_api_setup()
+    headers = bearer(setup.superadmin_token)
+    url = "/admin/job-schedules"
+
+    created = setup.client.post(
+        url,
+        json={
+            "name": "system pricing refresh",
+            "job_type": "provider_model_pricing_sync",
+            "payload": {},
+            "cron_expression": "0 2 * * *",
+            "timezone": "UTC",
+        },
+        headers=headers,
+    )
+    schedule = created.json()
+    paused = setup.client.post(
+        f"{url}/{schedule['id']}/pause",
+        json={"version": schedule["version"]},
+        headers=headers,
+    )
+    listed = setup.client.get(url, headers=headers)
+
+    assert created.status_code == 201
+    assert schedule["scope"] == "system"
+    assert paused.status_code == 200
+    assert paused.json()["paused_at"] is not None
+    assert schedule["id"] in {item["id"] for item in listed.json()["items"]}

@@ -2,6 +2,7 @@
 
 from adaptive_rag.jobs.errors import (
     BlockedJobError,
+    InvalidJobResultError,
     JobCancelled,
     JobCursorError,
     JobEventMetadataTooLargeError,
@@ -42,6 +43,7 @@ __all__ = [
     "JobCursorError",
     "JobEventMetadataTooLargeError",
     "JobIdempotencyConflictError",
+    "InvalidJobResultError",
     "JobNotFoundError",
     "JobHandlerDefinition",
     "JobPayloadTooLargeError",

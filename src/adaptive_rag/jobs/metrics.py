@@ -40,9 +40,9 @@ class JobMetricsService:
             (queue_name, status): int(count) for queue_name, status, count in grouped
         }
         oldest = {
-            queue_name: created_at
-            for queue_name, created_at in self._session.execute(
-                select(Job.queue_name, func.min(Job.created_at))
+            queue_name: eligible_at
+            for queue_name, eligible_at in self._session.execute(
+                select(Job.queue_name, func.min(Job.run_after))
                 .where(Job.status == "queued", Job.run_after <= now)
                 .group_by(Job.queue_name)
                 .limit(100)
@@ -70,7 +70,7 @@ class JobMetricsService:
                     Job.handler_version,
                     func.count(Job.id),
                 )
-                .where(Job.status == "queued")
+                .where(Job.status == "queued", Job.run_after <= now)
                 .group_by(Job.queue_name, Job.job_type, Job.handler_version)
                 .limit(1000)
             )

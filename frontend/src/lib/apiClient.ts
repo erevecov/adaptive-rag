@@ -1110,6 +1110,45 @@ export type ApiClient = {
       workspace_id?: string | null
     },
   ): Promise<BackgroundJobPage>
+  listAdminJobHandlers(): Promise<JobHandler[]>
+  enqueueAdminBackgroundJob(
+    body: EnqueueBackgroundJobBody,
+  ): Promise<EnqueueBackgroundJobResponse>
+  getAdminBackgroundJob(jobId: string): Promise<BackgroundJobDetail>
+  cancelAdminBackgroundJob(
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  retryAdminBackgroundJob(
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  unblockAdminBackgroundJob(
+    jobId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
+  listAdminJobSchedules(): Promise<JobScheduleListResponse>
+  createAdminJobSchedule(body: CreateJobScheduleBody): Promise<JobSchedule>
+  updateAdminJobSchedule(
+    scheduleId: string,
+    body: UpdateJobScheduleBody,
+  ): Promise<JobSchedule>
+  archiveAdminJobSchedule(
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  pauseAdminJobSchedule(
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  resumeAdminJobSchedule(
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<JobSchedule>
+  runAdminJobScheduleNow(
+    scheduleId: string,
+    body: VersionMutationBody,
+  ): Promise<BackgroundJob>
   listJobQueues(): Promise<JobQueue[]>
   getJobQueue(queueName: string): Promise<JobQueue>
   configureJobQueue(
@@ -1613,6 +1652,94 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       return requestJson<BackgroundJobPage>(fetchImpl, {
         method: 'GET',
         url: url.toString(),
+      })
+    },
+    listAdminJobHandlers() {
+      return requestJson<JobHandler[]>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-handlers`,
+      })
+    },
+    enqueueAdminBackgroundJob(body) {
+      return requestJson<EnqueueBackgroundJobResponse>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/jobs`,
+      })
+    },
+    getAdminBackgroundJob(jobId) {
+      return requestJson<BackgroundJobDetail>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/jobs/${encodePathSegment(jobId)}`,
+      })
+    },
+    cancelAdminBackgroundJob(jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/jobs/${encodePathSegment(jobId)}/cancel`,
+      })
+    },
+    retryAdminBackgroundJob(jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/jobs/${encodePathSegment(jobId)}/retry`,
+      })
+    },
+    unblockAdminBackgroundJob(jobId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/jobs/${encodePathSegment(jobId)}/unblock`,
+      })
+    },
+    listAdminJobSchedules() {
+      return requestJson<JobScheduleListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/admin/job-schedules`,
+      })
+    },
+    createAdminJobSchedule(body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/job-schedules`,
+      })
+    },
+    updateAdminJobSchedule(scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/admin/job-schedules/${encodePathSegment(scheduleId)}`,
+      })
+    },
+    archiveAdminJobSchedule(scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'DELETE',
+        url: `${baseUrl}/admin/job-schedules/${encodePathSegment(scheduleId)}`,
+      })
+    },
+    pauseAdminJobSchedule(scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/job-schedules/${encodePathSegment(scheduleId)}/pause`,
+      })
+    },
+    resumeAdminJobSchedule(scheduleId, body) {
+      return requestJson<JobSchedule>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/job-schedules/${encodePathSegment(scheduleId)}/resume`,
+      })
+    },
+    runAdminJobScheduleNow(scheduleId, body) {
+      return requestJson<BackgroundJob>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/admin/job-schedules/${encodePathSegment(scheduleId)}/run-now`,
       })
     },
     listJobQueues() {

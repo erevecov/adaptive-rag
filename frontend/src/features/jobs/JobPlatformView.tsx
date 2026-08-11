@@ -28,6 +28,7 @@ import {
   tableNumericClass,
 } from '@/components/ui/table'
 import {
+  decodeJobFilters,
   encodeJobFilters,
   jobActions,
   jobStatusLabel,
@@ -85,7 +86,8 @@ export function JobPlatformPanel({
   pollIntervalMs?: number
   workspaceId: string
 }) {
-  const [filters, setFilters] = useState<JobFilters>(DEFAULT_FILTERS)
+  const [filters, setFilters] = useState<JobFilters>(() => initialJobFilters())
+  const [controlScope, setControlScope] = useState<'system' | 'workspace'>('workspace')
   const [jobs, setJobs] = useState<BackgroundJob[]>([])
   const [nextCursor, setNextCursor] = useState<string | null>(null)
   const [cursorHistory, setCursorHistory] = useState<Array<string | null>>([])
@@ -105,6 +107,7 @@ export function JobPlatformPanel({
   const [mutationPending, setMutationPending] = useState(false)
   const refreshGeneration = useRef(0)
   const feedbackTimer = useRef<number | null>(null)
+  const systemScope = isSuperadmin && controlScope === 'system'
 
   const jobParams = useMemo(
     () => ({
@@ -123,6 +126,7 @@ export function JobPlatformPanel({
     setError(null)
     try {
       if (
+        !systemScope &&
         workspaceId.trim().length === 0 &&
         (activeSubmodule === 'jobs' || activeSubmodule === 'schedules')
       ) {
@@ -133,9 +137,13 @@ export function JobPlatformPanel({
       }
       if (activeSubmodule === 'jobs') {
         const [response, handlerRows] = await Promise.all([
-          apiClient.listBackgroundJobs(workspaceId, jobParams),
-          canAdminWorkspace
-            ? apiClient.listJobHandlers(workspaceId)
+          systemScope
+            ? apiClient.listAdminBackgroundJobs({ ...jobParams, scope: 'system' })
+            : apiClient.listBackgroundJobs(workspaceId, jobParams),
+          systemScope
+            ? apiClient.listAdminJobHandlers()
+            : canAdminWorkspace
+              ? apiClient.listJobHandlers(workspaceId)
             : Promise.resolve([]),
         ])
         if (generation !== refreshGeneration.current) return
@@ -144,9 +152,13 @@ export function JobPlatformPanel({
         setHandlers(handlerRows)
       } else if (activeSubmodule === 'schedules') {
         const [response, handlerRows] = await Promise.all([
-          apiClient.listJobSchedules(workspaceId),
-          canAdminWorkspace
-            ? apiClient.listJobHandlers(workspaceId)
+          systemScope
+            ? apiClient.listAdminJobSchedules()
+            : apiClient.listJobSchedules(workspaceId),
+          systemScope
+            ? apiClient.listAdminJobHandlers()
+            : canAdminWorkspace
+              ? apiClient.listJobHandlers(workspaceId)
             : Promise.resolve([]),
         ])
         if (generation !== refreshGeneration.current) return
@@ -181,6 +193,7 @@ export function JobPlatformPanel({
     canAdminWorkspace,
     isSuperadmin,
     jobParams,
+    systemScope,
     workspaceId,
   ])
 
@@ -204,8 +217,10 @@ export function JobPlatformPanel({
   useEffect(() => {
     if (selectedJobId === null) return
     let obsolete = false
-    void apiClient
-      .getBackgroundJob(workspaceId, selectedJobId)
+    const request = systemScope
+      ? apiClient.getAdminBackgroundJob(selectedJobId)
+      : apiClient.getBackgroundJob(workspaceId, selectedJobId)
+    void request
       .then((response) => {
         if (obsolete) return
         setDetail(response)
@@ -219,7 +234,7 @@ export function JobPlatformPanel({
     return () => {
       obsolete = true
     }
-  }, [apiClient, selectedJobId, workspaceId])
+  }, [apiClient, selectedJobId, systemScope, workspaceId])
 
   useEffect(
     () => () => {
@@ -227,6 +242,15 @@ export function JobPlatformPanel({
     },
     [],
   )
+
+  useEffect(() => {
+    const onPopState = () => {
+      setFilters(initialJobFilters())
+      setCursorHistory([])
+    }
+    window.addEventListener('popstate', onPopState)
+    return () => window.removeEventListener('popstate', onPopState)
+  }, [])
 
   function changeFilters(changes: Partial<JobFilters>) {
     const next = { ...filters, ...changes, cursor: null }
@@ -272,7 +296,11 @@ export function JobPlatformPanel({
       await refresh()
       if (selectedJobId !== null) {
         try {
-          setDetail(await apiClient.getBackgroundJob(workspaceId, selectedJobId))
+          setDetail(
+            systemScope
+              ? await apiClient.getAdminBackgroundJob(selectedJobId)
+              : await apiClient.getBackgroundJob(workspaceId, selectedJobId),
+          )
         } catch {
           setSelectedJobId(null)
         }
@@ -286,21 +314,28 @@ export function JobPlatformPanel({
       const { job, kind } = confirmation
       if (kind === 'cancel') {
         void runMutation(
-          () => apiClient.cancelBackgroundJob(workspaceId, job.id, { version: job.version }),
+          () => systemScope
+            ? apiClient.cancelAdminBackgroundJob(job.id, { version: job.version })
+            : apiClient.cancelBackgroundJob(workspaceId, job.id, { version: job.version }),
           'Cancellation requested.',
         )
-      } else if (kind === 'retry') {
+      } else if (kind === 'retry' || kind === 'reset-retry') {
         void runMutation(
           () =>
-            apiClient.retryBackgroundJob(workspaceId, job.id, {
-              reset_retry_count: true,
+            (systemScope ? apiClient.retryAdminBackgroundJob(job.id, {
+              reset_retry_count: kind === 'reset-retry',
               version: job.version,
-            }),
+            }) : apiClient.retryBackgroundJob(workspaceId, job.id, {
+              reset_retry_count: kind === 'reset-retry',
+              version: job.version,
+            })),
           'Job queued for retry.',
         )
       } else {
         void runMutation(
-          () => apiClient.unblockBackgroundJob(workspaceId, job.id, { version: job.version }),
+          () => systemScope
+            ? apiClient.unblockAdminBackgroundJob(job.id, { version: job.version })
+            : apiClient.unblockBackgroundJob(workspaceId, job.id, { version: job.version }),
           'Job unblocked.',
         )
       }
@@ -309,17 +344,17 @@ export function JobPlatformPanel({
       if (confirmation.kind === 'archive-schedule') {
         void runMutation(
           () =>
-            apiClient.archiveJobSchedule(workspaceId, schedule.id, {
-              version: schedule.version,
-            }),
+            (systemScope
+              ? apiClient.archiveAdminJobSchedule(schedule.id, { version: schedule.version })
+              : apiClient.archiveJobSchedule(workspaceId, schedule.id, { version: schedule.version })),
           'Schedule archived.',
         )
       } else {
         void runMutation(
           () =>
-            apiClient.pauseJobSchedule(workspaceId, schedule.id, {
-              version: schedule.version,
-            }),
+            (systemScope
+              ? apiClient.pauseAdminJobSchedule(schedule.id, { version: schedule.version })
+              : apiClient.pauseJobSchedule(workspaceId, schedule.id, { version: schedule.version })),
           'Schedule paused.',
         )
       }
@@ -345,6 +380,12 @@ export function JobPlatformPanel({
         <p className="text-sm text-muted-foreground">
           Durable PostgreSQL jobs, schedules, queues, and worker presence.
         </p>
+        {isSuperadmin && (activeSubmodule === 'jobs' || activeSubmodule === 'schedules') ? (
+          <div aria-label="Job scope" className="mt-2 flex gap-2" role="group">
+            <Button onClick={() => setControlScope('workspace')} size="sm" variant={systemScope ? 'secondary' : 'primary'}>Workspace</Button>
+            <Button onClick={() => setControlScope('system')} size="sm" variant={systemScope ? 'primary' : 'secondary'}>System</Button>
+          </div>
+        ) : null}
       </header>
       {feedback ? (
         <div className="fixed right-4 top-4 z-[90] rounded-md border border-border bg-card p-3 shadow-lg" role="status">
@@ -356,7 +397,7 @@ export function JobPlatformPanel({
         <InlineFeedback tone="danger">Superadmin access is required.</InlineFeedback>
       ) : activeSubmodule === 'jobs' ? (
         <JobsView
-          canAdmin={canAdminWorkspace}
+          canAdmin={systemScope || canAdminWorkspace}
           cursorHistory={cursorHistory}
           filters={filters}
           handlers={handlers}
@@ -366,50 +407,64 @@ export function JobPlatformPanel({
           onFiltersChange={changeFilters}
           onEnqueue={(body) =>
             runMutation(
-              () => apiClient.enqueueBackgroundJob(workspaceId, body),
+              () => systemScope
+                ? apiClient.enqueueAdminBackgroundJob(body)
+                : apiClient.enqueueBackgroundJob(workspaceId, body),
               'Job queued.',
             )
           }
           onNext={() => {
             if (nextCursor === null) return
             setCursorHistory((current) => [...current, filters.cursor])
-            setFilters((current) => ({ ...current, cursor: nextCursor }))
+            const next = { ...filters, cursor: nextCursor }
+            setFilters(next)
+            replaceJobQuery(next)
           }}
           onOpen={openJob}
           onPrevious={() => {
             const previous = cursorHistory.at(-1) ?? null
             setCursorHistory((current) => current.slice(0, -1))
-            setFilters((current) => ({ ...current, cursor: previous }))
+            const next = { ...filters, cursor: previous }
+            setFilters(next)
+            replaceJobQuery(next)
           }}
           state={state}
         />
       ) : activeSubmodule === 'schedules' ? (
         <SchedulesView
-          canAdmin={canAdminWorkspace}
+          canAdmin={systemScope || canAdminWorkspace}
           handlers={handlers}
           onArchive={(schedule) => setConfirmation({ kind: 'archive-schedule', schedule })}
           onPause={(schedule) => setConfirmation({ kind: 'pause-schedule', schedule })}
           onCreate={(body) =>
             runMutation(
-              () => apiClient.createJobSchedule(workspaceId, body),
+              () => systemScope
+                ? apiClient.createAdminJobSchedule(body)
+                : apiClient.createJobSchedule(workspaceId, body),
               'Schedule created.',
             )
           }
           onResume={(schedule) =>
             void runMutation(
-              () => apiClient.resumeJobSchedule(workspaceId, schedule.id, { version: schedule.version }),
+              () => systemScope
+                ? apiClient.resumeAdminJobSchedule(schedule.id, { version: schedule.version })
+                : apiClient.resumeJobSchedule(workspaceId, schedule.id, { version: schedule.version }),
               'Schedule resumed.',
             )
           }
           onRunNow={(schedule) =>
             void runMutation(
-              () => apiClient.runJobScheduleNow(workspaceId, schedule.id, { version: schedule.version }),
+              () => systemScope
+                ? apiClient.runAdminJobScheduleNow(schedule.id, { version: schedule.version })
+                : apiClient.runJobScheduleNow(workspaceId, schedule.id, { version: schedule.version }),
               'Schedule run queued.',
             )
           }
           onUpdate={(schedule, body) =>
             runMutation(
-              () => apiClient.updateJobSchedule(workspaceId, schedule.id, body),
+              () => systemScope
+                ? apiClient.updateAdminJobSchedule(schedule.id, body)
+                : apiClient.updateJobSchedule(workspaceId, schedule.id, body),
               'Schedule updated.',
             )
           }
@@ -788,10 +843,20 @@ function replaceJobQuery(filters: JobFilters) {
   window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`)
 }
 
+function initialJobFilters(): JobFilters {
+  if (typeof window === 'undefined') return DEFAULT_FILTERS
+  const decoded = decodeJobFilters(window.location.search)
+  return {
+    ...DEFAULT_FILTERS,
+    ...decoded,
+    limit: decoded.limit ?? DEFAULT_FILTERS.limit,
+  }
+}
+
 function submoduleTitle(value: JobsSubmodule): string { return value === 'jobs' ? 'Background Jobs' : value.charAt(0).toUpperCase() + value.slice(1) }
-function actionLabel(action: JobAction): string { return action === 'cancel' ? 'Cancel' : action === 'retry' ? 'Retry' : 'Unblock' }
+function actionLabel(action: JobAction): string { return action === 'cancel' ? 'Cancel' : action === 'retry' ? 'Retry' : action === 'reset-retry' ? 'Reset and retry' : 'Unblock' }
 function confirmationLabel(value: Confirmation): string { if ('job' in value) return `${actionLabel(value.kind)} Job`; if ('schedule' in value) return value.kind === 'archive-schedule' ? 'Archive Schedule' : 'Pause Schedule'; return 'Pause Queue' }
-function confirmationButtonLabel(value: Confirmation): string { if ('job' in value) return value.kind === 'cancel' ? 'Confirm Cancellation' : value.kind === 'retry' ? 'Confirm Retry' : 'Confirm Unblock'; if ('schedule' in value) return value.kind === 'archive-schedule' ? 'Confirm Archive' : 'Confirm Pause'; return 'Confirm Queue Pause' }
+function confirmationButtonLabel(value: Confirmation): string { if ('job' in value) return value.kind === 'cancel' ? 'Confirm Cancellation' : value.kind === 'retry' ? 'Confirm Retry' : value.kind === 'reset-retry' ? 'Confirm Retry Budget Reset' : 'Confirm Unblock'; if ('schedule' in value) return value.kind === 'archive-schedule' ? 'Confirm Archive' : 'Confirm Pause'; return 'Confirm Queue Pause' }
 function formatTimestamp(value: string | null): string { if (value === null) return '—'; const date = new Date(value); return Number.isNaN(date.getTime()) ? value : date.toLocaleString() }
 function formatAge(value: number | null): string { if (value === null) return '—'; return value < 60 ? `${Math.round(value)}s` : `${Math.round(value / 60)}m` }
 function workerStatus(worker: JobWorker): string { if (worker.shutdown_at) return 'Shutdown'; if (worker.draining_at) return 'Draining'; return Date.now() - new Date(worker.heartbeat_at).getTime() > 30_000 ? 'Stale' : 'Live' }

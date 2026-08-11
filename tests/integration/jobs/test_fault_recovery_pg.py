@@ -16,12 +16,32 @@ from sqlalchemy.engine import make_url
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session, sessionmaker
 
-from adaptive_rag.db.models import Job, JobAttempt, JobEvent, Workspace
-from adaptive_rag.db.repositories import WorkspaceRepository
+from adaptive_rag.db.models import (
+    Chunk,
+    Job,
+    JobAttempt,
+    JobEvent,
+    ProviderModelCatalog,
+    Workspace,
+)
+from adaptive_rag.db.repositories import (
+    ProviderConnectionRepository,
+    ProviderModelCatalogRepository,
+    SourceRepository,
+    WorkspaceRepository,
+)
+from adaptive_rag.db.schema_readiness import assert_database_schema_current
 from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.ingestion.pipeline import IngestionPipeline
 from adaptive_rag.jobs import JobContext, JobHandlerDefinition, JobRegistry, RetryPolicy
+from adaptive_rag.jobs.handlers import build_ingestion_registry
 from adaptive_rag.jobs.reaper import JobReaper
-from adaptive_rag.jobs.service import EnqueueJobRequest, JobService
+from adaptive_rag.jobs.schedule_service import (
+    CreateJobScheduleRequest,
+    JobScheduleService,
+)
+from adaptive_rag.jobs.scheduler import JobScheduler
+from adaptive_rag.jobs.service import EnqueueJobRequest, JobActor, JobService
 from adaptive_rag.jobs.transitions import JobTransitions
 from adaptive_rag.jobs.worker import JobWorker
 
@@ -221,6 +241,16 @@ def test_worker_operates_with_least_privilege_role(
         "job_queues, job_queue_workspace_state, jobs, job_attempts, "
         "job_events, job_workers"
     )
+    domain_table_grants = (
+        "workspaces, sources, documents, document_versions, chunks, "
+        "chunk_sparse_embeddings"
+    )
+    runtime_read_grants = (
+        "alembic_version, provider_connections, provider_secrets, "
+        "runtime_slot_defaults, global_chat_models, "
+        "workspace_runtime_slot_overrides, workspace_chat_models, "
+        "global_chat_retrieval_settings, workspace_chat_retrieval_settings"
+    )
     database_name = make_url(job_database_url).database
     assert database_name is not None
     with job_engine.begin() as connection:
@@ -233,13 +263,26 @@ def test_worker_operates_with_least_privilege_role(
         connection.execute(
             text(f"GRANT SELECT, INSERT, UPDATE, DELETE ON {table_grants} TO {role}")
         )
-        connection.execute(text(f"GRANT SELECT ON workspaces TO {role}"))
+        connection.execute(text(f"GRANT SELECT, UPDATE ON job_schedules TO {role}"))
+        connection.execute(
+            text(
+                f"GRANT SELECT, INSERT, UPDATE, DELETE ON "
+                f"{domain_table_grants} TO {role}"
+            )
+        )
+        connection.execute(
+            text(f"GRANT SELECT ON {runtime_read_grants} TO {role}")
+        )
+        connection.execute(
+            text(f"GRANT SELECT, UPDATE ON provider_model_catalog TO {role}")
+        )
 
     limited_url = make_url(job_database_url).set(username=role, password=password)
     limited_engine = create_engine(limited_url, pool_pre_ping=True)
     limited_factory = create_session_factory(limited_engine)
     registry = _registry(read_factory=limited_factory)
     try:
+        assert_database_schema_current(limited_engine)
         with job_session_factory() as session:
             workspace = WorkspaceRepository(session).create(name="least-privilege")
             job = JobService(session=session, registry=registry).enqueue(
@@ -259,7 +302,115 @@ def test_worker_operates_with_least_privilege_role(
         ).run_once_sync()
         assert report.status == "succeeded"
 
+        now = datetime.now(UTC).replace(second=0, microsecond=0)
+        with job_session_factory() as session:
+            ProviderConnectionRepository(session).upsert_connection(
+                connection_id="least-privilege-qwen",
+                provider="qwen",
+                connection_type="hosted",
+                capabilities=("chat",),
+            )
+            ProviderModelCatalogRepository(session).upsert_model(
+                connection_id="least-privilege-qwen",
+                model_id="qwen-plus",
+                capabilities=("chat",),
+                pricing=None,
+            )
+            owner_registry = build_ingestion_registry(
+                session_factory=job_session_factory
+            )
+            schedule = JobScheduleService(
+                session=session,
+                registry=owner_registry,
+            ).create(
+                CreateJobScheduleRequest(
+                    scope="system",
+                    workspace_id=None,
+                    name="least privilege pricing schedule",
+                    job_type="provider_model_pricing_sync",
+                    cron_expression="* * * * *",
+                    timezone="UTC",
+                ),
+                actor=JobActor(actor_type="system", actor_id="least-privilege-test"),
+                now=now - timedelta(minutes=2),
+            )
+            schedule.next_run_at = now - timedelta(minutes=1)
+            session.commit()
+
+        real_registry = build_ingestion_registry(session_factory=limited_factory)
+        with limited_factory() as session:
+            created = JobScheduler(session=session, registry=real_registry).run_once(
+                now=now
+            )
+            session.commit()
+        assert created == 1
+
+        pricing_report = JobWorker(
+            session_factory=limited_factory,
+            registry=real_registry,
+            queue_names=("system",),
+        ).run_once_sync()
+        assert pricing_report.status == "succeeded"
+
+        with job_session_factory() as session:
+            catalog_row = session.get(
+                ProviderModelCatalog,
+                ("least-privilege-qwen", "qwen-plus"),
+            )
+            assert catalog_row is not None
+            assert catalog_row.pricing_json is not None
+
+        with job_session_factory() as session:
+            indexing_workspace = WorkspaceRepository(session).create(
+                name="least-privilege-indexing"
+            )
+            source = SourceRepository(session).create(
+                workspace_id=indexing_workspace.id,
+                source_type="markdown",
+                external_id="least-privilege.md",
+                extra_metadata={"content": "# Least privilege indexing"},
+            )
+            ingestion = IngestionPipeline(session).process_source(
+                workspace_id=indexing_workspace.id,
+                source_id=source.id,
+            )
+            indexing_job = JobService(
+                session=session,
+                registry=owner_registry,
+            ).enqueue(
+                EnqueueJobRequest.workspace(
+                    workspace_id=indexing_workspace.id,
+                    job_type="index_document_version",
+                    payload={
+                        "document_version_id": str(ingestion.document_version.id),
+                        "source_id": str(source.id),
+                    },
+                )
+            ).job
+            session.commit()
+            indexing_job_id = indexing_job.id
+            document_version_id = ingestion.document_version.id
+
+        indexing_report = JobWorker(
+            session_factory=limited_factory,
+            registry=real_registry,
+            queue_names=("ingestion",),
+        ).run_once_sync()
+        assert indexing_report.status == "succeeded"
+
+        with job_session_factory() as session:
+            indexed_job = session.get(Job, indexing_job_id)
+            chunk_count = session.scalar(
+                select(func.count())
+                .select_from(Chunk)
+                .where(Chunk.document_version_id == document_version_id)
+            )
+            assert indexed_job is not None
+            assert indexed_job.status == "succeeded"
+            assert chunk_count is not None and chunk_count > 0
+
         with limited_engine.connect() as connection:
+            assert connection.scalar(text("SELECT count(*) FROM provider_secrets")) == 0
             can_create = connection.scalar(
                 text("SELECT has_schema_privilege(current_user, 'public', 'CREATE')")
             )
@@ -284,5 +435,17 @@ def test_worker_operates_with_least_privilege_role(
     finally:
         limited_engine.dispose()
         with job_engine.begin() as connection:
+            connection.execute(
+                text(
+                    "DELETE FROM provider_model_catalog "
+                    "WHERE connection_id = 'least-privilege-qwen'"
+                )
+            )
+            connection.execute(
+                text(
+                    "DELETE FROM provider_connections "
+                    "WHERE connection_id = 'least-privilege-qwen'"
+                )
+            )
             connection.execute(text(f"DROP OWNED BY {role}"))
             connection.execute(text(f"DROP ROLE {role}"))

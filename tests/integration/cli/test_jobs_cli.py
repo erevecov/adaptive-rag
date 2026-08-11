@@ -72,6 +72,59 @@ def test_job_platform_nested_command_help(
     assert expected in result.stdout
 
 
+def test_scheduler_daemon_recovers_after_transient_tick_failure(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    session = _make_session()
+    calls = 0
+
+    class FakeScheduler:
+        def __init__(self, **_kwargs: object) -> None:
+            pass
+
+        def run_once(self, **_kwargs: object) -> int:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise OSError("database password must not reach stderr")
+            return 2
+
+    class StopScheduler(Exception):
+        pass
+
+    sleeps = 0
+
+    def bounded_sleep(_seconds: float) -> None:
+        nonlocal sleeps
+        sleeps += 1
+        if sleeps == 2:
+            raise StopScheduler
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.jobs._job_runtime",
+        lambda: (lambda: session, object()),
+    )
+    monkeypatch.setattr("adaptive_rag.cli.jobs.JobScheduler", FakeScheduler)
+    monkeypatch.setattr("adaptive_rag.cli.jobs.time.sleep", bounded_sleep)
+
+    result = CliRunner().invoke(
+        app,
+        ["jobs", "scheduler", "--poll-interval-seconds", "0.1"],
+    )
+
+    assert isinstance(result.exception, StopScheduler)
+    assert calls == 2
+    assert json.loads(result.stdout.strip()) == {"status": "ok", "created_jobs": 2}
+    assert json.loads(result.stderr.strip()) == {
+        "status": "error",
+        "error_code": "scheduler_tick_failed",
+    }
+    assert "password" not in result.stderr
+    assert "password" not in caplog.text
+    assert "error_type=OSError" in caplog.text
+
+
 @pytest.mark.asyncio
 async def test_worker_cli_routes_sigterm_through_graceful_shutdown(
     monkeypatch: pytest.MonkeyPatch,

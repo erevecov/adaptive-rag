@@ -296,26 +296,45 @@ class JobService:
         paused: bool | None = None,
         global_concurrency_limit: int | None = None,
         workspace_concurrency_limit: int | None = None,
+        update_global_concurrency_limit: bool = False,
+        update_workspace_concurrency_limit: bool = False,
         default_lease_seconds: int | None = None,
         now: datetime | None = None,
     ) -> JobQueue:
-        queue = self._repository.get_queue(queue_name)
-        if queue is None:
-            raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
-        if queue.version != expected_version:
-            raise JobStateConflictError("Queue version changed")
         operation_time = now or utc_now()
+        values: dict[str, object] = {
+            "version": JobQueue.version + 1,
+            "updated_at": operation_time,
+        }
         if paused is not None:
-            queue.paused_at = operation_time if paused else None
-            queue.paused_by_actor = actor.actor_id if paused else None
-        if global_concurrency_limit is not None:
-            queue.global_concurrency_limit = global_concurrency_limit
-        if workspace_concurrency_limit is not None:
-            queue.workspace_concurrency_limit = workspace_concurrency_limit
+            values["paused_at"] = operation_time if paused else None
+            values["paused_by_actor"] = actor.actor_id if paused else None
+        if global_concurrency_limit is not None or update_global_concurrency_limit:
+            values["global_concurrency_limit"] = global_concurrency_limit
+        if (
+            workspace_concurrency_limit is not None
+            or update_workspace_concurrency_limit
+        ):
+            values["workspace_concurrency_limit"] = workspace_concurrency_limit
         if default_lease_seconds is not None:
-            queue.default_lease_seconds = default_lease_seconds
-        queue.version += 1
-        self._session.flush()
+            values["default_lease_seconds"] = default_lease_seconds
+        updated = self._session.execute(
+            update(JobQueue)
+            .where(
+                JobQueue.name == queue_name,
+                JobQueue.version == expected_version,
+            )
+            .values(**values)
+            .returning(JobQueue.name)
+            .execution_options(synchronize_session="fetch")
+        ).scalar_one_or_none()
+        if updated is None:
+            if self._repository.get_queue(queue_name) is None:
+                raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
+            raise JobStateConflictError("Queue version changed")
+        queue = self._repository.get_queue(queue_name)
+        if queue is None:  # pragma: no cover - protected by the UPDATE target
+            raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
         return queue
 
     def list_workers(self, *, limit: int = 200) -> list[JobWorker]:

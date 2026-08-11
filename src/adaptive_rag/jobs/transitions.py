@@ -68,6 +68,7 @@ class JobTransitions:
         job.last_error = None
         job.last_error_code = None
         job.last_error_message = None
+        job.last_trace_id = None
         event_type = (
             "completed_after_cancel_request"
             if job.cancellation_requested_at is not None
@@ -91,6 +92,7 @@ class JobTransitions:
         error: object,
         now: datetime,
         error_code: str = "retryable_failure",
+        trace_id: str | None = None,
     ) -> bool:
         job = self._lock_current(job_id=job_id, attempt_id=attempt_id)
         if job is None:
@@ -101,6 +103,7 @@ class JobTransitions:
         job.last_error = message
         job.last_error_code = error_code
         job.last_error_message = message
+        job.last_trace_id = trace_id
         if job.retry_count <= job.max_retries:
             delay = retry_delay_seconds(
                 definition.retry_policy,
@@ -124,12 +127,14 @@ class JobTransitions:
             now=now,
             error_code=error_code,
             error_message=message,
+            trace_id=trace_id,
         )
         self._event(
             job=job,
             attempt_id=attempt_id,
             event_type=event_type,
             message=message,
+            metadata={"trace_id": trace_id} if trace_id is not None else None,
         )
         self._session.flush()
         return True
@@ -142,6 +147,7 @@ class JobTransitions:
         reason: object,
         now: datetime,
         error_code: str = "job_blocked",
+        trace_id: str | None = None,
     ) -> bool:
         return self._terminal_failure(
             job_id=job_id,
@@ -153,6 +159,7 @@ class JobTransitions:
             event_type="blocked",
             error_code=error_code,
             terminal=False,
+            trace_id=trace_id,
         )
 
     def dead_letter(
@@ -163,6 +170,7 @@ class JobTransitions:
         reason: object,
         now: datetime,
         error_code: str = "permanent_failure",
+        trace_id: str | None = None,
     ) -> bool:
         return self._terminal_failure(
             job_id=job_id,
@@ -174,6 +182,7 @@ class JobTransitions:
             event_type="dead_lettered",
             error_code=error_code,
             terminal=True,
+            trace_id=trace_id,
         )
 
     def confirm_cancelled(
@@ -210,6 +219,7 @@ class JobTransitions:
         event_type: str,
         error_code: str,
         terminal: bool,
+        trace_id: str | None,
     ) -> bool:
         job = self._lock_current(job_id=job_id, attempt_id=attempt_id)
         if job is None:
@@ -221,6 +231,7 @@ class JobTransitions:
         job.last_error = message
         job.last_error_code = error_code
         job.last_error_message = message
+        job.last_trace_id = trace_id
         self._finish_attempt(
             job=job,
             attempt_id=attempt_id,
@@ -228,12 +239,14 @@ class JobTransitions:
             now=now,
             error_code=error_code,
             error_message=message,
+            trace_id=trace_id,
         )
         self._event(
             job=job,
             attempt_id=attempt_id,
             event_type=event_type,
             message=message,
+            metadata={"trace_id": trace_id} if trace_id is not None else None,
         )
         self._session.flush()
         return True
@@ -278,6 +291,7 @@ class JobTransitions:
         now: datetime,
         error_code: str | None = None,
         error_message: str | None = None,
+        trace_id: str | None = None,
     ) -> None:
         attempt = self._session.get(JobAttempt, attempt_id)
         if attempt is None or attempt.status != "running":
@@ -286,6 +300,7 @@ class JobTransitions:
         attempt.finished_at = now
         attempt.error_code = error_code
         attempt.error_message = error_message
+        attempt.trace_id = trace_id
         job.current_attempt_id = None
         job.locked_by = None
         job.locked_until = None

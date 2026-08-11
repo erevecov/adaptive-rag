@@ -130,3 +130,34 @@ def test_expired_attempt_dead_letters_after_retry_budget(
         assert job.status == "dead_letter"
         assert job.retry_count == 1
     assert count == 1
+
+
+def test_unsupported_expired_attempt_does_not_poison_later_reaping(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = _registry(max_retries=2)
+    first_job_id, _first_attempt_id = _expired_claim(job_session_factory, registry)
+    second_job_id, _second_attempt_id = _expired_claim(job_session_factory, registry)
+    with job_session_factory() as session:
+        first = session.get(Job, first_job_id)
+        assert first is not None
+        first.job_type = "removed_handler"
+        session.commit()
+
+    with job_session_factory() as session:
+        count = JobReaper(
+            session=session,
+            registry=registry,
+            random_source=lambda: 0.0,
+        ).run_once(now=NOW + timedelta(seconds=61))
+        session.commit()
+
+    with job_session_factory() as session:
+        first = session.get(Job, first_job_id)
+        second = session.get(Job, second_job_id)
+        assert first is not None
+        assert second is not None
+        assert count == 2
+        assert first.status == "blocked"
+        assert first.last_error_code == "unsupported_handler_version"
+        assert second.status == "queued"

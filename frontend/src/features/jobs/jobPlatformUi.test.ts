@@ -30,7 +30,7 @@ describe('job platform URL filters', () => {
 describe('job platform status guards', () => {
   test('only actionable states expose their authorized operations', () => {
     expect(jobActions('blocked', true)).toEqual(['unblock', 'cancel'])
-    expect(jobActions('dead_letter', true)).toEqual(['retry'])
+    expect(jobActions('dead_letter', true)).toEqual(['retry', 'reset-retry'])
     expect(jobActions('running', false)).toEqual([])
     expect(jobActions('unknown-state', true)).toEqual([])
   })

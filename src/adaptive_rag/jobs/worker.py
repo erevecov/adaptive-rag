@@ -4,18 +4,24 @@ from __future__ import annotations
 
 import asyncio
 import inspect
+import logging
 import os
 import socket
 from collections.abc import Callable, Collection, Mapping
 from contextlib import suppress
+from contextvars import copy_context
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
+from threading import BoundedSemaphore, Lock, Thread
+from time import sleep
 from typing import Any
 from uuid import UUID, uuid4
 
 import psycopg
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.engine import Engine
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
 from adaptive_rag.db.models import Job
@@ -32,6 +38,8 @@ from adaptive_rag.jobs.reaper import JobReaper
 from adaptive_rag.jobs.registry import JobHandlerDefinition, JobRegistry
 from adaptive_rag.jobs.transitions import JobTransitions
 from adaptive_rag.jobs.types import JobContext
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True, slots=True)
@@ -90,6 +98,40 @@ class PostgresNotificationWaiter:
             self._connection = None
 
 
+class _ExecutionCapacityLease:
+    """Hold one local slot until both coroutine and detached thread are done."""
+
+    def __init__(self, capacity: BoundedSemaphore) -> None:
+        self._capacity = capacity
+        self._lock = Lock()
+        self._coroutine_done = False
+        self._thread_started = False
+        self._thread_done = False
+        self._released = False
+
+    def mark_thread_started(self) -> None:
+        with self._lock:
+            self._thread_started = True
+
+    def mark_thread_done(self) -> None:
+        with self._lock:
+            self._thread_done = True
+            self._release_if_done()
+
+    def mark_coroutine_done(self) -> None:
+        with self._lock:
+            self._coroutine_done = True
+            self._release_if_done()
+
+    def _release_if_done(self) -> None:
+        if self._released or not self._coroutine_done:
+            return
+        if self._thread_started and not self._thread_done:
+            return
+        self._released = True
+        self._capacity.release()
+
+
 class JobWorker:
     """Claims durably, runs one typed handler, then finalizes through a fence."""
 
@@ -103,27 +145,55 @@ class JobWorker:
         workspace_id: UUID | None = None,
         now_source: Callable[[], datetime] = lambda: datetime.now(UTC),
         heartbeat_interval_seconds: float = 30.0,
+        presence_heartbeat_interval_seconds: float = 10.0,
+        presence_retry_delay_seconds: float = 0.1,
         max_concurrency: int = 1,
         reaper_interval_seconds: float = 15.0,
     ) -> None:
         if heartbeat_interval_seconds <= 0:
             raise ValueError("heartbeat_interval_seconds must be positive")
+        if presence_heartbeat_interval_seconds <= 0:
+            raise ValueError(
+                "presence_heartbeat_interval_seconds must be positive"
+            )
+        if not 0 <= presence_retry_delay_seconds <= 5:
+            raise ValueError("presence_retry_delay_seconds must be within [0, 5]")
         if not 1 <= max_concurrency <= 64:
             raise ValueError("max_concurrency must be within [1, 64]")
         if reaper_interval_seconds <= 0:
             raise ValueError("reaper_interval_seconds must be positive")
         self._session_factory = session_factory
         self._registry = registry
-        self._queue_names = tuple(queue_names)
+        self._queue_names = tuple(dict.fromkeys(queue_names))
         self.worker_id = worker_id or uuid4()
         self._workspace_id = workspace_id
         self._now_source = now_source
         self._heartbeat_interval_seconds = heartbeat_interval_seconds
+        self._presence_heartbeat_interval_seconds = (
+            presence_heartbeat_interval_seconds
+        )
+        self._presence_retry_delay_seconds = presence_retry_delay_seconds
         self._max_concurrency = max_concurrency
+        self._execution_capacity = BoundedSemaphore(max_concurrency)
         self._reaper_interval_seconds = reaper_interval_seconds
         self._shutdown_requested = asyncio.Event()
+        self._queue_rotation_lock = Lock()
+        self._next_queue_index = 0
 
     async def run_once(self) -> WorkerRunReport:
+        if not self._execution_capacity.acquire(blocking=False):
+            return WorkerRunReport(status="local_capacity", worker_id=self.worker_id)
+        capacity_lease = _ExecutionCapacityLease(self._execution_capacity)
+        try:
+            return await self._run_once_with_capacity(capacity_lease=capacity_lease)
+        finally:
+            capacity_lease.mark_coroutine_done()
+
+    async def _run_once_with_capacity(
+        self,
+        *,
+        capacity_lease: _ExecutionCapacityLease,
+    ) -> WorkerRunReport:
         claim = await asyncio.to_thread(self._claim_and_commit)
         if claim is None:
             return WorkerRunReport(status="idle", worker_id=self.worker_id)
@@ -154,7 +224,12 @@ class JobWorker:
             )
         )
         handler_task = asyncio.create_task(
-            self._invoke_handler(definition=definition, context=context, claim=claim)
+            self._invoke_handler(
+                definition=definition,
+                context=context,
+                claim=claim,
+                capacity_lease=capacity_lease,
+            )
         )
         fence_task = asyncio.create_task(lost_fence.wait())
         try:
@@ -179,8 +254,19 @@ class JobWorker:
                 return await asyncio.to_thread(self._finalize_error, claim, exc)
             if not is_lease_healthy():
                 return self._report(claim=claim, status="fenced")
-            return await asyncio.to_thread(self._complete, claim, result)
+            try:
+                return await asyncio.to_thread(self._complete, claim, result)
+            except Exception as exc:  # noqa: BLE001 - finalized below
+                return await asyncio.to_thread(self._finalize_error, claim, exc)
+        except asyncio.CancelledError:
+            lease_healthy = False
+            lost_fence.set()
+            raise
         finally:
+            if not handler_task.done():
+                handler_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await handler_task
             stop_heartbeat.set()
             heartbeat_task.cancel()
             with suppress(asyncio.CancelledError):
@@ -203,7 +289,15 @@ class JobWorker:
             raise ValueError("poll_interval_seconds must be positive")
         if drain_timeout_seconds < 0:
             raise ValueError("drain_timeout_seconds must be non-negative")
-        await asyncio.to_thread(self._register_presence)
+        await asyncio.to_thread(
+            self._write_presence_best_effort,
+            "registration",
+            self._register_presence,
+        )
+        presence_stop = asyncio.Event()
+        presence_task = asyncio.create_task(
+            self._presence_heartbeat_loop(stop=presence_stop)
+        )
         notification_waiter = self._create_notification_waiter()
         if notification_waiter is not None:
             try:
@@ -215,7 +309,10 @@ class JobWorker:
         try:
             while not self._shutdown_requested.is_set():
                 if loop.time() >= next_reaper_at:
-                    await asyncio.to_thread(self._reap_once)
+                    try:
+                        await asyncio.to_thread(self._reap_once)
+                    except (SQLAlchemyError, psycopg.Error, OSError):
+                        logger.exception("job reaper database operation failed")
                     next_reaper_at = loop.time() + self._reaper_interval_seconds
                 batch_task = asyncio.create_task(self._run_batch_once())
                 shutdown_task = asyncio.create_task(self._shutdown_requested.wait())
@@ -224,7 +321,11 @@ class JobWorker:
                     return_when=asyncio.FIRST_COMPLETED,
                 )
                 if shutdown_task in done and not batch_task.done():
-                    await asyncio.to_thread(self._mark_presence_draining)
+                    await asyncio.to_thread(
+                        self._write_presence_best_effort,
+                        "draining",
+                        self._mark_presence_draining,
+                    )
                     try:
                         reports = await asyncio.wait_for(
                             asyncio.shield(batch_task),
@@ -240,15 +341,31 @@ class JobWorker:
                 shutdown_task.cancel()
                 with suppress(asyncio.CancelledError):
                     await shutdown_task
-                await asyncio.to_thread(self._heartbeat_presence)
+                await asyncio.to_thread(
+                    self._write_presence_best_effort,
+                    "heartbeat",
+                    self._heartbeat_presence,
+                )
                 if self._shutdown_requested.is_set():
                     break
-                if all(report.status == "idle" for report in reports):
+                if all(
+                    report.status in {"idle", "local_capacity", "worker_error"}
+                    for report in reports
+                ):
                     if notification_waiter is not None:
-                        await asyncio.to_thread(
-                            notification_waiter.wait,
-                            timeout_seconds=poll_interval_seconds,
-                        )
+                        try:
+                            await asyncio.to_thread(
+                                notification_waiter.wait,
+                                timeout_seconds=poll_interval_seconds,
+                            )
+                        except (OSError, psycopg.Error):
+                            logger.warning(
+                                "job notification connection failed; using polling",
+                                exc_info=True,
+                            )
+                            with suppress(OSError, psycopg.Error):
+                                await asyncio.to_thread(notification_waiter.close)
+                            notification_waiter = None
                     else:
                         try:
                             await asyncio.wait_for(
@@ -258,17 +375,37 @@ class JobWorker:
                         except TimeoutError:
                             pass
         finally:
+            presence_stop.set()
+            presence_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await presence_task
             if notification_waiter is not None:
-                await asyncio.to_thread(notification_waiter.close)
-            await asyncio.to_thread(self._mark_presence_draining)
-            await asyncio.to_thread(self._mark_presence_shutdown)
+                with suppress(OSError, psycopg.Error):
+                    await asyncio.to_thread(notification_waiter.close)
+            await asyncio.to_thread(
+                self._write_presence_best_effort,
+                "draining",
+                self._mark_presence_draining,
+            )
+            await asyncio.to_thread(
+                self._write_presence_best_effort,
+                "shutdown",
+                self._mark_presence_shutdown,
+            )
 
     async def _run_batch_once(self) -> list[WorkerRunReport]:
         return list(
             await asyncio.gather(
-                *(self.run_once() for _index in range(self._max_concurrency))
+                *(self._run_slot_once() for _index in range(self._max_concurrency))
             )
         )
+
+    async def _run_slot_once(self) -> WorkerRunReport:
+        try:
+            return await self.run_once()
+        except Exception:  # noqa: BLE001 - one slot must not terminate the daemon
+            logger.exception("job worker slot failed")
+            return WorkerRunReport(status="worker_error", worker_id=self.worker_id)
 
     def request_shutdown(self) -> None:
         self._shutdown_requested.set()
@@ -285,14 +422,76 @@ class JobWorker:
         definition: JobHandlerDefinition,
         context: JobContext,
         claim: ClaimedJob,
+        capacity_lease: _ExecutionCapacityLease,
     ) -> object:
         payload = definition.payload_model.model_validate(claim.payload)
         if inspect.iscoroutinefunction(definition.handler):
             return await definition.handler(context, payload)
-        result = await asyncio.to_thread(definition.handler, context, payload)
+        result = await self._invoke_sync_handler(
+            definition=definition,
+            context=context,
+            payload=payload,
+            capacity_lease=capacity_lease,
+        )
         if inspect.isawaitable(result):
             return await result
         return result
+
+    async def _invoke_sync_handler(
+        self,
+        *,
+        definition: JobHandlerDefinition,
+        context: JobContext,
+        payload: BaseModel,
+        capacity_lease: _ExecutionCapacityLease,
+    ) -> object:
+        """Run sync work on a daemon thread so drain timeout bounds process exit."""
+
+        loop = asyncio.get_running_loop()
+        future: asyncio.Future[object] = loop.create_future()
+        caller_context = copy_context()
+
+        def deliver_result(result: object) -> None:
+            if not future.done():
+                future.set_result(result)
+
+        def deliver_error(error: BaseException) -> None:
+            if not future.done():
+                future.set_exception(error)
+
+        def notify(callback: Callable[..., None], *args: object) -> None:
+            try:
+                loop.call_soon_threadsafe(callback, *args)
+            except RuntimeError:
+                # The shutdown path may close the loop before detached work returns.
+                pass
+
+        def invoke() -> None:
+            try:
+                result = caller_context.run(definition.handler, context, payload)
+            except BaseException as exc:  # noqa: BLE001 - deliver into event loop
+                if isinstance(exc, StopIteration):
+                    exc = RuntimeError("synchronous job handler raised StopIteration")
+                if not loop.is_closed():
+                    notify(deliver_error, exc)
+            else:
+                if not loop.is_closed():
+                    notify(deliver_result, result)
+            finally:
+                capacity_lease.mark_thread_done()
+
+        thread = Thread(
+            target=invoke,
+            name=f"job-{definition.name}-{context.job_id}",
+            daemon=True,
+        )
+        capacity_lease.mark_thread_started()
+        try:
+            thread.start()
+        except BaseException:
+            capacity_lease.mark_thread_done()
+            raise
+        return await future
 
     async def _heartbeat_loop(
         self,
@@ -301,24 +500,73 @@ class JobWorker:
         stop: asyncio.Event,
         lost_fence: asyncio.Event,
     ) -> None:
+        interval = self._attempt_heartbeat_interval(claim.lease_seconds)
         while not stop.is_set():
             try:
-                await asyncio.wait_for(
-                    stop.wait(), timeout=self._heartbeat_interval_seconds
-                )
+                await asyncio.wait_for(stop.wait(), timeout=interval)
                 return
             except TimeoutError:
-                healthy = await asyncio.to_thread(self._heartbeat_once, claim)
+                try:
+                    healthy = await asyncio.to_thread(self._heartbeat_once, claim)
+                except (SQLAlchemyError, psycopg.Error, OSError):
+                    logger.exception(
+                        "job attempt heartbeat failed; fencing local execution"
+                    )
+                    lost_fence.set()
+                    return
                 if not healthy:
                     lost_fence.set()
                     return
 
+    def _attempt_heartbeat_interval(self, lease_seconds: int) -> float:
+        return min(
+            self._heartbeat_interval_seconds,
+            max(1.0, lease_seconds / 3),
+        )
+
+    async def _presence_heartbeat_loop(self, *, stop: asyncio.Event) -> None:
+        while not stop.is_set():
+            try:
+                await asyncio.wait_for(
+                    stop.wait(), timeout=self._presence_heartbeat_interval_seconds
+                )
+                return
+            except TimeoutError:
+                await asyncio.to_thread(
+                    self._write_presence_best_effort,
+                    "heartbeat",
+                    self._heartbeat_presence,
+                )
+
+    def _write_presence_best_effort(
+        self,
+        operation_name: str,
+        operation: Callable[[], None],
+    ) -> bool:
+        for attempt in range(1, 4):
+            try:
+                operation()
+                return True
+            except (SQLAlchemyError, psycopg.Error, OSError):
+                logger.warning(
+                    "worker presence %s failed attempt=%s",
+                    operation_name,
+                    attempt,
+                    exc_info=True,
+                )
+                if attempt < 3 and self._presence_retry_delay_seconds > 0:
+                    sleep(self._presence_retry_delay_seconds * (2 ** (attempt - 1)))
+        return False
+
     def _claim_and_commit(self) -> ClaimedJob | None:
+        # Claim at most one queue per transaction. Rotating transactions retain
+        # fairness without ever acquiring queue rows in conflicting orders.
+        queue_names = self._rotated_queue_names()[:1]
         with self._session_factory() as session:
             claim = JobDispatcher(
                 session=session,
                 registry=self._registry,
-                queue_names=self._queue_names,
+                queue_names=queue_names,
             ).claim_next(
                 worker_id=self.worker_id,
                 now=self._now_source(),
@@ -326,6 +574,14 @@ class JobWorker:
             )
             session.commit()
             return claim
+
+    def _rotated_queue_names(self) -> tuple[str, ...]:
+        if not self._queue_names:
+            return ()
+        with self._queue_rotation_lock:
+            start = self._next_queue_index % len(self._queue_names)
+            self._next_queue_index = (start + 1) % len(self._queue_names)
+        return self._queue_names[start:] + self._queue_names[:start]
 
     def _register_presence(self) -> None:
         now = self._now_source()
@@ -354,11 +610,9 @@ class JobWorker:
             session.commit()
 
     def _heartbeat_presence(self) -> None:
-        with self._session_factory() as session:
-            presence = session.get(JobWorkerPresence, self.worker_id)
-            if presence is not None and presence.shutdown_at is None:
-                presence.heartbeat_at = self._now_source()
-            session.commit()
+        # Upsert rather than update-only so a worker that started during a
+        # transient database outage becomes routable after recovery.
+        self._register_presence()
 
     def _mark_presence_draining(self) -> None:
         with self._session_factory() as session:
@@ -377,14 +631,13 @@ class JobWorker:
             session.commit()
 
     def _heartbeat_once(self, claim: ClaimedJob) -> bool:
-        definition = self._registry.get(claim.job_type, claim.handler_version)
         now = self._now_source()
         with self._session_factory() as session:
             healthy = JobRuntimeRepository(session).heartbeat(
                 job_id=claim.job_id,
                 attempt_id=claim.attempt_id,
                 now=now,
-                lease_expires_at=now + timedelta(seconds=definition.lease_seconds),
+                lease_expires_at=now + timedelta(seconds=claim.lease_seconds),
             )
             session.commit()
             return healthy
@@ -422,6 +675,7 @@ class JobWorker:
             session.commit()
 
     def _complete(self, claim: ClaimedJob, result: object) -> WorkerRunReport:
+        persisted_result: object | None = None
         with self._session_factory() as session:
             transitioned = JobTransitions(
                 session=session,
@@ -432,14 +686,28 @@ class JobWorker:
                 result=result,
                 now=self._now_source(),
             )
+            if transitioned:
+                job = session.get(Job, claim.job_id)
+                if job is not None:
+                    persisted_result = job.result_json
             session.commit()
         return self._report(
             claim=claim,
             status="succeeded" if transitioned else "fenced",
-            result=result if transitioned else None,
+            result=persisted_result,
         )
 
     def _finalize_error(self, claim: ClaimedJob, error: Exception) -> WorkerRunReport:
+        trace_id = uuid4().hex
+        definition = self._registry.get(claim.job_type, claim.handler_version)
+        safe_message = str(definition.redact_error(error))
+        logger.exception(
+            "job handler failed trace_id=%s job_id=%s attempt_id=%s",
+            trace_id,
+            claim.job_id,
+            claim.attempt_id,
+            exc_info=(type(error), error, error.__traceback__),
+        )
         with self._session_factory() as session:
             transitions = JobTransitions(session=session, registry=self._registry)
             if isinstance(error, JobCancelled):
@@ -456,6 +724,7 @@ class JobWorker:
                     reason=error,
                     now=self._now_source(),
                     error_code=error.code,
+                    trace_id=trace_id,
                 )
                 status = "blocked"
             elif isinstance(error, PermanentJobError):
@@ -465,6 +734,7 @@ class JobWorker:
                     reason=error,
                     now=self._now_source(),
                     error_code=error.code,
+                    trace_id=trace_id,
                 )
                 status = "dead_letter"
             else:
@@ -479,6 +749,7 @@ class JobWorker:
                     error=error,
                     now=self._now_source(),
                     error_code=error_code,
+                    trace_id=trace_id,
                 )
                 job = session.get(Job, claim.job_id)
                 if job is None:
@@ -490,7 +761,7 @@ class JobWorker:
             claim=claim,
             status=status if transitioned else "fenced",
             error_code=getattr(error, "code", error.__class__.__name__),
-            error_message=str(error) or error.__class__.__name__,
+            error_message=safe_message,
         )
 
     def _report(

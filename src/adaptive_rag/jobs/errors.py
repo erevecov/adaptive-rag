@@ -7,6 +7,15 @@ class JobPlatformError(Exception):
     """Base class for expected job-platform failures."""
 
     code = "job_platform_error"
+    default_public_message = "job operation failed; see trace ID"
+
+    def __init__(
+        self,
+        *args: object,
+        public_message: str | None = None,
+    ) -> None:
+        super().__init__(*args)
+        self.public_message = public_message or self.default_public_message
 
 
 class UnknownJobHandlerError(JobPlatformError):
@@ -20,10 +29,6 @@ class UnknownJobHandlerError(JobPlatformError):
 
 class JobPayloadTooLargeError(JobPlatformError):
     code = "job_payload_too_large"
-
-
-class JobResultTooLargeError(JobPlatformError):
-    code = "job_result_too_large"
 
 
 class JobProgressTooLargeError(JobPlatformError):
@@ -60,15 +65,29 @@ class JobStateConflictError(JobPlatformError):
 
 class RetryableJobError(JobPlatformError):
     code = "job_retryable_failure"
+    default_public_message = "job failed and will be retried; see trace ID"
 
 
 class BlockedJobError(JobPlatformError):
     code = "job_blocked"
+    default_public_message = "job is blocked; see trace ID"
 
 
 class PermanentJobError(JobPlatformError):
     code = "job_permanent_failure"
+    default_public_message = "job failed permanently; see trace ID"
+
+
+class JobResultTooLargeError(PermanentJobError):
+    code = "job_result_too_large"
+    default_public_message = "job result exceeded the allowed size"
+
+
+class InvalidJobResultError(PermanentJobError):
+    code = "invalid_job_result"
+    default_public_message = "job result is not valid JSON"
 
 
 class JobCancelled(JobPlatformError):
     code = "job_cancelled"
+    default_public_message = "job cancellation confirmed"

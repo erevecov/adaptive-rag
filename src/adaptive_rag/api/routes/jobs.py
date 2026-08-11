@@ -454,6 +454,11 @@ def list_admin_jobs(
         raise HTTPException(status_code=422, detail="invalid job scope")
     if scope == "workspace" and workspace_id is None:
         raise HTTPException(status_code=422, detail="workspace_id is required")
+    if scope == "system" and workspace_id is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="workspace_id is not allowed for system scope",
+        )
     page = JobService(session=session, registry=registry).list_jobs(
         scope=scope,  # type: ignore[arg-type]
         workspace_id=workspace_id,
@@ -464,6 +469,272 @@ def list_admin_jobs(
         job_type=job_type,
     )
     return JobPageResponse.from_page(page)
+
+
+@admin_router.post(
+    "/jobs",
+    response_model=EnqueueJobResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def enqueue_admin_system_job(
+    body: EnqueueJobBody,
+    response: Response,
+    session: Annotated[Session, Depends(get_session)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> EnqueueJobResponse:
+    try:
+        definition = registry.get(body.job_type, body.handler_version)
+        if (
+            not definition.allow_manual_enqueue
+            or "system" not in definition.allowed_scopes
+        ):
+            raise ValueError("Handler does not allow manual system enqueue")
+        result = JobService(session=session, registry=registry).enqueue(
+            EnqueueJobRequest.system(
+                job_type=body.job_type,
+                handler_version=body.handler_version,
+                payload=body.payload,
+                queue_name=body.queue_name,
+                priority=body.priority,
+                idempotency_key=body.idempotency_key,
+                run_after=body.run_after,
+                concurrency_key=body.concurrency_key,
+            )
+        )
+        session.commit()
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    if not result.created:
+        response.status_code = status.HTTP_200_OK
+    service = JobService(session=session, registry=registry)
+    return EnqueueJobResponse(
+        created=result.created,
+        job=BackgroundJobResponse.from_snapshot(service.snapshot(result.job)),
+    )
+
+
+@admin_router.get("/jobs/{job_id}", response_model=JobDetailResponse)
+def get_admin_system_job(
+    job_id: UUID,
+    session: Annotated[Session, Depends(get_session)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobDetailResponse:
+    try:
+        detail = JobService(session=session, registry=registry).get_detail(
+            scope="system", workspace_id=None, job_id=job_id
+        )
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return JobDetailResponse.from_detail(detail)
+
+
+@admin_router.post("/jobs/{job_id}/{action}", response_model=BackgroundJobResponse)
+def mutate_admin_system_job(
+    job_id: UUID,
+    action: str,
+    body: VersionMutationBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> BackgroundJobResponse:
+    service = JobService(session=session, registry=registry)
+    actor = _actor(current)
+    try:
+        if action == "cancel":
+            snapshot = service.cancel(
+                scope="system",
+                workspace_id=None,
+                job_id=job_id,
+                actor=actor,
+                expected_version=body.version,
+            )
+        elif action == "retry":
+            snapshot = service.retry(
+                scope="system",
+                workspace_id=None,
+                job_id=job_id,
+                actor=actor,
+                expected_version=body.version,
+                reset_retry_count=body.reset_retry_count,
+            )
+        elif action == "unblock":
+            snapshot = service.unblock(
+                scope="system",
+                workspace_id=None,
+                job_id=job_id,
+                actor=actor,
+                expected_version=body.version,
+            )
+        else:
+            raise HTTPException(status_code=404, detail="job action not found")
+        session.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return BackgroundJobResponse.from_snapshot(snapshot)
+
+
+@admin_router.get("/job-schedules", response_model=JobScheduleListResponse)
+def list_admin_system_schedules(
+    session: Annotated[Session, Depends(get_session)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobScheduleListResponse:
+    rows = JobScheduleService(session=session, registry=registry).list(
+        scope="system", workspace_id=None
+    )
+    return JobScheduleListResponse(
+        items=[JobScheduleResponse.model_validate(row) for row in rows]
+    )
+
+
+@admin_router.post(
+    "/job-schedules",
+    response_model=JobScheduleResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_admin_system_schedule(
+    body: CreateJobScheduleBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobScheduleResponse:
+    try:
+        schedule = JobScheduleService(session=session, registry=registry).create(
+            CreateJobScheduleRequest(
+                scope="system",
+                workspace_id=None,
+                name=body.name,
+                description=body.description,
+                job_type=body.job_type,
+                handler_version=body.handler_version,
+                payload=body.payload,
+                queue_name=body.queue_name,
+                priority=body.priority,
+                concurrency_key=body.concurrency_key,
+                cron_expression=body.cron_expression,
+                timezone=body.timezone,
+                misfire_policy=body.misfire_policy,
+                max_catch_up=body.max_catch_up,
+            ),
+            actor=_actor(current),
+        )
+        session.commit()
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return JobScheduleResponse.model_validate(schedule)
+
+
+@admin_router.patch(
+    "/job-schedules/{schedule_id}", response_model=JobScheduleResponse
+)
+def update_admin_system_schedule(
+    schedule_id: UUID,
+    body: UpdateJobScheduleBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobScheduleResponse:
+    try:
+        schedule = JobScheduleService(session=session, registry=registry).update(
+            schedule_id=schedule_id,
+            scope="system",
+            workspace_id=None,
+            actor=_actor(current),
+            expected_version=body.version,
+            name=body.name,
+            description=body.description,
+            payload=body.payload,
+            queue_name=body.queue_name,
+            priority=body.priority,
+            concurrency_key=body.concurrency_key,
+            cron_expression=body.cron_expression,
+            timezone=body.timezone,
+            misfire_policy=body.misfire_policy,
+            max_catch_up=body.max_catch_up,
+        )
+        session.commit()
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return JobScheduleResponse.model_validate(schedule)
+
+
+@admin_router.delete(
+    "/job-schedules/{schedule_id}", response_model=JobScheduleResponse
+)
+def archive_admin_system_schedule(
+    schedule_id: UUID,
+    body: VersionMutationBody,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobScheduleResponse:
+    try:
+        schedule = JobScheduleService(session=session, registry=registry).archive(
+            schedule_id=schedule_id,
+            scope="system",
+            workspace_id=None,
+            actor=_actor(current),
+            expected_version=body.version,
+        )
+        session.commit()
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return JobScheduleResponse.model_validate(schedule)
+
+
+@admin_router.post(
+    "/job-schedules/{schedule_id}/{action}",
+    response_model=JobScheduleResponse | BackgroundJobResponse,
+)
+def mutate_admin_system_schedule(
+    schedule_id: UUID,
+    action: str,
+    body: VersionMutationBody,
+    response: Response,
+    session: Annotated[Session, Depends(get_session)],
+    current: Annotated[CurrentPrincipal, Depends(get_current_user)],
+    registry: Annotated[JobRegistry, Depends(get_job_registry)],
+) -> JobScheduleResponse | BackgroundJobResponse:
+    service = JobScheduleService(session=session, registry=registry)
+    actor = _actor(current)
+    try:
+        if action == "pause":
+            result = service.pause(
+                schedule_id=schedule_id,
+                scope="system",
+                workspace_id=None,
+                actor=actor,
+                expected_version=body.version,
+            )
+        elif action == "resume":
+            result = service.resume(
+                schedule_id=schedule_id,
+                scope="system",
+                workspace_id=None,
+                actor=actor,
+                expected_version=body.version,
+            )
+        elif action == "run-now":
+            job = service.run_now(
+                schedule_id=schedule_id,
+                scope="system",
+                workspace_id=None,
+                actor=actor,
+                expected_version=body.version,
+            )
+            session.commit()
+            response.status_code = status.HTTP_201_CREATED
+            snapshot = JobService(session=session, registry=registry).snapshot(job)
+            return BackgroundJobResponse.from_snapshot(snapshot)
+        else:
+            raise HTTPException(status_code=404, detail="schedule action not found")
+        session.commit()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise _job_http_error(exc) from exc
+    return JobScheduleResponse.model_validate(result)
 
 
 @admin_router.get("/job-handlers", response_model=list[JobHandlerResponse])
@@ -503,6 +774,12 @@ def configure_admin_queue(
             paused=body.paused,
             global_concurrency_limit=body.global_concurrency_limit,
             workspace_concurrency_limit=body.workspace_concurrency_limit,
+            update_global_concurrency_limit=(
+                "global_concurrency_limit" in body.model_fields_set
+            ),
+            update_workspace_concurrency_limit=(
+                "workspace_concurrency_limit" in body.model_fields_set
+            ),
             default_lease_seconds=body.default_lease_seconds,
         )
         session.commit()

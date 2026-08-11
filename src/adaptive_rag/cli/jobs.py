@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import signal
 import socket
@@ -48,6 +49,7 @@ app.add_typer(queues_app, name="queues")
 app.add_typer(workers_app, name="workers")
 
 _CLI_ACTOR = JobActor(actor_type="operator", actor_id="cli")
+logger = logging.getLogger(__name__)
 
 
 @app.command("retention")
@@ -259,7 +261,18 @@ def scheduler(
                 )
                 session.commit()
         except Exception as exc:  # noqa: BLE001 - stable CLI boundary
-            _exit_job_error(exc)
+            if once:
+                _exit_job_error(exc)
+            logger.error(
+                "job scheduler tick failed; retrying error_type=%s",
+                exc.__class__.__name__,
+            )
+            _echo_json(
+                {"status": "error", "error_code": "scheduler_tick_failed"},
+                err=True,
+            )
+            time.sleep(poll_interval_seconds)
+            continue
         _echo_json({"status": "ok", "created_jobs": created})
         if once:
             return
@@ -917,10 +930,10 @@ def _configure_queue(
     _echo_json(response)
 
 
-def _echo_json(value: object) -> None:
+def _echo_json(value: object, *, err: bool = False) -> None:
     if isinstance(value, BaseModel):
         value = value.model_dump(mode="json")
-    typer.echo(json.dumps(value, default=_json_default))
+    typer.echo(json.dumps(value, default=_json_default), err=err)
 
 
 def _json_default(value: object) -> object:

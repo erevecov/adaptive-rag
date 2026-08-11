@@ -48,6 +48,43 @@ def test_system_jobs_are_superadmin_only() -> None:
     assert superadmin.json()["items"] == []
 
 
+def test_system_job_list_rejects_workspace_id_parameter() -> None:
+    setup = make_job_api_setup()
+
+    response = setup.client.get(
+        f"/admin/jobs?scope=system&workspace_id={setup.workspace.id}",
+        headers=bearer(setup.superadmin_token),
+    )
+
+    assert response.status_code == 422
+    assert response.json()["detail"] == "workspace_id is not allowed for system scope"
+
+
+def test_superadmin_can_enqueue_inspect_and_cancel_system_job() -> None:
+    setup = make_job_api_setup()
+    headers = bearer(setup.superadmin_token)
+
+    created = setup.client.post(
+        "/admin/jobs",
+        json={"job_type": "provider_model_pricing_sync", "payload": {}},
+        headers=headers,
+    )
+    job = created.json()["job"]
+    detail = setup.client.get(f"/admin/jobs/{job['id']}", headers=headers)
+    cancelled = setup.client.post(
+        f"/admin/jobs/{job['id']}/cancel",
+        json={"version": job["version"]},
+        headers=headers,
+    )
+
+    assert created.status_code == 201
+    assert job["scope"] == "system"
+    assert detail.status_code == 200
+    assert detail.json()["job"]["id"] == job["id"]
+    assert cancelled.status_code == 200
+    assert cancelled.json()["status"] == "cancelled"
+
+
 def test_superadmin_can_list_workspace_job_handlers() -> None:
     setup = make_job_api_setup()
 
@@ -176,3 +213,26 @@ def test_superadmin_operational_surfaces_are_bounded() -> None:
     assert workers.json() == []
     assert metrics.status_code == 200
     assert len(metrics.json()["queues"]) == 3
+
+
+def test_superadmin_can_clear_queue_concurrency_limits() -> None:
+    setup = make_job_api_setup()
+    headers = bearer(setup.superadmin_token)
+    queue = setup.client.get("/admin/job-queues/default", headers=headers).json()
+    configured = setup.client.patch(
+        "/admin/job-queues/default",
+        json={"global_concurrency_limit": 3, "version": queue["version"]},
+        headers=headers,
+    ).json()
+
+    cleared = setup.client.patch(
+        "/admin/job-queues/default",
+        json={
+            "global_concurrency_limit": None,
+            "version": configured["version"],
+        },
+        headers=headers,
+    )
+
+    assert cleared.status_code == 200
+    assert cleared.json()["global_concurrency_limit"] is None

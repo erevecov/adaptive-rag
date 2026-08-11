@@ -1,5 +1,5 @@
 export type JobsSubmodule = 'jobs' | 'schedules' | 'queues' | 'workers'
-export type JobAction = 'cancel' | 'retry' | 'unblock'
+export type JobAction = 'cancel' | 'reset-retry' | 'retry' | 'unblock'
 export type JobStatusTone =
   | 'neutral'
   | 'primary'
@@ -51,7 +51,9 @@ export function decodeJobFilters(query: string): JobFilters {
     cursor: cleanFilter(params.get('cursor')),
     job_type: cleanFilter(params.get('job_type')),
     limit:
-      Number.isInteger(parsedLimit) && parsedLimit > 0 ? parsedLimit : null,
+      Number.isInteger(parsedLimit) && parsedLimit > 0 && parsedLimit <= 200
+        ? parsedLimit
+        : null,
     queue: cleanFilter(params.get('queue')),
     status: cleanFilter(params.get('status')),
   }
@@ -65,7 +67,7 @@ export function jobActions(status: string, canAdmin: boolean): JobAction[] {
     return ['unblock', 'cancel']
   }
   if (status === 'dead_letter') {
-    return ['retry']
+    return ['retry', 'reset-retry']
   }
   if (status === 'queued' || status === 'running') {
     return ['cancel']

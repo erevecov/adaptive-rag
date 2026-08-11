@@ -541,6 +541,57 @@ def _expand_events() -> None:
     )
 
 
+def _recover_legacy_running_jobs() -> None:
+    """Fence legacy leases that cannot be represented by the new runtime."""
+
+    op.execute(
+        sa.text(
+            "INSERT INTO job_attempts ("
+            "id, job_id, scope, workspace_id, attempt_number, worker_id, status, "
+            "started_at, heartbeat_at, lease_expires_at, finished_at, "
+            "error_code, error_message) "
+            "SELECT gen_random_uuid(), id, scope, workspace_id, "
+            "GREATEST(attempt_count, 1), gen_random_uuid(), 'expired', "
+            "COALESCE(updated_at, created_at, now()), now(), now(), now(), "
+            "'legacy_attempt_recovered', "
+            "'legacy running attempt was fenced during job-platform migration' "
+            "FROM jobs WHERE status = 'running'"
+        )
+    )
+    op.execute(
+        sa.text(
+            "UPDATE jobs SET "
+            "status = CASE WHEN attempts >= max_attempts "
+            "THEN 'dead_letter' ELSE 'queued' END, "
+            "attempt_count = GREATEST(attempt_count, 1), "
+            "locked_by = NULL, locked_until = NULL, current_attempt_id = NULL, "
+            "run_after = CASE WHEN attempts >= max_attempts "
+            "THEN run_after ELSE now() END, "
+            "finished_at = CASE WHEN attempts >= max_attempts "
+            "THEN now() ELSE NULL END, "
+            "last_error = 'legacy running attempt was fenced during migration', "
+            "last_error_code = 'legacy_attempt_recovered', "
+            "last_error_message = "
+            "'legacy running attempt was fenced during migration', "
+            "version = version + 1, updated_at = now() "
+            "WHERE status = 'running'"
+        )
+    )
+    op.execute(
+        sa.text(
+            "INSERT INTO job_events ("
+            "id, workspace_id, job_id, event_type, message, extra_metadata, "
+            "created_at, scope, attempt_id) "
+            "SELECT gen_random_uuid(), j.workspace_id, j.id, 'expired', "
+            "'legacy running attempt was fenced during migration', "
+            "jsonb_build_object('next_status', j.status, "
+            "'reason', 'legacy_attempt_recovered'), now(), j.scope, a.id "
+            "FROM jobs j JOIN job_attempts a ON a.job_id = j.id "
+            "WHERE a.error_code = 'legacy_attempt_recovered'"
+        )
+    )
+
+
 def _create_worker_table() -> None:
     op.create_table(
         "job_workers",
@@ -619,6 +670,7 @@ def upgrade() -> None:
     _expand_jobs()
     _create_attempts_and_fence()
     _expand_events()
+    _recover_legacy_running_jobs()
     _create_worker_table()
     _create_notification_trigger()
 

@@ -20,7 +20,7 @@ antes de publicar el efecto.
 3. Iniciar el stack global. Ningún servicio requiere fijar un workspace:
 
    ```bash
-   docker compose up --build postgres api scheduler
+   docker compose up --build postgres migrate api scheduler
    docker compose --profile worker up --build worker
    ```
 
@@ -52,14 +52,29 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
   job_queues, job_queue_workspace_state, jobs, job_attempts,
   job_events, job_workers
 TO adaptive_rag_worker;
+GRANT SELECT, UPDATE ON TABLE job_schedules TO adaptive_rag_worker;
+GRANT SELECT ON TABLE
+  alembic_version, provider_connections, provider_secrets,
+  runtime_slot_defaults, global_chat_models,
+  workspace_runtime_slot_overrides, workspace_chat_models,
+  global_chat_retrieval_settings, workspace_chat_retrieval_settings
+TO adaptive_rag_worker;
+GRANT SELECT, UPDATE ON TABLE
+  provider_model_catalog
+TO adaptive_rag_worker;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE
-  workspaces, sources, documents, document_versions, chunks
+  workspaces, sources, documents, document_versions, chunks,
+  chunk_sparse_embeddings
 TO adaptive_rag_worker;
 ```
 
-No conceder `CREATE ON SCHEMA`, ownership, superuser ni escritura sobre
-`alembic_version`. Si un handler necesita otra tabla, agregar sólo sus permisos
-DML; el proceso debe fallar cerrado hasta que ese grant exista.
+`SELECT` sobre `alembic_version` permite el readiness fail-closed, pero no se
+concede escritura. La configuración de runtime y `provider_secrets` se limita a
+lectura; la clave de cifrado permanece fuera de PostgreSQL. No conceder `CREATE
+ON SCHEMA`, ownership ni superuser. Si un handler necesita otra tabla, agregar
+sólo sus permisos DML; el proceso debe fallar cerrado hasta que ese grant exista.
+Validar este rol ejecutando un tick real del scheduler y al menos un handler de
+cada familia registrada.
 
 ## Operación cotidiana
 
@@ -176,7 +191,7 @@ control plane general.
 
 ```bash
 docker compose up -d postgres
-docker compose run --rm api uv run alembic upgrade head
+docker compose run --rm migrate
 docker compose run --rm worker adaptive-rag jobs worker --once
 docker compose run --rm scheduler adaptive-rag jobs scheduler --once
 docker compose down

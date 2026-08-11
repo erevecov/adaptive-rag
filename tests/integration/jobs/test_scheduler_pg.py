@@ -145,3 +145,41 @@ def test_catch_up_is_oldest_first_and_bounded(
         NOW - timedelta(minutes=4),
         NOW - timedelta(minutes=3),
     ]
+
+
+def test_run_once_uses_the_latest_occurrence_beyond_expansion_limit(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    registry = _registry()
+    with job_session_factory() as session:
+        schedule = JobSchedule(
+            scope="system",
+            workspace_id=None,
+            name="long-misfire schedule",
+            queue_name="system",
+            job_type="scheduled_echo",
+            handler_version=1,
+            payload_json={"value": "latest"},
+            cron_expression="* * * * *",
+            timezone="UTC",
+            misfire_policy="run_once",
+            max_catch_up=1,
+            next_run_at=NOW - timedelta(minutes=200),
+        )
+        session.add(schedule)
+        session.commit()
+        schedule_id = schedule.id
+
+    with job_session_factory() as session:
+        count = JobScheduler(session=session, registry=registry).run_once(now=NOW)
+        session.commit()
+
+    with job_session_factory() as session:
+        job = session.scalar(select(Job).where(Job.schedule_id == schedule_id))
+        schedule = session.get(JobSchedule, schedule_id)
+        assert job is not None
+        assert schedule is not None
+        assert count == 1
+        assert job.scheduled_for == NOW
+        assert schedule.last_scheduled_for == NOW
+        assert schedule.next_run_at > NOW

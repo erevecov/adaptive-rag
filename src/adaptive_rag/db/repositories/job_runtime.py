@@ -24,7 +24,7 @@ from adaptive_rag.jobs.types import HandlerKey
 
 @dataclass(frozen=True, slots=True)
 class RuntimeHandlerConfig:
-    lease_seconds: int
+    lease_seconds: int | None
     handler_limit: int | None
     key_limit: int | None
 
@@ -44,6 +44,7 @@ class RuntimeClaim:
     retry_count: int
     max_retries: int
     lease_expires_at: datetime
+    lease_seconds: int
 
 
 class JobRuntimeRepository:
@@ -154,7 +155,11 @@ class JobRuntimeRepository:
                     job=job,
                     state=state,
                     worker_id=worker_id,
-                    lease_seconds=config.lease_seconds,
+                    lease_seconds=(
+                        queue.default_lease_seconds
+                        if config.lease_seconds is None
+                        else config.lease_seconds
+                    ),
                     now=now,
                     all_states=states,
                 )
@@ -343,6 +348,7 @@ class JobRuntimeRepository:
             retry_count=job.retry_count,
             max_retries=job.max_retries,
             lease_expires_at=lease_expires_at,
+            lease_seconds=lease_seconds,
         )
 
     def _at_capacity(

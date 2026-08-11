@@ -55,7 +55,10 @@ def schedule_occurrences(
     base_local = after.astimezone(zone).replace(tzinfo=None)
     base_minute = base_local.replace(second=0, microsecond=0)
     local_candidates: list[datetime] = []
-    if croniter.match(expression, base_minute):
+    if croniter.match(expression, base_minute) and any(
+        after < instant <= through
+        for instant in _resolve_local_time(base_minute, zone=zone)
+    ):
         local_candidates.append(base_minute)
     iterator = croniter(expression, base_minute)
     results: set[datetime] = set()
@@ -82,6 +85,49 @@ def schedule_occurrences(
             if local_value > local_horizon + timedelta(days=1):
                 break
     return sorted(results)[:limit]
+
+
+def latest_occurrence(
+    *,
+    expression: str,
+    timezone: str,
+    after_utc: datetime,
+    through_utc: datetime,
+) -> datetime | None:
+    """Return the newest due instant without expanding the entire backlog."""
+
+    zone = validate_cron_schedule(
+        expression=expression,
+        timezone=timezone,
+        max_catch_up=1,
+    )
+    if after_utc.tzinfo is None or through_utc.tzinfo is None:
+        raise ValueError("Cron range boundaries must be timezone-aware")
+    after = after_utc.astimezone(UTC)
+    through = through_utc.astimezone(UTC)
+    if through <= after:
+        return None
+
+    local_value = through.astimezone(zone).replace(tzinfo=None).replace(
+        second=0,
+        microsecond=0,
+    )
+    iterator = croniter(expression, local_value)
+    if not croniter.match(expression, local_value):
+        local_value = iterator.get_prev(datetime)
+    for _iteration in range(MAX_OCCURRENCES_PER_TICK):
+        eligible = [
+            instant
+            for instant in _resolve_local_time(local_value, zone=zone)
+            if after < instant <= through
+        ]
+        if eligible:
+            return max(eligible)
+        resolved = _resolve_local_time(local_value, zone=zone)
+        if resolved and max(resolved) <= after:
+            return None
+        local_value = iterator.get_prev(datetime)
+    raise ValueError("Cron reverse lookup exceeded 100 occurrences")
 
 
 def apply_misfire_policy(
@@ -143,18 +189,30 @@ class JobScheduler:
         created = 0
         schedules = self._repository.lock_due(now=now, batch_size=batch_size)
         for schedule in schedules:
-            due = schedule_occurrences(
+            range_start = schedule.next_run_at - timedelta(minutes=1)
+            latest_due = latest_occurrence(
                 expression=schedule.cron_expression,
                 timezone=schedule.timezone,
-                after_utc=schedule.next_run_at - timedelta(minutes=1),
+                after_utc=range_start,
                 through_utc=now,
-                limit=MAX_OCCURRENCES_PER_TICK,
             )
-            selected = apply_misfire_policy(
-                due,
-                schedule.misfire_policy,
-                max_catch_up=schedule.max_catch_up,
-            )
+            if schedule.misfire_policy == "run_once":
+                selected = [] if latest_due is None else [latest_due]
+            elif schedule.misfire_policy == "skip":
+                selected = []
+            else:
+                due = schedule_occurrences(
+                    expression=schedule.cron_expression,
+                    timezone=schedule.timezone,
+                    after_utc=range_start,
+                    through_utc=now,
+                    limit=schedule.max_catch_up,
+                )
+                selected = apply_misfire_policy(
+                    due,
+                    schedule.misfire_policy,
+                    max_catch_up=schedule.max_catch_up,
+                )
             service = JobService(session=self._session, registry=self._registry)
             for scheduled_for in selected:
                 request = EnqueueJobRequest(
@@ -172,8 +230,8 @@ class JobScheduler:
                 )
                 if service.enqueue(request).created:
                     created += 1
-            if due:
-                schedule.last_scheduled_for = due[-1]
+            if latest_due is not None:
+                schedule.last_scheduled_for = latest_due
             schedule.next_run_at = next_occurrence(
                 expression=schedule.cron_expression,
                 timezone=schedule.timezone,
@@ -188,6 +246,7 @@ __all__ = [
     "MAX_OCCURRENCES_PER_TICK",
     "JobScheduler",
     "apply_misfire_policy",
+    "latest_occurrence",
     "next_occurrence",
     "schedule_occurrences",
     "validate_cron_schedule",
