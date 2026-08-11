@@ -20,14 +20,21 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from sqlalchemy import Connection, Engine, inspect, select
 from sqlalchemy.orm import Session
 
+from adaptive_rag.db.models import JobSchedule
 from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.db.models.system_task import (
     PROVIDER_MODEL_PRICING_SYNC_TASK_ID,
     SystemTaskState,
 )
 from adaptive_rag.db.repositories.system_tasks import SystemTaskRepository
+from adaptive_rag.db.session import create_session_factory
+from adaptive_rag.jobs.handlers import build_ingestion_registry
+from adaptive_rag.jobs.schedule_service import JobScheduleService
+from adaptive_rag.jobs.scheduler import JobScheduler
+from adaptive_rag.jobs.service import JobActor
 from adaptive_rag.provider_pricing import (
     PricingSyncReport,
     sync_provider_model_pricing,
@@ -214,6 +221,34 @@ def run_provider_pricing_system_task(
             report=report.as_dict(),
         )
 
+    if _uses_job_schedule_platform(session):
+        schedule = session.scalars(
+            select(JobSchedule).where(
+                JobSchedule.scope == "system",
+                JobSchedule.job_type == PROVIDER_MODEL_PRICING_SYNC_TASK_ID,
+                JobSchedule.archived_at.is_(None),
+            )
+        ).first()
+        if schedule is None:
+            raise RuntimeError("provider pricing job schedule is not seeded")
+        registry = build_ingestion_registry(
+            session_factory=create_session_factory(_session_engine(session))
+        )
+        job = JobScheduleService(session=session, registry=registry).run_now(
+            schedule_id=schedule.id,
+            scope="system",
+            workspace_id=None,
+            actor=JobActor(actor_type="system", actor_id=worker_id),
+            expected_version=schedule.version,
+        )
+        return SystemTaskRunResult(
+            task_id=PROVIDER_MODEL_PRICING_SYNC_TASK_ID,
+            status="queued",
+            worker_id=worker_id,
+            force=force,
+            report={"job_id": str(job.id)},
+        )
+
     task = SystemTaskDefinition(
         task_id=PROVIDER_MODEL_PRICING_SYNC_TASK_ID,
         interval_seconds=DEFAULT_PRICING_INTERVAL_SECONDS,
@@ -242,9 +277,7 @@ def system_task_status_payload(row: SystemTaskState) -> dict[str, Any]:
         "last_error": row.last_error,
         "last_report": row.last_report_json,
         "locked_by": row.locked_by,
-        "locked_until": (
-            row.locked_until.isoformat() if row.locked_until else None
-        ),
+        "locked_until": (row.locked_until.isoformat() if row.locked_until else None),
         "updated_at": row.updated_at.isoformat() if row.updated_at else None,
     }
 
@@ -272,6 +305,25 @@ def _as_utc(value: datetime) -> datetime:
     if value.tzinfo is None:
         return value.replace(tzinfo=UTC)
     return value.astimezone(UTC)
+
+
+def _session_engine(session: Session) -> Engine:
+    bind = session.get_bind()
+    return bind.engine if isinstance(bind, Connection) else bind
+
+
+def _uses_job_schedule_platform(session: Session) -> bool:
+    bind = session.get_bind()
+    return bind.dialect.name == "postgresql" and inspect(bind).has_table(
+        "job_schedules"
+    )
+
+
+def _run_job_scheduler_tick(session: Session) -> int:
+    registry = build_ingestion_registry(
+        session_factory=create_session_factory(_session_engine(session))
+    )
+    return JobScheduler(session=session, registry=registry).run_once(now=utc_now())
 
 
 def run_scheduler_loop(
@@ -304,24 +356,40 @@ def run_scheduler_loop(
         if session_factory is not None:
             session = session_factory()
             try:
-                results = run_due_system_tasks(
-                    session,
-                    worker_id=active_worker,
-                    force=force,
-                    lease_seconds=lease_seconds,
-                )
+                if _uses_job_schedule_platform(session):
+                    scheduled_count = _run_job_scheduler_tick(session)
+                    results = []
+                else:
+                    scheduled_count = None
+                    results = run_due_system_tasks(
+                        session,
+                        worker_id=active_worker,
+                        force=force,
+                        lease_seconds=lease_seconds,
+                    )
                 session.commit()
             finally:
                 session.close()
         else:
             with session_scope() as session:
-                results = run_due_system_tasks(
-                    session,
-                    worker_id=active_worker,
-                    force=force,
-                    lease_seconds=lease_seconds,
-                )
+                if _uses_job_schedule_platform(session):
+                    scheduled_count = _run_job_scheduler_tick(session)
+                    results = []
+                else:
+                    scheduled_count = None
+                    results = run_due_system_tasks(
+                        session,
+                        worker_id=active_worker,
+                        force=force,
+                        lease_seconds=lease_seconds,
+                    )
                 session.commit()
+
+        if scheduled_count is not None:
+            logger.info(
+                "job_scheduler_tick",
+                extra={"scheduled_job_count": scheduled_count},
+            )
 
         for result in results:
             logger.info(

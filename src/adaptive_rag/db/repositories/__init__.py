@@ -23,6 +23,7 @@ from adaptive_rag.db.repositories.chunks import ChunkRepository
 from adaptive_rag.db.repositories.documents import DocumentRepository
 from adaptive_rag.db.repositories.filters import DocumentFilters, SourceFilters
 from adaptive_rag.db.repositories.graph_projection import GraphprojectionRepository
+from adaptive_rag.db.repositories.job_runtime import JobRuntimeRepository
 from adaptive_rag.db.repositories.jobs import JobRepository
 from adaptive_rag.db.repositories.knowledge_proposals import KnowledgeProposalRepository
 from adaptive_rag.db.repositories.provider_connections import (
@@ -70,6 +71,7 @@ __all__ = [
     "DocumentRepository",
     "GraphprojectionRepository",
     "JobRepository",
+    "JobRuntimeRepository",
     "KnowledgeProposalRepository",
     "WorkspaceMembershipRepository",
     "WorkspaceRepository",

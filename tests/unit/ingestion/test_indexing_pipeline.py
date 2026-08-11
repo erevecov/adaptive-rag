@@ -170,6 +170,46 @@ def test_index_job_creates_chunks_contextual_summaries_and_embeddings() -> None:
     assert index_job.status == "succeeded"
 
 
+def test_index_document_version_performs_domain_work_without_job_transition() -> None:
+    session = _make_session()
+    workspace = WorkspaceRepository(session).create(name="domain-index")
+    source = SourceRepository(session).create(
+        workspace_id=workspace.id,
+        source_type="text",
+        external_id="domain.txt",
+        extra_metadata={"content": "Domain indexing content."},
+    )
+    document = DocumentRepository(session).create_document(
+        workspace_id=workspace.id,
+        source_id=source.id,
+        stable_id=source.external_id,
+    )
+    version = DocumentRepository(session).create_version(
+        workspace_id=workspace.id,
+        document_id=document.id,
+        version_number=1,
+        normalized_text="Domain indexing content.",
+        content_hash="sha256:domain",
+        index_fingerprint="sha256:domain",
+        parser_metadata={},
+        extraction_metadata={},
+    )
+
+    result = IndexingPipeline(
+        session,
+        dense_embedding_provider=FakeDenseEmbeddingProvider(),
+        sparse_embedding_provider=FakeSparseEmbeddingProvider(),
+    ).index_document_version(
+        workspace_id=workspace.id,
+        document_version_id=version.id,
+        source_id=source.id,
+    )
+
+    assert result.document_version.id == version.id
+    assert result.chunk_count >= 1
+    assert JobRepository(session).list(workspace_id=workspace.id) == []
+
+
 def test_index_job_blocks_when_document_version_is_foreign() -> None:
     session = _make_session()
     workspace_a = WorkspaceRepository(session).create(name="a")

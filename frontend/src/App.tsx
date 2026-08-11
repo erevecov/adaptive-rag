@@ -20,6 +20,8 @@ import {
   type ViewTurnDetailsPayload,
 } from '@/features/chat/ChatWorkspaceView'
 import { UserMemoryPanel } from '@/features/memory/UserMemoryPanel'
+import { type JobsSubmodule } from '@/features/jobs/jobPlatformUi'
+import { JobPlatformPanel } from '@/features/jobs/JobPlatformView'
 import {
   WorkspaceInspectorPanel,
   type FocusedTurn,
@@ -60,6 +62,7 @@ import {
   type ChatSessionDetailResponse,
   type ChatSessionStatus,
   type ChatSessionSummary,
+  type CurrentUser,
   type UserMemory,
   type ChatToolCall,
   type IngestionJob,
@@ -107,6 +110,7 @@ const ACTIVE_VIEW_ROUTES: Record<ActiveView, string> = {
   authoring: '/settings/authoring',
   chat: '/chat',
   observability: '/settings/observability',
+  jobs: '/settings/jobs/jobs',
   runtime: '/settings/runtime',
   settings: '/settings/authoring',
 }
@@ -231,6 +235,12 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     useState<ObservabilitySubmodule>('summary')
   const [runtimeSubmodule, setRuntimeSubmodule] =
     useState<RuntimeSubmodule>('connections')
+  const [jobsSubmodule, setJobsSubmodule] = useState<JobsSubmodule>(
+    readJobsSubmoduleFromRoute,
+  )
+  const [currentUser, setCurrentUser] = useState<
+    CurrentUser | null | undefined
+  >(undefined)
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -360,6 +370,13 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const isSpeechSupported = speechRecognitionConstructor !== null
   const primaryView: PrimaryView =
     activeView === 'chat' || activeView === 'account' ? activeView : 'settings'
+  const canManageJobPlatform = currentUser?.system_role === 'superadmin'
+  const activeWorkspaceRole = workspaces.find(
+    (workspace) => workspace.id === workspaceId.trim(),
+  )?.access_role
+  const canAdminWorkspace =
+    workspaceId.trim().length > 0 &&
+    (canManageJobPlatform || activeWorkspaceRole === 'admin')
 
   useEffect(() => {
     applyTheme(theme)
@@ -374,6 +391,9 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
       setActiveView(nextView)
       if (isSettingsModule(nextView)) {
         setSettingsModule(nextView)
+        if (nextView === 'jobs') {
+          setJobsSubmodule(readJobsSubmoduleFromRoute())
+        }
       }
     }
 
@@ -388,13 +408,22 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   }, [workspaceId])
 
   useEffect(() => {
-    if (initialWorkspaceId.trim().length > 0) return
-
     let ignore = false
     void client
       .getCurrentUser()
       .then((currentUser) => {
         if (ignore) return
+        setCurrentUser(currentUser)
+        const routedJobsSubmodule = readJobsSubmoduleFromRoute()
+        if (
+          currentUser.system_role !== 'superadmin' &&
+          readActiveViewFromRoute() === 'jobs' &&
+          (routedJobsSubmodule === 'queues' || routedJobsSubmodule === 'workers')
+        ) {
+          setJobsSubmodule('jobs')
+          replaceRouteForJobsSubmodule('jobs')
+        }
+        if (initialWorkspaceId.trim().length > 0) return
         const lastWorkspaceId = currentUser.last_workspace_id?.trim() ?? ''
         if (lastWorkspaceId.length > 0) {
           setVisibleSessionCount(SESSION_PAGE_SIZE)
@@ -410,6 +439,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
       })
       .catch(() => {
         // Local/bootstrap sessions may not have an authenticated account yet.
+        if (!ignore) setCurrentUser(null)
       })
 
     return () => {
@@ -1288,8 +1318,10 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
       setAuthoringSubmodule('workspaces')
     } else if (module === 'observability') {
       setObservabilitySubmodule('summary')
-    } else {
+    } else if (module === 'runtime') {
       setRuntimeSubmodule('connections')
+    } else {
+      setJobsSubmodule('jobs')
     }
   }
 
@@ -1300,8 +1332,16 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
       setAuthoringSubmodule(selection.submodule)
     } else if (selection.module === 'observability') {
       setObservabilitySubmodule(selection.submodule)
-    } else {
+    } else if (selection.module === 'runtime') {
       setRuntimeSubmodule(selection.submodule)
+    } else {
+      const nextSubmodule =
+        !canManageJobPlatform &&
+        (selection.submodule === 'queues' || selection.submodule === 'workers')
+          ? 'jobs'
+          : selection.submodule
+      setJobsSubmodule(nextSubmodule)
+      pushRouteForJobsSubmodule(nextSubmodule)
     }
   }
 
@@ -2678,9 +2718,11 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
         <AppSidebar
           accountModule={accountModule}
           authoringSubmodule={authoringSubmodule}
+          canManageJobPlatform={canManageJobPlatform}
           canLoadMoreSessions={hasMoreSessions}
           error={historyError}
           isOpen={isLeftSidebarOpen}
+          jobsSubmodule={jobsSubmodule}
           observabilitySubmodule={observabilitySubmodule}
           onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
           onAccountModuleChange={setAccountModule}
@@ -2967,6 +3009,14 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                 providerModels={runtimeProviderModels}
                 slots={runtimeSlots}
                 state={runtimeState}
+              />
+            ) : activeSettingsModule === 'jobs' ? (
+              <JobPlatformPanel
+                activeSubmodule={jobsSubmodule}
+                apiClient={client}
+                canAdminWorkspace={canAdminWorkspace}
+                isSuperadmin={canManageJobPlatform}
+                workspaceId={workspaceId}
               />
             ) : authoringSubmodule === 'retrieval' ? (
               <RetrievalPlaygroundPanel client={client} workspaceId={workspaceId} />
@@ -3285,7 +3335,12 @@ function normalizeActiveView(view: ActiveView): ActiveView {
 }
 
 function isSettingsModule(view: ActiveView): view is SettingsModule {
-  return view === 'authoring' || view === 'observability' || view === 'runtime'
+  return (
+    view === 'authoring' ||
+    view === 'observability' ||
+    view === 'runtime' ||
+    view === 'jobs'
+  )
 }
 
 function readActiveViewFromRoute(): ActiveView {
@@ -3309,7 +3364,20 @@ function readActiveViewFromRoute(): ActiveView {
   if (pathname === '/settings/runtime') {
     return 'runtime'
   }
+  if (pathname === '/settings/jobs' || pathname.startsWith('/settings/jobs/')) {
+    return 'jobs'
+  }
   return 'chat'
+}
+
+function readJobsSubmoduleFromRoute(): JobsSubmodule {
+  if (typeof window === 'undefined') {
+    return 'jobs'
+  }
+  const value = window.location.pathname.split('/').filter(Boolean)[2]
+  return value === 'schedules' || value === 'queues' || value === 'workers'
+    ? value
+    : 'jobs'
 }
 
 function replaceRouteForActiveView(view: ActiveView) {
@@ -3318,6 +3386,28 @@ function replaceRouteForActiveView(view: ActiveView) {
 
 function pushRouteForActiveView(view: ActiveView) {
   updateRouteForActiveView(view, 'push')
+}
+
+function replaceRouteForJobsSubmodule(submodule: JobsSubmodule) {
+  updateRouteForJobsSubmodule(submodule, 'replace')
+}
+
+function pushRouteForJobsSubmodule(submodule: JobsSubmodule) {
+  updateRouteForJobsSubmodule(submodule, 'push')
+}
+
+function updateRouteForJobsSubmodule(
+  submodule: JobsSubmodule,
+  mode: 'push' | 'replace',
+) {
+  if (typeof window === 'undefined') return
+  const nextPath = `/settings/jobs/${submodule}`
+  if (window.location.pathname === nextPath) return
+  window.history[mode === 'push' ? 'pushState' : 'replaceState'](
+    null,
+    '',
+    nextPath,
+  )
 }
 
 function updateRouteForActiveView(
@@ -3329,7 +3419,10 @@ function updateRouteForActiveView(
   }
 
   const nextView = normalizeActiveView(view)
-  const nextPath = ACTIVE_VIEW_ROUTES[nextView]
+  const nextPath =
+    nextView === 'jobs'
+      ? `/settings/jobs/${readJobsSubmoduleFromRoute()}`
+      : ACTIVE_VIEW_ROUTES[nextView]
   if (window.location.pathname === nextPath) {
     return
   }

@@ -9,6 +9,7 @@ from uuid import UUID
 
 from fastapi import Depends, Header, HTTPException
 from fastapi.params import Depends as DependsMarker
+from sqlalchemy import Connection
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
@@ -30,9 +31,11 @@ from adaptive_rag.db.repositories import (
     WorkspaceRepository,
 )
 from adaptive_rag.db.repositories.users import UserRepository
-from adaptive_rag.db.session import session_scope
+from adaptive_rag.db.session import create_session_factory, session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever, get_graph_store
+from adaptive_rag.jobs.handlers import build_ingestion_registry
+from adaptive_rag.jobs.registry import JobRegistry
 from adaptive_rag.provider_models import HTTPProviderModelLister, ProviderModelLister
 from adaptive_rag.provider_runtime import get_chat_runner as get_runtime_chat_runner
 from adaptive_rag.provider_runtime import (
@@ -61,6 +64,14 @@ SparseEmbeddingProviderFactory = Callable[[], SparseEmbeddingProvider]
 def get_session() -> Iterator[Session]:
     with session_scope() as session:
         yield session
+
+
+def get_job_registry(
+    session: Annotated[Session, Depends(get_session)],
+) -> JobRegistry:
+    bind = session.get_bind()
+    engine = bind.engine if isinstance(bind, Connection) else bind
+    return build_ingestion_registry(session_factory=create_session_factory(engine))
 
 
 def get_current_user(

@@ -13,6 +13,17 @@ def test_settings_use_adaptive_rag_env_prefix(monkeypatch):
     assert settings.vector_store == "pgvector"
 
 
+def test_job_database_url_is_optional_and_uses_env_prefix(monkeypatch):
+    monkeypatch.setenv(
+        "ADAPTIVE_RAG_JOB_DATABASE_URL",
+        "postgresql+psycopg://worker:secret@db/jobs",
+    )
+
+    settings = Settings()
+
+    assert settings.job_database_url == ("postgresql+psycopg://worker:secret@db/jobs")
+
+
 def test_api_key_is_optional(monkeypatch):
     monkeypatch.delenv("ADAPTIVE_RAG_API_KEY", raising=False)
 

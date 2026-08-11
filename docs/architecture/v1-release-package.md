@@ -1,6 +1,6 @@
 # V1 release package
 
-Estado: listo para M21.
+Estado: plataforma PostgreSQL general de jobs incorporada al paquete v1.
 
 ## Stack local default
 
@@ -11,8 +11,11 @@ Servicios:
 
 - `postgres`: Postgres 16 con pgvector.
 - `api`: FastAPI en `http://localhost:8000`.
-- `worker`: Typer CLI `adaptive-rag jobs run-worker`, habilitado por profile
-  porque el worker actual es project-scoped y requiere `project_id`.
+- `worker`: proceso general `adaptive-rag jobs worker`, habilitado por profile;
+  consume colas de workspace y sistema sin scope fijo.
+- `scheduler`: cron durable replicable `adaptive-rag jobs scheduler`.
+- `frontend`: consola operativa de Jobs/Schedules y, para superadmins,
+  Queues/Workers.
 
 ## Arranque
 
@@ -33,22 +36,50 @@ Las migraciones se ejecutan de forma explicita:
 docker compose run --rm api alembic upgrade head
 ```
 
-## Worker
+## Worker y scheduler
 
-El worker procesa jobs `ingest_source` de un proyecto usando Postgres como
-queue. Para una corrida de smoke de un solo job:
+PostgreSQL es broker y fuente de verdad. Para una corrida de smoke de un solo
+job o un proceso concurrente:
 
 ```bash
-uv run adaptive-rag jobs run-worker \
-  --project-id <project-id> \
-  --worker-id local-smoke \
-  --once
+uv run adaptive-rag jobs worker --once
+uv run adaptive-rag jobs worker \
+  --queues ingestion,default,system --concurrency 8
+uv run adaptive-rag jobs scheduler --once
 ```
 
 Para levantarlo dentro de Docker Compose:
 
 ```bash
-ADAPTIVE_RAG_WORKER_PROJECT_ID=<project-id> docker compose --profile worker up worker
+docker compose --profile worker up worker
+docker compose up scheduler
+```
+
+El despliegue aplica Alembic antes de iniciar procesos. Workers usan leases,
+heartbeats y fencing; el reaper recupera intentos vencidos. `LISTEN/NOTIFY`
+acelera el wake-up y polling garantiza progreso cuando faltan notificaciones.
+La cola soporta límites globales/por workspace/handler/clave, retries con
+jitter, blocked/dead-letter, cancelación cooperativa e idempotencia.
+
+Los schedules usan cron + timezone IANA con políticas `skip`, `run_once` y
+`catch_up`. La consola y API mantienen separación RBAC entre scope workspace y
+controles globales de superadmin.
+
+Runbook canónico con rol DB mínimo, pausas, diagnóstico, métricas, retención y
+rollback: `docs/architecture/job-platform-runbook.md`.
+
+## Evidencia de aceptación de jobs
+
+La suite PostgreSQL ejecuta 500 jobs en cuatro workspaces con cuatro workers de
+ocho slots, verifica límites compartidos, ausencia de pérdida/finalización
+duplicada y conexiones acotadas. Las pruebas de fault injection matan un worker
+real, recuperan el lease, rechazan la escritura obsoleta, prueban polling sin
+NOTIFY y ejecutan el ciclo con un rol sin DDL/Alembic.
+
+```bash
+uv run pytest tests/integration/jobs/test_acceptance_pg.py \
+  tests/integration/jobs/test_fault_recovery_pg.py \
+  tests/integration/jobs/test_retention_pg.py -q -s
 ```
 
 ## Demo offline

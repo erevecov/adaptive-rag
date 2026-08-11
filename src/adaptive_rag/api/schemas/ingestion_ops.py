@@ -50,6 +50,8 @@ class JobResponse(BaseModel):
 
     @classmethod
     def from_job(cls, job: Job) -> JobResponse:
+        if job.workspace_id is None:
+            raise ValueError("ingestion job response requires workspace scope")
         return cls(
             id=job.id,
             workspace_id=job.workspace_id,
@@ -79,6 +81,8 @@ class JobEventResponse(BaseModel):
 
     @classmethod
     def from_event(cls, event: JobEvent) -> JobEventResponse:
+        if event.workspace_id is None:
+            raise ValueError("ingestion event response requires workspace scope")
         return cls(
             id=event.id,
             workspace_id=event.workspace_id,

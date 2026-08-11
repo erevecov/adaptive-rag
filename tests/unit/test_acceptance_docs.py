@@ -29,3 +29,26 @@ def test_readme_points_to_runtime_acceptance_smoke() -> None:
     assert "uv run adaptive-rag acceptance runtime-settings-smoke" in content
     assert "provider connections" in content
     assert "model catalog" in content
+
+
+def test_job_platform_runbook_covers_deployment_recovery_and_retention() -> None:
+    content = (
+        ROOT / "docs" / "architecture" / "job-platform-runbook.md"
+    ).read_text(encoding="utf-8")
+
+    assert "uv run alembic upgrade head" in content
+    assert "adaptive-rag jobs worker" in content
+    assert "adaptive-rag jobs scheduler" in content
+    assert "fenced_write_rejected" in content
+    assert "LISTEN/NOTIFY" in content
+    assert "--apply" in content
+    assert "alembic_version" in content
+    assert "docker compose down" in content
+
+
+def test_readme_points_to_complete_job_platform_runbook() -> None:
+    content = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "docs/architecture/job-platform-runbook.md" in content
+    assert "adaptive-rag jobs worker" in content
+    assert "adaptive-rag jobs retention" in content

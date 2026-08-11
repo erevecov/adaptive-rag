@@ -8,11 +8,27 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import and_, or_, select
+from sqlalchemy.dialects.postgresql import insert as postgresql_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import Job, JobEvent
+from adaptive_rag.db.models import (
+    Job,
+    JobAttempt,
+    JobEvent,
+    JobQueue,
+    JobQueueWorkspaceState,
+)
 from adaptive_rag.db.models.job import utc_now
+from adaptive_rag.jobs.errors import JobIdempotencyConflictError
+
+OPEN_JOB_STATUSES = ("queued", "running", "blocked")
+IDEMPOTENCY_CONSTRAINTS = {
+    "uq_jobs_workspace_open_idempotency",
+    "uq_jobs_system_open_idempotency",
+}
 
 
 class JobRepository:
@@ -20,6 +36,187 @@ class JobRepository:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+
+    def get_queue(self, queue_name: str) -> JobQueue | None:
+        return self._session.get(JobQueue, queue_name)
+
+    def enqueue_validated(
+        self,
+        *,
+        scope: str,
+        workspace_id: UUID | None,
+        queue_name: str,
+        job_type: str,
+        handler_version: int,
+        payload_json: Mapping[str, Any],
+        priority: int,
+        max_retries: int,
+        run_after: datetime,
+        idempotency_key: str | None,
+        idempotency_fingerprint: str | None,
+        schedule_id: UUID | None,
+        scheduled_for: datetime | None,
+        concurrency_key: str | None,
+    ) -> tuple[Job, bool]:
+        """Insert one job without committing the caller's transaction."""
+
+        if idempotency_key is not None:
+            existing = self.find_open_idempotent(
+                scope=scope,
+                workspace_id=workspace_id,
+                job_type=job_type,
+                handler_version=handler_version,
+                idempotency_key=idempotency_key,
+            )
+            if existing is not None:
+                return self._match_idempotent(
+                    existing=existing, fingerprint=idempotency_fingerprint
+                )
+
+        self._ensure_dispatch_state(
+            queue_name=queue_name,
+            scope_key=("system" if scope == "system" else f"workspace:{workspace_id}"),
+        )
+        job = Job(
+            scope=scope,
+            workspace_id=workspace_id,
+            queue_name=queue_name,
+            job_type=job_type,
+            handler_version=handler_version,
+            payload_json=dict(payload_json),
+            priority=priority,
+            max_retries=max_retries,
+            max_attempts=max_retries + 1,
+            run_after=run_after,
+            idempotency_key=idempotency_key,
+            idempotency_fingerprint=idempotency_fingerprint,
+            schedule_id=schedule_id,
+            scheduled_for=scheduled_for,
+            concurrency_key=concurrency_key,
+        )
+        try:
+            with self._session.begin_nested():
+                self._session.add(job)
+                self._session.flush()
+        except IntegrityError as exc:
+            if not self._is_idempotency_violation(exc):
+                raise
+            if idempotency_key is None:
+                raise
+            existing = self.find_open_idempotent(
+                scope=scope,
+                workspace_id=workspace_id,
+                job_type=job_type,
+                handler_version=handler_version,
+                idempotency_key=idempotency_key,
+            )
+            if existing is None:
+                raise
+            return self._match_idempotent(
+                existing=existing,
+                fingerprint=idempotency_fingerprint,
+            )
+
+        self._add_scoped_event(job=job, event_type="created")
+        self._add_scoped_event(job=job, event_type="queued")
+        self._session.flush()
+        return job, True
+
+    def find_open_idempotent(
+        self,
+        *,
+        scope: str,
+        workspace_id: UUID | None,
+        job_type: str,
+        handler_version: int,
+        idempotency_key: str,
+    ) -> Job | None:
+        statement = select(Job).where(
+            Job.scope == scope,
+            Job.job_type == job_type,
+            Job.handler_version == handler_version,
+            Job.idempotency_key == idempotency_key,
+            Job.status.in_(OPEN_JOB_STATUSES),
+        )
+        if scope == "workspace":
+            statement = statement.where(Job.workspace_id == workspace_id)
+        else:
+            statement = statement.where(Job.workspace_id.is_(None))
+        return self._session.scalars(statement).one_or_none()
+
+    def get_scoped(
+        self, *, scope: str, workspace_id: UUID | None, job_id: UUID
+    ) -> Job | None:
+        statement = select(Job).where(Job.id == job_id, Job.scope == scope)
+        if scope == "workspace":
+            statement = statement.where(Job.workspace_id == workspace_id)
+        else:
+            statement = statement.where(Job.workspace_id.is_(None))
+        return self._session.scalars(statement).one_or_none()
+
+    def list_page(
+        self,
+        *,
+        scope: str,
+        workspace_id: UUID | None,
+        limit: int,
+        cursor: tuple[datetime, UUID] | None = None,
+        status: str | None = None,
+        queue_name: str | None = None,
+        job_type: str | None = None,
+        schedule_id: UUID | None = None,
+        created_from: datetime | None = None,
+        created_to: datetime | None = None,
+    ) -> builtins.list[Job]:
+        statement = select(Job).where(Job.scope == scope)
+        if scope == "workspace":
+            statement = statement.where(Job.workspace_id == workspace_id)
+        else:
+            statement = statement.where(Job.workspace_id.is_(None))
+        if status is not None:
+            statement = statement.where(Job.status == status)
+        if queue_name is not None:
+            statement = statement.where(Job.queue_name == queue_name)
+        if job_type is not None:
+            statement = statement.where(Job.job_type == job_type)
+        if schedule_id is not None:
+            statement = statement.where(Job.schedule_id == schedule_id)
+        if created_from is not None:
+            statement = statement.where(Job.created_at >= created_from)
+        if created_to is not None:
+            statement = statement.where(Job.created_at <= created_to)
+        if cursor is not None:
+            cursor_time, cursor_id = cursor
+            statement = statement.where(
+                or_(
+                    Job.created_at < cursor_time,
+                    and_(Job.created_at == cursor_time, Job.id < cursor_id),
+                )
+            )
+        statement = statement.order_by(Job.created_at.desc(), Job.id.desc()).limit(
+            limit
+        )
+        return builtins.list(self._session.scalars(statement))
+
+    def list_attempts(self, *, job_id: UUID, limit: int) -> builtins.list[JobAttempt]:
+        statement = (
+            select(JobAttempt)
+            .where(JobAttempt.job_id == job_id)
+            .order_by(JobAttempt.attempt_number.desc())
+            .limit(limit)
+        )
+        return builtins.list(self._session.scalars(statement))
+
+    def list_events_bounded(
+        self, *, job_id: UUID, limit: int
+    ) -> builtins.list[JobEvent]:
+        statement = (
+            select(JobEvent)
+            .where(JobEvent.job_id == job_id)
+            .order_by(JobEvent.created_at.desc(), JobEvent.id.desc())
+            .limit(limit)
+        )
+        return builtins.list(self._session.scalars(statement))
 
     def create(
         self,
@@ -32,11 +229,15 @@ class JobRepository:
         run_after: datetime | None = None,
     ) -> Job:
         job = Job(
+            scope="workspace",
             workspace_id=workspace_id,
+            queue_name="ingestion",
+            handler_version=1,
             job_type=job_type,
-            payload_json=dict(payload_json) if payload_json is not None else None,
+            payload_json=dict(payload_json) if payload_json is not None else {},
             priority=priority,
             max_attempts=max_attempts,
+            max_retries=max(0, min(25, max_attempts - 1)),
             run_after=run_after or utc_now(),
         )
         self._session.add(job)
@@ -307,6 +508,7 @@ class JobRepository:
         extra_metadata: Mapping[str, Any] | None = None,
     ) -> JobEvent:
         event = JobEvent(
+            scope="workspace",
             workspace_id=workspace_id,
             job_id=job_id,
             event_type=event_type,
@@ -315,3 +517,53 @@ class JobRepository:
         )
         self._session.add(event)
         return event
+
+    def _add_scoped_event(self, *, job: Job, event_type: str) -> JobEvent:
+        event = JobEvent(
+            scope=job.scope,
+            workspace_id=job.workspace_id,
+            job_id=job.id,
+            event_type=event_type,
+        )
+        self._session.add(event)
+        return event
+
+    def _ensure_dispatch_state(self, *, queue_name: str, scope_key: str) -> None:
+        values = {"queue_name": queue_name, "scope_key": scope_key}
+        dialect_name = self._session.get_bind().dialect.name
+        if dialect_name == "postgresql":
+            postgres_statement = postgresql_insert(JobQueueWorkspaceState).values(
+                **values
+            )
+            self._session.execute(
+                postgres_statement.on_conflict_do_nothing(
+                    index_elements=["queue_name", "scope_key"]
+                )
+            )
+            return
+        if dialect_name == "sqlite":
+            sqlite_statement = sqlite_insert(JobQueueWorkspaceState).values(**values)
+            self._session.execute(
+                sqlite_statement.on_conflict_do_nothing(
+                    index_elements=["queue_name", "scope_key"]
+                )
+            )
+            return
+        if self._session.get(JobQueueWorkspaceState, (queue_name, scope_key)) is None:
+            self._session.add(JobQueueWorkspaceState(**values))
+
+    @staticmethod
+    def _match_idempotent(
+        *, existing: Job, fingerprint: str | None
+    ) -> tuple[Job, bool]:
+        if existing.idempotency_fingerprint != fingerprint:
+            raise JobIdempotencyConflictError(
+                "Idempotency key is already used by different job parameters"
+            )
+        return existing, False
+
+    @staticmethod
+    def _is_idempotency_violation(exc: IntegrityError) -> bool:
+        diagnostic = getattr(exc.orig, "diag", None)
+        constraint_name = getattr(diagnostic, "constraint_name", None)
+        return constraint_name in IDEMPOTENCY_CONSTRAINTS

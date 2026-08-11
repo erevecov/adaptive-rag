@@ -1,4 +1,4 @@
-"""CLI for in-app system scheduler (global maintenance tasks)."""
+"""Compatibility CLI aliases for the general durable job scheduler."""
 
 from __future__ import annotations
 
@@ -46,11 +46,11 @@ def run_scheduler(
         ),
     ] = False,
 ) -> None:
-    """Long-running in-app scheduler for global system tasks.
+    """Compatibility alias for the durable scheduler/system-task adapter.
 
-    Intended for the Compose/prod ``scheduler`` service — not host crontab.
-    Currently runs ``provider_model_pricing_sync`` about once per day using
-    DB-backed lease state so multiple replicas do not double-run.
+    New deployments use ``jobs scheduler``. PostgreSQL installations delegate
+    through the same durable schedules; legacy SQLite flows retain interval-task
+    behavior until their compatibility surface is removed separately.
     """
 
     run_scheduler_loop(
