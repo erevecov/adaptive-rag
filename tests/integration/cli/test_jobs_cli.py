@@ -35,7 +35,12 @@ from adaptive_rag.jobs.handlers import build_ingestion_registry
 
 
 def test_job_platform_commands_are_registered() -> None:
-    result = CliRunner().invoke(app, ["jobs", "--help"])
+    result = CliRunner().invoke(
+        app,
+        ["jobs", "--help"],
+        env={"COLUMNS": "160"},
+        terminal_width=160,
+    )
 
     assert result.exit_code == 0
     assert "enqueue-ingest-source" in result.stdout
@@ -66,7 +71,14 @@ def test_job_platform_commands_are_registered() -> None:
 def test_job_platform_nested_command_help(
     args: list[str], expected: str
 ) -> None:
-    result = CliRunner().invoke(app, args)
+    # Rich truncates option names to the ambient terminal width. Pin the width
+    # so CI runners with narrow pseudo-terminals exercise the same help surface.
+    result = CliRunner().invoke(
+        app,
+        args,
+        env={"COLUMNS": "160"},
+        terminal_width=160,
+    )
 
     assert result.exit_code == 0
     assert expected in result.stdout
