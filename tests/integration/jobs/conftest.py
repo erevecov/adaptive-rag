@@ -8,7 +8,7 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from sqlalchemy import Engine, create_engine
+from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 from testcontainers.postgres import PostgresContainer
 
@@ -49,3 +49,22 @@ def job_session_factory(job_engine: Engine) -> sessionmaker[Session]:
         autoflush=False,
         expire_on_commit=False,
     )
+
+
+@pytest.fixture(autouse=True)
+def isolate_job_platform_test(job_engine: Engine) -> Iterator[None]:
+    yield
+    with job_engine.begin() as connection:
+        connection.execute(text("UPDATE jobs SET current_attempt_id = NULL"))
+        connection.execute(text("DELETE FROM job_events"))
+        connection.execute(text("DELETE FROM job_attempts"))
+        connection.execute(text("DELETE FROM jobs"))
+        connection.execute(text("DELETE FROM job_queue_workspace_state"))
+        connection.execute(text("DELETE FROM workspaces"))
+        connection.execute(
+            text(
+                "UPDATE job_queues SET paused_at = NULL, "
+                "global_concurrency_limit = NULL, "
+                "workspace_concurrency_limit = NULL"
+            )
+        )
