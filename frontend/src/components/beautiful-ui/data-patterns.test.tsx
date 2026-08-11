@@ -48,6 +48,43 @@ describe('RecordsGrid', () => {
 
     expect(screen.getByText('No records')).toBeTruthy()
   })
+
+  test('reports descending sort and retains the caller order for equal sort values', async () => {
+    const user = userEvent.setup()
+    const rows = [
+      { id: 'beta-first', name: 'Beta', ordinal: 'first' },
+      { id: 'beta-second', name: 'Beta', ordinal: 'second' },
+      { id: 'alpha', name: 'Alpha', ordinal: 'only' },
+    ]
+    render(
+      <RecordsGrid
+        columns={[
+          {
+            header: 'Name',
+            id: 'name',
+            render: (row) => `${row.name} ${row.ordinal}`,
+            sortValue: (row) => row.name,
+          },
+        ]}
+        emptyLabel="No records"
+        label="Records"
+        rows={rows}
+      />,
+    )
+
+    const sortButton = screen.getByRole('button', { name: 'Name' })
+    await user.click(sortButton)
+    await user.click(sortButton)
+
+    expect(screen.getByRole('columnheader', { name: 'Name' }).getAttribute('aria-sort')).toBe(
+      'descending',
+    )
+    expect(screen.getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      'Beta first',
+      'Beta second',
+      'Alpha only',
+    ])
+  })
 })
 
 describe('FilteredTaskTable', () => {
@@ -69,6 +106,8 @@ describe('FilteredTaskTable', () => {
       />,
     )
 
+    expect(screen.getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe('true')
+    expect(screen.getByRole('button', { name: 'Running' }).getAttribute('aria-pressed')).toBe('false')
     await user.click(screen.getByRole('button', { name: 'Running' }))
 
     expect(onFilterChange).toHaveBeenCalledWith('running')
@@ -209,6 +248,77 @@ describe('InsightDeck', () => {
 
     expect(screen.queryByRole('img', { name: 'Single point trend' })).toBeNull()
   })
+
+  test('uses only finite trend points and omits the graphic when fewer than two remain', () => {
+    const { rerender } = render(
+      <InsightDeck
+        insights={[
+          {
+            body: 'Body',
+            id: 'mixed',
+            title: 'Mixed trend',
+            trend: [
+              { x: 0, y: 1 },
+              { x: Number.NaN, y: 3 },
+              { x: 1, y: Number.POSITIVE_INFINITY },
+              { x: 2, y: 4 },
+            ],
+          },
+        ]}
+        label="Operational insights"
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: 'Mixed trend trend' }).querySelector('path')?.getAttribute('d')).not.toMatch(
+      /NaN|Infinity/,
+    )
+
+    rerender(
+      <InsightDeck
+        insights={[
+          {
+            body: 'Body',
+            id: 'invalid',
+            title: 'Invalid trend',
+            trend: [
+              { x: Number.NaN, y: 1 },
+              { x: 1, y: Number.NEGATIVE_INFINITY },
+            ],
+          },
+        ]}
+        label="Operational insights"
+      />,
+    )
+
+    expect(screen.queryByRole('img', { name: 'Invalid trend trend' })).toBeNull()
+  })
+
+  test('renders a finite trend for constant coordinate ranges and an empty deck state', () => {
+    const { rerender } = render(
+      <InsightDeck
+        insights={[
+          {
+            body: 'Body',
+            id: 'constant',
+            title: 'Constant trend',
+            trend: [
+              { x: 3, y: 5 },
+              { x: 3, y: 5 },
+            ],
+          },
+        ]}
+        label="Operational insights"
+      />,
+    )
+
+    expect(screen.getByRole('img', { name: 'Constant trend trend' }).querySelector('path')?.getAttribute('d')).not.toMatch(
+      /NaN|Infinity/,
+    )
+
+    rerender(<InsightDeck insights={[]} label="Operational insights" />)
+
+    expect(screen.getByText('No insights available.')).toBeTruthy()
+  })
 })
 
 describe('ParameterTuner', () => {
@@ -229,5 +339,26 @@ describe('ParameterTuner', () => {
     await user.type(input, '22')
 
     expect(onChange).toHaveBeenLastCalledWith('top-k', 10)
+  })
+
+  test('assigns distinct labelled inputs to multiple instances', () => {
+    render(
+      <>
+        <ParameterTuner
+          label="Retriever settings"
+          onChange={() => undefined}
+          parameters={[{ id: 'top-k', label: 'Top K', max: 10, min: 1, value: 4 }]}
+        />
+        <ParameterTuner
+          label="Runtime settings"
+          onChange={() => undefined}
+          parameters={[{ id: 'top-k', label: 'Runtime Top K', max: 10, min: 1, value: 4 }]}
+        />
+      </>,
+    )
+
+    expect(screen.getByRole('spinbutton', { name: 'Top K' }).getAttribute('id')).not.toBe(
+      screen.getByRole('spinbutton', { name: 'Runtime Top K' }).getAttribute('id'),
+    )
   })
 })

@@ -1,3 +1,5 @@
+import { useId } from 'react'
+
 import { Input } from '@/components/ui/control'
 
 export type ParameterDefinition = {
@@ -20,29 +22,34 @@ function clamp(value: number, min: number, max: number) {
 }
 
 export function ParameterTuner({ label, onChange, parameters }: ParameterTunerProps) {
+  const instanceId = useId()
+
   return (
     <section aria-label={label} className="grid gap-3" data-slot="parameter-tuner">
       <h2 className="text-sm font-medium">{label}</h2>
       <div className="grid gap-3">
-        {parameters.map((parameter) => (
-          <div className="grid gap-1" key={parameter.id}>
-            <label className="text-sm font-medium" htmlFor={`parameter-${parameter.id}`}>
-              {parameter.label}
-            </label>
-            <Input
-              id={`parameter-${parameter.id}`}
-              max={parameter.max}
-              min={parameter.min}
-              onChange={(event) => {
-                const value = event.target.valueAsNumber
-                if (!Number.isNaN(value)) onChange(parameter.id, clamp(value, parameter.min, parameter.max))
-              }}
-              step={parameter.step ?? 1}
-              type="number"
-              value={parameter.value}
-            />
-          </div>
-        ))}
+        {parameters.map((parameter) => {
+          const inputId = `parameter-${instanceId}-${parameter.id}`
+          return (
+            <div className="grid gap-1" key={parameter.id}>
+              <label className="text-sm font-medium" htmlFor={inputId}>
+                {parameter.label}
+              </label>
+              <Input
+                id={inputId}
+                max={parameter.max}
+                min={parameter.min}
+                onChange={(event) => {
+                  const value = event.target.valueAsNumber
+                  if (!Number.isNaN(value)) onChange(parameter.id, clamp(value, parameter.min, parameter.max))
+                }}
+                step={parameter.step ?? 1}
+                type="number"
+                value={parameter.value}
+              />
+            </div>
+          )
+        })}
       </div>
     </section>
   )

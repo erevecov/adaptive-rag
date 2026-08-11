@@ -14,6 +14,22 @@ export type InsightItem = {
 
 export type InsightDeckProps = { insights: readonly InsightItem[]; label: string }
 
+function isFinitePoint(point: InsightPoint) {
+  return Number.isFinite(point.x) && Number.isFinite(point.y)
+}
+
+function normalizedCoordinate(value: number, min: number, max: number) {
+  const scale = Math.max(1, Math.abs(min), Math.abs(max))
+  const scaledMin = min / scale
+  const scaledMax = max / scale
+  const range = scaledMax - scaledMin
+
+  if (range === 0) return 0.5
+
+  const normalized = (value / scale - scaledMin) / range
+  return Number.isFinite(normalized) ? Math.min(1, Math.max(0, normalized)) : 0.5
+}
+
 function TrendGraphic({ points, title }: { points: readonly InsightPoint[]; title: string }) {
   const xValues = points.map((point) => point.x)
   const yValues = points.map((point) => point.y)
@@ -21,12 +37,10 @@ function TrendGraphic({ points, title }: { points: readonly InsightPoint[]; titl
   const maxX = Math.max(...xValues)
   const minY = Math.min(...yValues)
   const maxY = Math.max(...yValues)
-  const xRange = maxX - minX || 1
-  const yRange = maxY - minY || 1
   const path = points
     .map((point, index) => {
-      const x = ((point.x - minX) / xRange) * 100
-      const y = 32 - ((point.y - minY) / yRange) * 32
+      const x = normalizedCoordinate(point.x, minX, maxX) * 100
+      const y = 32 - normalizedCoordinate(point.y, minY, maxY) * 32
       return `${index === 0 ? 'M' : 'L'} ${x} ${y}`
     })
     .join(' ')
@@ -47,6 +61,7 @@ export function InsightDeck({ insights, label }: InsightDeckProps) {
   const [page, setPage] = useState(0)
   const currentPage = Math.min(page, Math.max(0, insights.length - 1))
   const insight = insights[currentPage]
+  const usableTrend = insight?.trend?.filter(isFinitePoint) ?? []
 
   return (
     <section aria-label={label} className="grid gap-2" data-slot="insight-deck">
@@ -57,8 +72,8 @@ export function InsightDeck({ insights, label }: InsightDeckProps) {
             <h3 className="font-medium">{insight.title}</h3>
             <div className="text-sm text-muted-foreground">{insight.body}</div>
           </div>
-          {insight.trend && insight.trend.length >= 2 ? (
-            <TrendGraphic points={insight.trend} title={insight.title} />
+          {usableTrend.length >= 2 ? (
+            <TrendGraphic points={usableTrend} title={insight.title} />
           ) : null}
           <div className="flex items-center justify-between gap-2">
             <Button disabled={currentPage === 0} onClick={() => setPage((value) => value - 1)} variant="secondary">
