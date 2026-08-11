@@ -24,9 +24,9 @@
 
 ## 4. Audit
 
-- [ ] 4.1 Add failing durable audit tests for fallback metadata.
-- [ ] 4.2 Persist explicit rerank use and stage-specific fallback reason.
-- [ ] 4.3 Verify chat completes with baseline citations on rerank failure.
+- [x] 4.1 Add failing durable audit tests for fallback metadata.
+- [x] 4.2 Persist explicit rerank use and stage-specific fallback reason.
+- [x] 4.3 Verify chat completes with baseline citations on rerank failure.
 
 ## 5. Validation
 

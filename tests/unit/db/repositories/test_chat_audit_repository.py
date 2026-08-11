@@ -424,7 +424,7 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
             "dense_rank": 1,
             "lexical_rank": 2,
         },
-        "rerank_metadata": {"rerank_score": 0.97},
+        "rerank_metadata": {"rerank_score": 0.97, "used_rerank": True},
     }
 
     writer.complete_retrieval_tool(
@@ -448,11 +448,104 @@ def test_sqlalchemy_audit_writer_persists_retrieval_score_breakdown() -> None:
         retrieval_run_id=retrieval_runs[0].id,
     )
     assert retrieval_runs[0].strategy == "hybrid_rrf"
+    assert retrieval_runs[0].used_rerank is True
     assert retrieved_chunks[0].dense_score == 0.88
     assert retrieved_chunks[0].lexical_score == 3.0
     assert retrieved_chunks[0].sparse_score == 2.0
     assert retrieved_chunks[0].rrf_score == 0.03252247488101534
     assert retrieved_chunks[0].rerank_score == 0.97
+
+
+def test_sqlalchemy_audit_writer_persists_rerank_fallback_explicitly() -> None:
+    session = _make_session()
+    workspace = _make_workspace(session)
+    chunk = _make_chunk(session, workspace=workspace)
+    version = session.get(DocumentVersion, chunk.document_version_id)
+    assert version is not None
+    document = session.get(Document, version.document_id)
+    assert document is not None
+    source = session.get(Source, document.source_id)
+    assert source is not None
+    audit_repo = ChatAuditRepository(session)
+    writer = SqlAlchemyChatAuditWriter(
+        session=session,
+        chat_audit_repository=audit_repo,
+        provider_usage_repository=ProviderUsageRepository(session),
+    )
+    session_id = writer.start_session(
+        ChatRequest(workspace_id=workspace.id, message="alpha"),
+        "alpha",
+    )
+    tool_call_id = writer.start_retrieval_tool(
+        workspace.id,
+        session_id,
+        "alpha",
+        1,
+        None,
+        strategy="graph",
+    )
+    result: RetrievalResultPayload = {
+        "chunk_id": str(chunk.id),
+        "distance": 0.12,
+        "score": 0.88,
+        "citation": {
+            "source_id": str(source.id),
+            "source_type": "markdown",
+            "source_external_id": "demo.md",
+            "source_tags": [],
+            "source_extra_metadata": None,
+            "document_id": str(document.id),
+            "document_stable_id": "demo-doc",
+            "document_version_id": str(version.id),
+            "document_version_number": 1,
+            "chunk_id": str(chunk.id),
+            "char_start": 0,
+            "char_end": 14,
+            "snippet": "Alpha evidence",
+            "section_metadata": None,
+        },
+        "embedding_metadata": {"provider": "fake"},
+        "strategy": "graph",
+        "fallback_reason": "graph_store_unavailable",
+        "rerank_metadata": {
+            "candidate_limit": 2,
+            "fallback_reason": "rerank_unavailable",
+            "used_rerank": False,
+        },
+    }
+
+    writer.complete_retrieval_tool(
+        workspace.id,
+        session_id,
+        tool_call_id,
+        "alpha",
+        1,
+        None,
+        8,
+        [result],
+        strategy="graph",
+    )
+
+    retrieval_run = audit_repo.list_retrieval_runs(
+        workspace_id=workspace.id,
+        session_id=session_id,
+    )[0]
+    retrieved_chunk = audit_repo.list_retrieved_chunks(
+        workspace_id=workspace.id,
+        retrieval_run_id=retrieval_run.id,
+    )[0]
+    tool_call = audit_repo.list_tool_calls(
+        workspace_id=workspace.id,
+        session_id=session_id,
+    )[0]
+    assert retrieval_run.used_rerank is False
+    assert retrieved_chunk.rerank_score is None
+    assert tool_call.result_summary_json == {
+        "result_count": 1,
+        "strategy": "graph",
+        "fallback_reason": "graph_store_unavailable",
+        "rerank_fallback_reason": "rerank_unavailable",
+    }
 
 
 def test_repository_scopes_reads_and_writes_by_workspace() -> None:
