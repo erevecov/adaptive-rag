@@ -11,6 +11,7 @@ from hashlib import sha256
 from typing import Any
 from uuid import UUID
 
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import Job, JobAttempt, JobEvent
@@ -21,6 +22,7 @@ from adaptive_rag.jobs.errors import (
     JobIdempotencyConflictError,
     JobNotFoundError,
     JobQueueNotFoundError,
+    JobStateConflictError,
     UnknownJobHandlerError,
 )
 from adaptive_rag.jobs.registry import JobRegistry
@@ -84,6 +86,18 @@ class EnqueueJobRequest:
 class EnqueueJobResult:
     job: Job
     created: bool
+
+
+@dataclass(frozen=True, slots=True)
+class JobActor:
+    actor_type: str
+    actor_id: str
+
+    def __post_init__(self) -> None:
+        if not self.actor_type or len(self.actor_type.encode("utf-8")) > 32:
+            raise ValueError("actor_type must be 1-32 UTF-8 bytes")
+        if not self.actor_id or len(self.actor_id.encode("utf-8")) > 255:
+            raise ValueError("actor_id must be 1-255 UTF-8 bytes")
 
 
 @dataclass(frozen=True, slots=True)
@@ -261,6 +275,97 @@ class JobService:
             ),
         )
 
+    def cancel(
+        self,
+        *,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        job_id: UUID,
+        actor: JobActor,
+        expected_version: int | None = None,
+        now: datetime | None = None,
+    ) -> JobSnapshot:
+        job = self._mutable_job(
+            scope=scope,
+            workspace_id=workspace_id,
+            job_id=job_id,
+        )
+        if job.status not in {"queued", "blocked", "running"}:
+            raise JobStateConflictError(f"Cannot cancel a {job.status} job")
+        operation_time = now or utc_now()
+        version = job.version if expected_version is None else expected_version
+        values: dict[str, object] = {
+            "cancellation_requested_at": operation_time,
+            "cancellation_requested_by_actor_type": actor.actor_type,
+            "cancellation_requested_by_actor_id": actor.actor_id,
+            "version": Job.version + 1,
+            "updated_at": operation_time,
+        }
+        event_type = "cancel_requested"
+        if job.status in {"queued", "blocked"}:
+            values.update(
+                status="cancelled",
+                finished_at=operation_time,
+                current_attempt_id=None,
+                locked_by=None,
+                locked_until=None,
+            )
+            event_type = "cancelled"
+        self._optimistic_update(
+            job=job,
+            expected_version=version,
+            expected_status=job.status,
+            values=values,
+        )
+        self._add_control_event(job=job, event_type=event_type, actor=actor)
+        self._session.flush()
+        return self._snapshot(job)
+
+    def retry(
+        self,
+        *,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        job_id: UUID,
+        actor: JobActor,
+        expected_version: int | None = None,
+        reset_retry_count: bool = False,
+        now: datetime | None = None,
+    ) -> JobSnapshot:
+        return self._requeue_control(
+            scope=scope,
+            workspace_id=workspace_id,
+            job_id=job_id,
+            actor=actor,
+            expected_version=expected_version,
+            expected_status="dead_letter",
+            event_type="retried",
+            reset_retry_count=reset_retry_count,
+            now=now,
+        )
+
+    def unblock(
+        self,
+        *,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        job_id: UUID,
+        actor: JobActor,
+        expected_version: int | None = None,
+        now: datetime | None = None,
+    ) -> JobSnapshot:
+        return self._requeue_control(
+            scope=scope,
+            workspace_id=workspace_id,
+            job_id=job_id,
+            actor=actor,
+            expected_version=expected_version,
+            expected_status="blocked",
+            event_type="unblocked",
+            reset_retry_count=False,
+            now=now,
+        )
+
     def _snapshot(self, job: Job) -> JobSnapshot:
         try:
             definition = self._registry.get(job.job_type, job.handler_version)
@@ -300,6 +405,113 @@ class JobService:
             version=job.version,
             created_at=job.created_at,
             updated_at=job.updated_at,
+        )
+
+    def _requeue_control(
+        self,
+        *,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        job_id: UUID,
+        actor: JobActor,
+        expected_version: int | None,
+        expected_status: str,
+        event_type: str,
+        reset_retry_count: bool,
+        now: datetime | None,
+    ) -> JobSnapshot:
+        job = self._mutable_job(
+            scope=scope,
+            workspace_id=workspace_id,
+            job_id=job_id,
+        )
+        if job.status != expected_status:
+            raise JobStateConflictError(f"Cannot {event_type} a {job.status} job")
+        operation_time = now or utc_now()
+        version = job.version if expected_version is None else expected_version
+        values: dict[str, object] = {
+            "status": "queued",
+            "run_after": operation_time,
+            "finished_at": None,
+            "current_attempt_id": None,
+            "locked_by": None,
+            "locked_until": None,
+            "last_error": None,
+            "last_error_code": None,
+            "last_error_message": None,
+            "cancellation_requested_at": None,
+            "cancellation_requested_by_actor_type": None,
+            "cancellation_requested_by_actor_id": None,
+            "version": Job.version + 1,
+            "updated_at": operation_time,
+        }
+        if reset_retry_count:
+            values["retry_count"] = 0
+        self._optimistic_update(
+            job=job,
+            expected_version=version,
+            expected_status=expected_status,
+            values=values,
+        )
+        self._add_control_event(job=job, event_type=event_type, actor=actor)
+        self._session.flush()
+        return self._snapshot(job)
+
+    def _mutable_job(
+        self,
+        *,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        job_id: UUID,
+    ) -> Job:
+        self._validate_scope_values(scope=scope, workspace_id=workspace_id)
+        job = self._repository.get_scoped(
+            scope=scope,
+            workspace_id=workspace_id,
+            job_id=job_id,
+        )
+        if job is None:
+            raise JobNotFoundError(f"Job not found: {job_id}")
+        return job
+
+    def _optimistic_update(
+        self,
+        *,
+        job: Job,
+        expected_version: int,
+        expected_status: str,
+        values: Mapping[str, object],
+    ) -> None:
+        updated = self._session.execute(
+            update(Job)
+            .where(
+                Job.id == job.id,
+                Job.version == expected_version,
+                Job.status == expected_status,
+            )
+            .values(**values)
+            .returning(Job.id)
+        ).scalar_one_or_none()
+        if updated is None:
+            raise JobStateConflictError("Job state or version changed")
+        self._session.refresh(job)
+
+    def _add_control_event(
+        self,
+        *,
+        job: Job,
+        event_type: str,
+        actor: JobActor,
+    ) -> None:
+        self._session.add(
+            JobEvent(
+                scope=job.scope,
+                workspace_id=job.workspace_id,
+                job_id=job.id,
+                event_type=event_type,
+                actor_type=actor.actor_type,
+                actor_id=actor.actor_id,
+            )
         )
 
     @staticmethod
@@ -386,6 +598,7 @@ class JobService:
 __all__ = [
     "EnqueueJobRequest",
     "EnqueueJobResult",
+    "JobActor",
     "JobDetail",
     "JobIdempotencyConflictError",
     "JobPage",

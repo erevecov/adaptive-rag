@@ -54,6 +54,10 @@ class JobNotFoundError(JobPlatformError):
     code = "job_not_found"
 
 
+class JobStateConflictError(JobPlatformError):
+    code = "job_state_conflict"
+
+
 class RetryableJobError(JobPlatformError):
     code = "job_retryable_failure"
 
