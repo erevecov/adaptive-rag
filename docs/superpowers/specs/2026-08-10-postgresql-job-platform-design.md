@@ -1,6 +1,6 @@
 # PostgreSQL Job Platform Design
 
-**Date:** 2026-08-10  
+**Date:** 2026-08-10
 **Status:** Approved
 **Scope:** General-purpose background job queue, durable scheduler, worker fleet,
 operational API/CLI, and web console for Adaptive RAG.

@@ -69,7 +69,6 @@ class JobQueue(Base):
         onupdate=func.now(),
     )
 
-
 class JobQueueWorkspaceState(Base):
     """Persistent round-robin cursor for one queue and workspace/system scope."""
 
@@ -103,4 +102,3 @@ class JobQueueWorkspaceState(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-
