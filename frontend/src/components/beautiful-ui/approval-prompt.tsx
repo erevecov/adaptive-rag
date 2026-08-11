@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useId, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
@@ -22,6 +22,7 @@ export function ApprovalPrompt({
   onCustomSubmit,
   question,
 }: ApprovalPromptProps) {
+  const customAnswerId = useId()
   const [customAnswer, setCustomAnswer] = useState('')
   const trimmedCustomAnswer = customAnswer.trim()
 
@@ -56,11 +57,11 @@ export function ApprovalPrompt({
           className="flex flex-wrap items-end gap-2 max-[680px]:gap-1"
           onSubmit={submitCustomAnswer}
         >
-          <label className="grid min-w-0 flex-1 gap-1 text-sm" htmlFor="approval-custom-answer">
+          <label className="grid min-w-0 flex-1 gap-1 text-sm" htmlFor={customAnswerId}>
             <span>{customLabel}</span>
             <Input
               disabled={busy}
-              id="approval-custom-answer"
+              id={customAnswerId}
               onChange={(event) => setCustomAnswer(event.target.value)}
               value={customAnswer}
             />

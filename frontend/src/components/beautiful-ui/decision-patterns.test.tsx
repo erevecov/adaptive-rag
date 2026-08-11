@@ -68,9 +68,70 @@ describe('ApprovalPrompt', () => {
     expect(onCustomSubmit).toHaveBeenCalledWith('Add source links')
     expect(onCustomSubmit).toHaveBeenCalledTimes(1)
   })
+
+  test('disables the custom input and submit control while busy', () => {
+    render(
+      <ApprovalPrompt
+        busy
+        choices={[]}
+        customLabel="Refinement"
+        onChoose={() => undefined}
+        onCustomSubmit={() => undefined}
+        question="Review proposal"
+      />,
+    )
+
+    expect((screen.getByRole('textbox', { name: 'Refinement' }) as HTMLInputElement).disabled).toBe(
+      true,
+    )
+    expect(
+      (screen.getByRole('button', { name: 'Submit refinement' }) as HTMLButtonElement).disabled,
+    ).toBe(true)
+  })
+
+  test('assigns distinct custom input ids to multiple prompts', () => {
+    render(
+      <>
+        <ApprovalPrompt
+          choices={[]}
+          customLabel="First refinement"
+          onChoose={() => undefined}
+          onCustomSubmit={() => undefined}
+          question="First proposal"
+        />
+        <ApprovalPrompt
+          choices={[]}
+          customLabel="Second refinement"
+          onChoose={() => undefined}
+          onCustomSubmit={() => undefined}
+          question="Second proposal"
+        />
+      </>,
+    )
+
+    expect(screen.getByRole('textbox', { name: 'First refinement' }).getAttribute('id')).not.toBe(
+      screen.getByRole('textbox', { name: 'Second refinement' }).getAttribute('id'),
+    )
+  })
 })
 
 describe('RecommendationPanel', () => {
+  test('emits acceptance through its caller callback', async () => {
+    const user = userEvent.setup()
+    const onAccept = vi.fn()
+    render(
+      <RecommendationPanel
+        description="Use the evaluated retriever configuration."
+        onAccept={onAccept}
+        title="Retriever recommendation"
+      />,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'Accept recommendation' }))
+
+    expect(onAccept).toHaveBeenCalledTimes(1)
+  })
+
   test('displays supplied confidence within its bounds and reports alternatives by id', async () => {
     const user = userEvent.setup()
     const onAlternative = vi.fn()
@@ -132,6 +193,7 @@ describe('ChangeTable', () => {
 
     const table = screen.getByRole('table', { name: 'Proposal changes' })
     expect(table).toBeTruthy()
+    expect(table.querySelector('caption')?.textContent).toBe('Proposal changes')
     expect(screen.getByRole('columnheader', { name: 'Field' }).getAttribute('scope')).toBe('col')
     expect(screen.getByRole('columnheader', { name: 'Original' }).getAttribute('scope')).toBe('col')
     expect(screen.getByRole('columnheader', { name: 'Proposed' }).getAttribute('scope')).toBe('col')
@@ -153,6 +215,19 @@ describe('SelectionToolbar', () => {
     await user.click(screen.getByRole('button', { name: 'Explain' }))
 
     expect(onAction).toHaveBeenCalledWith('explain')
+  })
+
+  test('disables every action when disabled', () => {
+    render(
+      <SelectionToolbar
+        actions={[{ id: 'explain', label: 'Explain' }, { id: 'copy', label: 'Copy' }]}
+        disabled
+        onAction={() => undefined}
+      />,
+    )
+
+    expect((screen.getByRole('button', { name: 'Explain' }) as HTMLButtonElement).disabled).toBe(true)
+    expect((screen.getByRole('button', { name: 'Copy' }) as HTMLButtonElement).disabled).toBe(true)
   })
 })
 

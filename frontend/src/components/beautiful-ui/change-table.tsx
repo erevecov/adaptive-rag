@@ -29,6 +29,7 @@ export function ChangeTable({ label, rows }: ChangeTableProps) {
       <h2 className="text-sm font-medium">{label}</h2>
       <TableScroll className="border border-border">
         <Table aria-label={label}>
+          <caption className="sr-only">{label}</caption>
           <TableHeader>
             <TableRow>
               <TableHead>Field</TableHead>
