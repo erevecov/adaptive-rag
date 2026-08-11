@@ -30,8 +30,12 @@
 
 ## 5. Validation
 
-- [ ] 5.1 Run focused regression suites.
-- [ ] 5.2 Run Ruff formatting, Ruff lint, strict mypy, and diff checks.
+- [x] 5.1 Run focused regression suites.
+- [x] 5.2 Run Ruff formatting, Ruff lint, strict mypy, and diff checks.
 - [ ] 5.3 Validate the active change and canonical specs strictly.
-- [ ] 5.4 Run the full pytest suite.
-- [ ] 5.5 Review final scope for unrelated changes.
+  - Active change passes strict validation. Canonical validation remains blocked
+    by pre-existing SHALL/MUST errors in `llm-judge` and
+    `retrieval-playground`.
+- [x] 5.4 Run the full pytest suite.
+  - 938 tests pass; 8 PostgreSQL/pgvector tests cannot start without Docker.
+- [x] 5.5 Review final scope for unrelated changes.
