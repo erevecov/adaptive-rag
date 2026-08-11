@@ -52,4 +52,5 @@
 - [x] 6.4 Realizar revision de seguridad del diff y segunda pasada de errores
       (login throttle race, lockout por email, last-admin en rutas legacy,
       CSRF single-flight/retry, logout fail-closed).
-- [ ] 6.5 Commit intencional, push y PR draft a `main` con evidencia completa.
+- [x] 6.5 Commit intencional, push y PR a `main` con evidencia completa
+      (`https://github.com/erevecov/adaptive-rag/pull/642`).
