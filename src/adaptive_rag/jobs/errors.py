@@ -38,6 +38,22 @@ class JobSecretMaterialError(JobPlatformError):
     code = "job_secret_material"
 
 
+class JobIdempotencyConflictError(JobPlatformError):
+    code = "job_idempotency_conflict"
+
+
+class JobQueueNotFoundError(JobPlatformError):
+    code = "job_queue_not_found"
+
+
+class JobCursorError(JobPlatformError):
+    code = "invalid_job_cursor"
+
+
+class JobNotFoundError(JobPlatformError):
+    code = "job_not_found"
+
+
 class RetryableJobError(JobPlatformError):
     code = "job_retryable_failure"
 
