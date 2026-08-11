@@ -21,6 +21,7 @@ export type RecordsGridColumn<Row> = {
 
 export type RecordsGridProps<Row extends { id: string }> = {
   columns: readonly RecordsGridColumn<Row>[]
+  embedded?: boolean
   emptyLabel: string
   label: string
   rows: readonly Row[]
@@ -30,10 +31,12 @@ type SortState = { columnId: string; direction: 'ascending' | 'descending' }
 
 export function RecordsGrid<Row extends { id: string }>({
   columns,
+  embedded = false,
   emptyLabel,
   label,
   rows,
 }: RecordsGridProps<Row>) {
+  const Container = embedded ? 'div' : 'section'
   const [sort, setSort] = useState<SortState | null>(null)
   const sortedRows = useMemo(() => {
     if (!sort) return rows
@@ -64,7 +67,11 @@ export function RecordsGrid<Row extends { id: string }>({
   }
 
   return (
-    <section aria-label={label} className="grid gap-2" data-slot="records-grid">
+    <Container
+      aria-label={embedded ? undefined : label}
+      className="grid gap-2"
+      data-slot="records-grid"
+    >
       <h2 className="text-sm font-medium">{label}</h2>
       {rows.length === 0 ? (
         <EmptyState>{emptyLabel}</EmptyState>
@@ -108,6 +115,6 @@ export function RecordsGrid<Row extends { id: string }>({
           </Table>
         </TableScroll>
       )}
-    </section>
+    </Container>
   )
 }

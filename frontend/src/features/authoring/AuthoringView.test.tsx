@@ -109,6 +109,19 @@ const ingestionJob: IngestionJob = {
   updated_at: '2026-06-22T00:00:00Z',
 }
 
+function ingestionJobWithStatus(status: string, id = `job-${status}`): IngestionJob {
+  return {
+    ...ingestionJob,
+    id,
+    last_error:
+      status === 'blocked' || status === 'dead_letter' || status === 'failed'
+        ? `${status} explanation`
+        : null,
+    payload_json: { source_id: `source-for-${id}` },
+    status,
+  }
+}
+
 const ingestionRun: IngestionRunResponse = {
   created_document_version: null,
   document_id: null,
@@ -353,7 +366,7 @@ describe('AuthoringPanel', () => {
 
     expect(
       screen
-        .getByRole('region', { name: 'Ingestion Jobs' })
+        .getByRole('region', { name: 'Active and Attention Ingestion Jobs' })
         .getAttribute('data-slot'),
     ).toBe('agent-task-list')
     expect(
@@ -436,6 +449,28 @@ describe('AuthoringPanel', () => {
         'disabled',
       ),
     ).not.toBeNull()
+  })
+
+  test('sorts workspace Access by the exact displayed permission including No Access', async () => {
+    const userDriver = userEvent.setup()
+    const modeWorkspace: Workspace = {
+      ...workspace,
+      access_role: null,
+      can_access: true,
+      id: 'workspace-mode',
+      name: 'Mode workspace',
+    }
+    renderAuthoringPanel({ workspaces: [restrictedWorkspace, modeWorkspace] })
+
+    const grid = screen.getByRole('region', { name: 'Workspaces' })
+    await userDriver.click(within(grid).getByRole('button', { name: 'Access' }))
+
+    const rows = Array.from(grid.querySelectorAll('tbody tr'))
+    expect(rows).toHaveLength(2)
+    expect(rows[0].textContent).toContain('Mode workspace')
+    expect(rows[0].textContent).toContain('Dense')
+    expect(rows[1].textContent).toContain('Restricted')
+    expect(rows[1].textContent).toContain('No Access')
   })
 
   test('users submodule keeps form labels addressable and uses Radix selects', async () => {
@@ -709,6 +744,110 @@ describe('AuthoringPanel', () => {
     expect(
       screen.getByRole('button', { name: 'Retry ingestion job job-1' }),
     ).toBeTruthy()
+  })
+
+  test('keeps exact ingestion statuses while separating active attention from full history', () => {
+    const statuses = ['queued', 'running', 'succeeded', 'failed', 'blocked', 'dead_letter']
+    const jobs = statuses.map((status) => ingestionJobWithStatus(status))
+    jobs[4] = {
+      ...jobs[4],
+      last_error: 'unique blocked explanation',
+      payload_json: { source_id: 'only-in-job-42' },
+    }
+    const { view } = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      ingestionJobs: jobs,
+    })
+
+    const summary = screen.getByRole('region', {
+      name: 'Active and Attention Ingestion Jobs',
+    })
+    const detail = screen.getByRole('region', { name: 'Ingestion Job Details' })
+    expect(summary.getAttribute('data-slot')).toBe('agent-task-list')
+    expect(detail.getAttribute('data-slot')).toBe('filtered-task-table')
+    expect(screen.getAllByRole('region', { name: 'Ingestion Job Details' })).toHaveLength(1)
+
+    for (const [status, label] of [
+      ['queued', 'Queued'],
+      ['running', 'Running'],
+      ['failed', 'Failed'],
+      ['blocked', 'Blocked'],
+      ['dead_letter', 'Dead Letter'],
+    ] as const) {
+      const row = summary.querySelector(`[data-status="${status}"]`)
+      expect(row).not.toBeNull()
+      expect(row?.querySelector('[data-slot="badge"]')?.textContent).toBe(label)
+      expect(
+        row
+          ?.querySelector('[data-slot="agent-task-status-icon"]')
+          ?.getAttribute('class')
+          ?.includes('motion-safe:animate-spin'),
+      ).toBe(status === 'running')
+    }
+    expect(summary.querySelector('[data-status="succeeded"]')).toBeNull()
+
+    for (const [status, label] of [
+      ['queued', 'Queued'],
+      ['running', 'Running'],
+      ['succeeded', 'Succeeded'],
+      ['failed', 'Failed'],
+      ['blocked', 'Blocked'],
+      ['dead_letter', 'Dead Letter'],
+    ] as const) {
+      expect(detail.querySelector(`[data-job-status="${status}"]`)?.textContent).toBe(label)
+    }
+    expect(screen.getAllByText('Source only-in-job-42')).toHaveLength(1)
+    expect(screen.getAllByText('unique blocked explanation')).toHaveLength(1)
+    expect(view.container.querySelector('[data-slot="ingestion-job-groups"]')).toBeTruthy()
+  })
+
+  test('bounds the operational summary while retaining every ingestion job in details', () => {
+    const jobs = [
+      ...Array.from({ length: 8 }, (_, index) =>
+        ingestionJobWithStatus(index % 2 === 0 ? 'running' : 'queued', `active-${index}`),
+      ),
+      ingestionJobWithStatus('succeeded', 'history-1'),
+      ingestionJobWithStatus('succeeded', 'history-2'),
+    ]
+    renderAuthoringPanel({ activeSubmodule: 'sources', ingestionJobs: jobs })
+
+    const summary = screen.getByRole('region', {
+      name: 'Active and Attention Ingestion Jobs',
+    })
+    const detail = screen.getByRole('region', { name: 'Ingestion Job Details' })
+    expect(summary.querySelectorAll('[data-slot="agent-task-row"]')).toHaveLength(5)
+    expect(detail.querySelectorAll('tbody tr')).toHaveLength(10)
+  })
+
+  test('resets a vanished ingestion filter to All without reactivating it later', async () => {
+    const userDriver = userEvent.setup()
+    const blocked = ingestionJobWithStatus('blocked')
+    const running = ingestionJobWithStatus('running')
+    const { props, view } = renderAuthoringPanel({
+      activeSubmodule: 'sources',
+      ingestionJobs: [blocked, running],
+    })
+
+    let detail = screen.getByRole('region', { name: 'Ingestion Job Details' })
+    await userDriver.click(within(detail).getByRole('button', { name: 'Blocked' }))
+    expect(within(detail).getByRole('button', { name: 'Blocked' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+
+    view.rerender(<AuthoringPanel {...props} ingestionJobs={[running]} />)
+    detail = screen.getByRole('region', { name: 'Ingestion Job Details' })
+    expect(within(detail).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+
+    view.rerender(<AuthoringPanel {...props} ingestionJobs={[running, blocked]} />)
+    detail = screen.getByRole('region', { name: 'Ingestion Job Details' })
+    expect(within(detail).getByRole('button', { name: 'All' }).getAttribute('aria-pressed')).toBe(
+      'true',
+    )
+    expect(
+      within(detail).getByRole('button', { name: 'Blocked' }).getAttribute('aria-pressed'),
+    ).toBe('false')
   })
 
   test('binary source upload shows idle and selected file status', async () => {

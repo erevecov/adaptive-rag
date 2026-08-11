@@ -9,6 +9,7 @@ import {
   LoadingGrid,
   RecommendationPanel,
   RecordsGrid,
+  type AgentTaskStatus,
   type RecordsGridColumn,
 } from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
@@ -554,21 +555,13 @@ function WorkspaceList({
       render: (workspace) => {
         const canAccess = workspace.can_access !== false
         const isDeleted = Boolean(workspace.deleted_at)
-        const roleLabel = isDeleted
-          ? 'Deleted'
-          : canAccess
-            ? titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
-            : 'No Access'
         return (
           <StatusBadge tone={isDeleted ? 'danger' : !canAccess ? 'warning' : 'neutral'}>
-            {roleLabel}
+            {workspaceAccessLabel(workspace)}
           </StatusBadge>
         )
       },
-      sortValue: (workspace) =>
-        workspace.deleted_at
-          ? 'Deleted'
-          : titleCaseStatus(workspace.access_role ?? workspace.embedding_mode),
+      sortValue: workspaceAccessLabel,
     },
     {
       header: 'Actions',
@@ -640,6 +633,12 @@ function WorkspaceList({
       />
     </div>
   )
+}
+
+function workspaceAccessLabel(workspace: Workspace): string {
+  if (workspace.deleted_at) return 'Deleted'
+  if (workspace.can_access === false) return 'No Access'
+  return titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
 }
 
 function WorkspaceAccessPanel({
@@ -1711,7 +1710,24 @@ function IngestionJobList({
   jobs: IngestionJob[]
   onRetry(job: IngestionJob): void
 }) {
-  const [activeFilter, setActiveFilter] = useState('all')
+  const groups = groupJobsByStatus(jobs)
+  const availableStatusKey = [...new Set(jobs.map((job) => job.status))]
+    .sort()
+    .join('\u0000')
+  const [filterState, setFilterState] = useState(() => ({
+    activeFilter: 'all',
+    availableStatusKey,
+  }))
+  const activeFilter =
+    filterState.availableStatusKey === availableStatusKey ||
+    filterState.activeFilter === 'all' ||
+    jobs.some((job) => job.status === filterState.activeFilter)
+      ? filterState.activeFilter
+      : 'all'
+
+  if (filterState.availableStatusKey !== availableStatusKey) {
+    setFilterState({ activeFilter, availableStatusKey })
+  }
 
   if (isBusy && jobs.length === 0) {
     return <LoadingListState label="Loading Ingestion Jobs…" />
@@ -1728,15 +1744,10 @@ function IngestionJobList({
     )
   }
 
-  const groups = groupJobsByStatus(jobs)
-  const effectiveFilter =
-    activeFilter === 'all' || jobs.some((job) => job.status === activeFilter)
-      ? activeFilter
-      : 'all'
   const filteredJobs =
-    effectiveFilter === 'all'
+    activeFilter === 'all'
       ? jobs
-      : jobs.filter((job) => job.status === effectiveFilter)
+      : jobs.filter((job) => job.status === activeFilter)
   const filters = [
     { id: 'all', label: 'All' },
     ...groups.map((group) => ({
@@ -1825,22 +1836,18 @@ function IngestionJobList({
         ),
     },
   ]
+  const summaryJobs = groups
+    .flatMap((group) => group.jobs)
+    .filter(isActiveOrAttentionIngestionJob)
+    .slice(0, INGESTION_TASK_SUMMARY_LIMIT)
 
   return (
     <div className="grid gap-4" data-slot="ingestion-job-groups">
       <AgentTaskList
-        emptyLabel="No Ingestion Jobs Yet."
-        label="Ingestion Jobs"
-        tasks={jobs.map((job) => {
+        emptyLabel="No active or attention ingestion jobs."
+        label="Active and Attention Ingestion Jobs"
+        tasks={summaryJobs.map((job) => {
           const runAfter = formatRelativeOperatorTimestamp(job.run_after)
-          const taskStatus =
-            job.status === 'running' || job.status === 'queued'
-              ? 'running'
-              : job.status === 'processed' ||
-                  job.status === 'succeeded' ||
-                  job.status === 'idle'
-                ? 'completed'
-                : 'failed'
           return {
             detail: (
               <div className="grid gap-1">
@@ -1851,19 +1858,22 @@ function IngestionJobList({
               </div>
             ),
             id: job.id,
-            label: `${jobStatusLabel(job.status)} · ${titleCaseStatus(job.job_type)}`,
+            label: titleCaseStatus(job.job_type),
             meta: job.id,
-            status: taskStatus,
+            status: job.status,
+            statusLabel: jobStatusLabel(job.status),
           }
         })}
       />
       <FilteredTaskTable
-        activeFilter={effectiveFilter}
+        activeFilter={activeFilter}
         columns={columns}
         emptyLabel="No ingestion jobs match this status."
         filters={filters}
         label="Ingestion Job Details"
-        onFilterChange={setActiveFilter}
+        onFilterChange={(nextFilter) =>
+          setFilterState({ activeFilter: nextFilter, availableStatusKey })
+        }
         rows={filteredJobs}
       />
     </div>
@@ -1962,9 +1972,26 @@ const JOB_STATUS_ORDER = [
   'blocked',
   'dead_letter',
   'failed',
+  'succeeded',
   'processed',
   'idle',
 ] as const
+
+// Keep the operational overview small; the adjacent filtered table owns full history.
+const INGESTION_TASK_SUMMARY_LIMIT = 5
+const ACTIVE_OR_ATTENTION_INGESTION_STATUSES = new Set<AgentTaskStatus>([
+  'blocked',
+  'dead_letter',
+  'failed',
+  'queued',
+  'running',
+])
+
+function isActiveOrAttentionIngestionJob(
+  job: IngestionJob,
+): job is IngestionJob & { status: AgentTaskStatus } {
+  return ACTIVE_OR_ATTENTION_INGESTION_STATUSES.has(job.status as AgentTaskStatus)
+}
 
 function groupJobsByStatus(
   jobs: IngestionJob[],

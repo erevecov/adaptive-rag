@@ -3,7 +3,12 @@ export { ReasoningTrace, type ReasoningTraceProps, type TraceStep } from './reas
 export { StreamingAnswer, type StreamingAnswerProps } from './streaming-answer'
 export { ApprovalPrompt, type ApprovalChoice, type ApprovalPromptProps } from './approval-prompt'
 export { ToolActivity, type ToolActivityItem, type ToolActivityProps } from './tool-activity'
-export { AgentTaskList, type AgentTaskItem, type AgentTaskListProps } from './agent-task-list'
+export {
+  AgentTaskList,
+  type AgentTaskItem,
+  type AgentTaskListProps,
+  type AgentTaskStatus,
+} from './agent-task-list'
 export { ChatSurface, type ChatSurfaceProps } from './chat-surface'
 export { PromptComposer, type PromptComposerProps } from './prompt-composer'
 export {

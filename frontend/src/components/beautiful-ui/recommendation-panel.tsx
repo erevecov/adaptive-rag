@@ -71,6 +71,7 @@ export function RecommendationPanel({
               {onAlternative ? (
                 <Button
                   className="h-auto min-h-9 justify-start px-0 py-0 text-left max-[680px]:min-h-11"
+                  disabled={busy}
                   onClick={() => onAlternative(alternative.id)}
                   variant="ghost"
                 >

@@ -113,6 +113,23 @@ describe('FilteredTaskTable', () => {
     expect(onFilterChange).toHaveBeenCalledWith('running')
     expect(onFilterChange).toHaveBeenCalledTimes(1)
   })
+
+  test('owns one named region while embedding its records grid', () => {
+    const { container } = render(
+      <FilteredTaskTable
+        activeFilter="all"
+        columns={columns}
+        emptyLabel="No tasks"
+        filters={[{ id: 'all', label: 'All' }]}
+        label="Task history"
+        onFilterChange={() => undefined}
+        rows={[{ id: 'task-1', name: 'Index handbook' }]}
+      />,
+    )
+
+    expect(screen.getAllByRole('region', { name: 'Task history' })).toHaveLength(1)
+    expect(container.querySelector('[data-slot="records-grid"]')?.tagName).toBe('DIV')
+  })
 })
 
 describe('WorkspaceNavigation', () => {

@@ -37,7 +37,7 @@ export function FilteredTaskTable<Row extends { id: string }>({
           </button>
         ))}
       </div>
-      <RecordsGrid columns={columns} emptyLabel={emptyLabel} label={label} rows={rows} />
+      <RecordsGrid columns={columns} embedded emptyLabel={emptyLabel} label={label} rows={rows} />
     </section>
   )
 }

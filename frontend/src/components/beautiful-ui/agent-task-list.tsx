@@ -1,16 +1,27 @@
 import { type ReactNode } from 'react'
-import { Check, CircleAlert, LoaderCircle } from 'lucide-react'
+import { Check, Circle, CircleAlert, LoaderCircle } from 'lucide-react'
 
 import { StatusBadge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/feedback'
 import { cn } from '@/lib/utils'
+
+export type AgentTaskStatus =
+  | 'blocked'
+  | 'canceled'
+  | 'completed'
+  | 'dead_letter'
+  | 'failed'
+  | 'queued'
+  | 'running'
+  | 'succeeded'
 
 export type AgentTaskItem = {
   detail?: ReactNode
   id: string
   label: string
   meta?: string
-  status: 'running' | 'completed' | 'failed'
+  status: AgentTaskStatus
+  statusLabel?: string
 }
 
 export type AgentTaskListProps = {
@@ -20,19 +31,51 @@ export type AgentTaskListProps = {
 }
 
 const statusTone = {
+  blocked: 'danger',
+  canceled: 'neutral',
   completed: 'success',
+  dead_letter: 'danger',
   failed: 'danger',
+  queued: 'neutral',
   running: 'primary',
+  succeeded: 'success',
 } as const
 
 function TaskStatusIcon({ status }: Pick<AgentTaskItem, 'status'>) {
-  if (status === 'completed') {
-    return <Check aria-hidden="true" className="size-3.5 shrink-0" />
+  if (status === 'completed' || status === 'succeeded') {
+    return (
+      <Check
+        aria-hidden="true"
+        className="size-3.5 shrink-0"
+        data-slot="agent-task-status-icon"
+      />
+    )
   }
-  if (status === 'failed') {
-    return <CircleAlert aria-hidden="true" className="size-3.5 shrink-0" />
+  if (status === 'failed' || status === 'blocked' || status === 'dead_letter') {
+    return (
+      <CircleAlert
+        aria-hidden="true"
+        className="size-3.5 shrink-0"
+        data-slot="agent-task-status-icon"
+      />
+    )
   }
-  return <LoaderCircle aria-hidden="true" className={cn('size-3.5 shrink-0 motion-safe:animate-spin')} />
+  if (status === 'running') {
+    return (
+      <LoaderCircle
+        aria-hidden="true"
+        className={cn('size-3.5 shrink-0 motion-safe:animate-spin')}
+        data-slot="agent-task-status-icon"
+      />
+    )
+  }
+  return (
+    <Circle
+      aria-hidden="true"
+      className="size-3.5 shrink-0"
+      data-slot="agent-task-status-icon"
+    />
+  )
 }
 
 export function AgentTaskList({ emptyLabel, label, tasks }: AgentTaskListProps) {
@@ -54,7 +97,9 @@ export function AgentTaskList({ emptyLabel, label, tasks }: AgentTaskListProps) 
                 <TaskStatusIcon status={task.status} />
                 <span className="min-w-0 flex-1 truncate">{task.label}</span>
                 {task.meta ? <span className="text-xs tabular-nums text-muted-foreground">{task.meta}</span> : null}
-                <StatusBadge tone={statusTone[task.status]}>{task.status}</StatusBadge>
+                <StatusBadge tone={statusTone[task.status]}>
+                  {task.statusLabel ?? task.status}
+                </StatusBadge>
               </div>
               {task.detail ? <div className="pl-5 text-sm text-muted-foreground">{task.detail}</div> : null}
             </li>

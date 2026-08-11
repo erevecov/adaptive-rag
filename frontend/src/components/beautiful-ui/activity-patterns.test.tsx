@@ -274,6 +274,68 @@ describe('AgentTaskList', () => {
     expect(screen.getByText('failed').className).not.toContain('rounded-md')
     expect(screen.getByText('failed').className).not.toContain('max-[680px]:rounded-sm')
   })
+
+  test('renders operational task states with exact labels and only animates running work', () => {
+    const { container } = render(
+      <AgentTaskList
+        emptyLabel="No tasks"
+        label="Operational work"
+        tasks={[
+          { id: 'queued', label: 'Queued job', status: 'queued', statusLabel: 'Queued' },
+          { id: 'running', label: 'Running job', status: 'running', statusLabel: 'Running' },
+          { id: 'succeeded', label: 'Succeeded job', status: 'succeeded', statusLabel: 'Succeeded' },
+          { id: 'failed', label: 'Failed job', status: 'failed', statusLabel: 'Failed' },
+          { id: 'blocked', label: 'Blocked job', status: 'blocked', statusLabel: 'Blocked' },
+          {
+            id: 'dead-letter',
+            label: 'Dead-letter job',
+            status: 'dead_letter',
+            statusLabel: 'Dead letter',
+          },
+          { id: 'canceled', label: 'Canceled job', status: 'canceled', statusLabel: 'Canceled' },
+        ]}
+      />,
+    )
+
+    const rows = Array.from(container.querySelectorAll('[data-slot="agent-task-row"]'))
+    expect(rows.map((row) => row.getAttribute('data-status'))).toEqual([
+      'queued',
+      'running',
+      'succeeded',
+      'failed',
+      'blocked',
+      'dead_letter',
+      'canceled',
+    ])
+    expect(rows.map((row) => row.querySelector('[data-slot="badge"]')?.textContent)).toEqual([
+      'Queued',
+      'Running',
+      'Succeeded',
+      'Failed',
+      'Blocked',
+      'Dead letter',
+      'Canceled',
+    ])
+    expect(
+      rows.map((row) => row.querySelector('[data-slot="badge"]')?.getAttribute('data-tone')),
+    ).toEqual(['neutral', 'primary', 'success', 'danger', 'danger', 'danger', 'neutral'])
+    expect(
+      rows.map((row) =>
+        row
+          .querySelector('[data-slot="agent-task-status-icon"]')
+          ?.getAttribute('class')
+          ?.includes('motion-safe:animate-spin'),
+      ),
+    ).toEqual([false, true, false, false, false, false, false])
+    expect(
+      [rows[0], rows[6]].map((row) =>
+        row
+          .querySelector('[data-slot="agent-task-status-icon"]')
+          ?.getAttribute('class')
+          ?.includes('lucide-circle'),
+      ),
+    ).toEqual([true, true])
+  })
 })
 
 describe('CodeStream', () => {

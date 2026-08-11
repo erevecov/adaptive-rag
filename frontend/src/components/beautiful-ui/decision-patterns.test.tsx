@@ -133,21 +133,31 @@ describe('RecommendationPanel', () => {
     expect(onAccept).toHaveBeenCalledTimes(1)
   })
 
-  test('disables acceptance while busy', () => {
+  test('disables acceptance and every alternative while busy', async () => {
+    const user = userEvent.setup()
+    const onAccept = vi.fn()
+    const onAlternative = vi.fn()
     render(
       <RecommendationPanel
+        alternatives={[{ id: 'keep', label: 'Keep current' }]}
         busy
         description="Review the submitted knowledge."
-        onAccept={() => undefined}
+        onAccept={onAccept}
+        onAlternative={onAlternative}
         title="Knowledge Proposal proposal-1"
       />,
     )
 
-    expect(
-      (screen.getByRole('button', {
-        name: 'Accept recommendation',
-      }) as HTMLButtonElement).disabled,
-    ).toBe(true)
+    const accept = screen.getByRole('button', { name: 'Accept recommendation' })
+    const alternative = screen.getByRole('button', { name: 'Keep current' })
+    expect((accept as HTMLButtonElement).disabled).toBe(true)
+    expect((alternative as HTMLButtonElement).disabled).toBe(true)
+
+    await user.click(accept)
+    await user.click(alternative)
+
+    expect(onAccept).not.toHaveBeenCalled()
+    expect(onAlternative).not.toHaveBeenCalled()
   })
 
   test('emits acceptance through its caller callback', async () => {
