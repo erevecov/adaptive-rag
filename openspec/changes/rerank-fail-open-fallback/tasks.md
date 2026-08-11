@@ -17,10 +17,10 @@
 
 ## 3. Product adapters
 
-- [ ] 3.1 Add failing API and CLI tests for missing rerank configuration.
-- [ ] 3.2 Convert optional rerank configuration errors to provider absence in
+- [x] 3.1 Add failing API and CLI tests for missing rerank configuration.
+- [x] 3.2 Convert optional rerank configuration errors to provider absence in
   API and CLI product adapters.
-- [ ] 3.3 Verify API, CLI, and chat successful rerank regressions.
+- [x] 3.3 Verify API, CLI, and chat successful rerank regressions.
 
 ## 4. Audit
 
