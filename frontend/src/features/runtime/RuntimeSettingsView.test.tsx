@@ -598,6 +598,61 @@ describe('RuntimeSettingsPanel', () => {
     ).toBeNull()
   })
 
+  test('adopts bounded chat retrieval parameters without changing save ownership', () => {
+    const onGlobalChatRetrievalLimitChange = vi.fn()
+    const onGlobalChatRerankCandidateLimitChange = vi.fn()
+    const onSaveGlobalChatRetrieval = vi.fn(preventDefault)
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      onGlobalChatRetrievalLimitChange,
+      onGlobalChatRerankCandidateLimitChange,
+      onSaveGlobalChatRetrieval,
+    })
+
+    const tuner = screen.getByRole('region', {
+      name: 'Chat retrieval parameters',
+    })
+    expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+
+    const retrievalLimit = within(tuner).getByLabelText('Retrieval Limit')
+    expect(retrievalLimit.getAttribute('min')).toBe('1')
+    expect(retrievalLimit.getAttribute('max')).toBe('50')
+    expect(retrievalLimit.getAttribute('step')).toBe('1')
+    expect((retrievalLimit as HTMLInputElement).value).toBe('5')
+    fireEvent.change(retrievalLimit, { target: { value: '7' } })
+    expect(onGlobalChatRetrievalLimitChange).toHaveBeenCalledWith(7)
+
+    const candidateLimit = within(tuner).getByLabelText('Candidate Limit')
+    fireEvent.change(candidateLimit, { target: { value: '12' } })
+    expect(onGlobalChatRerankCandidateLimitChange).toHaveBeenCalledWith(12)
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Chat Retrieval' }))
+    expect(onSaveGlobalChatRetrieval).toHaveBeenCalledTimes(1)
+  })
+
+  test('keeps workspace retrieval tuning on workspace callbacks', () => {
+    const onWorkspaceChatRetrievalLimitChange = vi.fn()
+    const onWorkspaceChatRerankCandidateLimitChange = vi.fn()
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'workspace_overrides',
+      onWorkspaceChatRetrievalLimitChange,
+      onWorkspaceChatRerankCandidateLimitChange,
+    })
+
+    const tuner = screen.getByRole('region', {
+      name: 'Workspace chat retrieval parameters',
+    })
+    expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+    fireEvent.change(within(tuner).getByLabelText('Retrieval Limit'), {
+      target: { value: '8' },
+    })
+    fireEvent.change(within(tuner).getByLabelText('Candidate Limit'), {
+      target: { value: '15' },
+    })
+    expect(onWorkspaceChatRetrievalLimitChange).toHaveBeenCalledWith(8)
+    expect(onWorkspaceChatRerankCandidateLimitChange).toHaveBeenCalledWith(15)
+  })
+
   test('does not render runtime submodule segmented controls in the content panel', () => {
     renderRuntimeSettingsPanel({
       activeSubmodule: 'global_defaults',
@@ -810,6 +865,31 @@ describe('RuntimeSettingsPanel', () => {
     expect(alert.textContent).toContain('[redacted]')
   })
 
+  test('uses the records pattern for provider connections and model catalogs', () => {
+    const connectionsView = renderRuntimeSettingsPanel()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Connections' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+    connectionsView.unmount()
+
+    renderRuntimeSettingsPanel({ activeSubmodule: 'model_catalog' })
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Model Catalog' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+
+    cleanup()
+    renderRuntimeSettingsPanel({ activeSubmodule: 'global_defaults' })
+    expect(
+      screen
+        .getByRole('region', { name: 'Global Chat Models' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+  })
+
   test('enables delete confirmation only for the exact connection id', async () => {
     const user = userEvent.setup()
     render(<StatefulDeleteRuntimePanel />)
@@ -850,16 +930,17 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('shows loading connections instead of empty while busy', () => {
-    const { container } = renderRuntimeSettingsPanel({
+    renderRuntimeSettingsPanel({
       connections: [],
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading Connections…')).toBeTruthy()
-    expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
     expect(
-      container.querySelector('[data-slot-state="loading"]')?.className,
-    ).toMatch(/motion-safe:animate-pulse/)
+      screen.getByRole('status', { name: 'Loading Connections…' }).getAttribute(
+        'data-slot',
+      ),
+    ).toBe('loading-grid')
+    expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
   })
 
   test('puts combobox ARIA on the capabilities filter input', async () => {
@@ -885,7 +966,11 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading Provider Models…')).toBeTruthy()
+    expect(
+      screen
+        .getByRole('status', { name: 'Loading Provider Models…' })
+        .getAttribute('data-slot'),
+    ).toBe('loading-grid')
     expect(screen.queryByText('No provider models loaded.')).toBeNull()
   })
 

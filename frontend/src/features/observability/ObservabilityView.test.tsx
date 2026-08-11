@@ -139,21 +139,19 @@ describe('ObservabilityPanel', () => {
     expectNoLegacyObservabilityClasses(view.container)
   })
 
-  test('shows metric skeleton while loading without a prior summary', () => {
+  test('shows the shared loading pattern while loading without a prior summary', () => {
     const { view } = renderObservabilityPanel({
       state: 'loading',
       summary: null,
     })
 
-    expect(
-      view.container.querySelector('[data-slot="observability-metric-skeleton"]'),
-    ).toBeTruthy()
+    const loading = screen.getByRole('status', {
+      name: 'Chat Observability Metrics Loading',
+    })
+    expect(loading.getAttribute('data-slot')).toBe('loading-grid')
     expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
     expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
     expect(screen.getByText('Refreshing').getAttribute('data-slot')).toBe('badge')
-    expect(screen.getByLabelText(/metrics loading/i).getAttribute('aria-busy')).toBe(
-      'true',
-    )
   })
 
   test('keeps prior summary visible with aria-busy while refreshing', () => {
@@ -228,12 +226,29 @@ describe('ObservabilityPanel', () => {
     expectNoLegacyObservabilityClasses(view.container)
   })
 
+  test('adopts operational insights using only real summary metrics', () => {
+    renderObservabilityPanel()
+
+    const insights = screen.getByRole('region', {
+      name: 'Operational insights',
+    })
+    expect(insights.getAttribute('data-slot')).toBe('insight-deck')
+    expect(within(insights).getByRole('heading', { name: 'Sessions' })).toBeTruthy()
+    expect(within(insights).getByText('12 filtered chat sessions.')).toBeTruthy()
+    expect(within(insights).queryByRole('img')).toBeNull()
+  })
+
   test('cost and latency views use table primitives with stable headers', () => {
     const { view, view: { rerender } } = renderObservabilityPanel({
       activeSubmodule: 'costs',
     })
 
     expect(screen.getByRole('region', { name: 'Provider Usage' })).toBeTruthy()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Usage' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
     expect(screen.getByRole('columnheader', { name: 'Operation' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Tokens' })).toBeTruthy()
     expect(screen.getByText('1,840')).toBeTruthy()
@@ -263,6 +278,11 @@ describe('ObservabilityPanel', () => {
     )
 
     expect(screen.getByRole('region', { name: 'Provider Latency' })).toBeTruthy()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Latency' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
     expect(screen.getByRole('columnheader', { name: 'Avg' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Max' })).toBeTruthy()
     expect(screen.getByText('420 ms')).toBeTruthy()

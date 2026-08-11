@@ -1,5 +1,11 @@
 import { type FormEvent, type ReactNode } from 'react'
 
+import { InsightDeck, type InsightItem } from '@/components/beautiful-ui/insight-deck'
+import { LoadingGrid } from '@/components/beautiful-ui/loading-grid'
+import {
+  RecordsGrid,
+  type RecordsGridColumn,
+} from '@/components/beautiful-ui/records-grid'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
@@ -15,16 +21,7 @@ import {
 } from '@/components/ui/panel'
 import { Select } from '@/components/ui/select'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableScroll,
-  tableNumericClass,
-} from '@/components/ui/table'
+import { tableNumericClass } from '@/components/ui/table'
 import {
   SegmentedControl,
   SegmentedControlItem,
@@ -345,7 +342,6 @@ function ObservabilityMetricSkeleton({
 }: {
   activeSubmodule: ObservabilitySubmodule
 }) {
-  const cardCount = activeSubmodule === 'summary' ? 5 : 3
   const label =
     activeSubmodule === 'costs'
       ? 'Cost Observability Metrics Loading'
@@ -355,32 +351,7 @@ function ObservabilityMetricSkeleton({
           ? 'Latency Observability Metrics Loading'
           : 'Chat Observability Metrics Loading'
 
-  return (
-    <div
-      aria-busy="true"
-      aria-label={label}
-      className={
-        cardCount === 5
-          ? 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-5'
-          : 'grid gap-3 max-[680px]:gap-0 md:grid-cols-2 xl:grid-cols-3'
-      }
-      data-slot="observability-metric-skeleton"
-      role="status"
-    >
-      <span className="sr-only">Loading Observability Metrics…</span>
-      {Array.from({ length: cardCount }, (_, index) => (
-        <article
-          aria-hidden="true"
-          className="max-[680px]:overflow-hidden grid min-h-28 gap-2 rounded-md border border-border bg-card p-4 max-[680px]:min-h-0 max-[680px]:gap-0 max-[680px]:p-0 max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:rounded-sm"
-          key={index}
-        >
-          <div className="max-[680px]:motion-reduce:animate-none h-3 w-1/3 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
-          <div className="max-[680px]:motion-reduce:animate-none h-7 w-2/3 motion-safe:animate-pulse max-[680px]:h-2 rounded bg-muted/40" />
-          <div className="max-[680px]:motion-reduce:animate-none h-3 w-4/5 motion-safe:animate-pulse max-[680px]:h-1 rounded bg-muted/40" />
-        </article>
-      ))}
-    </div>
-  )
+  return <LoadingGrid label={label} />
 }
 
 function ObservabilitySummaryContent({
@@ -390,10 +361,49 @@ function ObservabilitySummaryContent({
 }) {
   return (
     <>
+      <ObservabilityInsights summary={summary} />
       <ObservabilitySummaryMetrics summary={summary} />
       <ObservabilityBreakdowns summary={summary} />
     </>
   )
+}
+
+function ObservabilityInsights({ summary }: { summary: ChatObservabilitySummary }) {
+  const slowestP95 = getSlowestP95Group(summary.provider_usage.groups)
+  const errorCount =
+    summary.errors.session_error_count + summary.errors.provider_error_count
+  const insights: InsightItem[] = [
+    {
+      body: `${formatNumber(summary.sessions.total)} filtered chat sessions.`,
+      id: 'sessions',
+      title: 'Sessions',
+    },
+    {
+      body: `${formatNumber(summary.provider_usage.total_records)} provider usage records.`,
+      id: 'provider-calls',
+      title: 'Provider Calls',
+    },
+    {
+      body: `${formatUsd(summary.provider_usage.total_estimated_cost_usd)} estimated cost from known usage.`,
+      id: 'estimated-cost',
+      title: 'Estimated Cost',
+    },
+    {
+      body: `${formatNumber(errorCount)} session and provider errors.`,
+      id: 'errors',
+      title: 'Errors',
+    },
+    {
+      body:
+        slowestP95 === null
+          ? 'No known provider latency.'
+          : `${formatNullableMs(slowestP95.latency_ms.p95)} slowest provider P95 latency.`,
+      id: 'latency',
+      title: 'Latency',
+    },
+  ]
+
+  return <InsightDeck insights={insights} label="Operational insights" />
 }
 
 function ObservabilitySummaryMetrics({
@@ -715,55 +725,16 @@ function ProviderUsageTable({
 }: {
   summary: ChatObservabilitySummary
 }) {
+  const rows = providerUsageRows(summary.provider_usage.groups)
+
   return (
     <div className="lg:col-span-2">
-      <BreakdownCard
-        label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider Usage"
-      >
-        {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
-            No Provider Usage Groups Yet.
-          </EmptyState>
-        ) : (
-          <TableScroll>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Operation</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead className={tableNumericClass}>Calls</TableHead>
-                  <TableHead className={tableNumericClass}>Tokens</TableHead>
-                  <TableHead className={tableNumericClass}>Cost</TableHead>
-                  <TableHead className={tableNumericClass}>P95</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {summary.provider_usage.groups.map((group) => (
-                  <TableRow key={`${group.operation}-${group.provider}-${group.model}`}>
-                    <TableCell>{group.operation}</TableCell>
-                    <TableCell>{group.provider}</TableCell>
-                    <TableCell>{group.model}</TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNumber(group.record_count)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableNumber(group.total_tokens)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableUsd(group.estimated_cost_usd)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableMs(group.latency_ms.p95)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableScroll>
-        )}
-      </BreakdownCard>
+      <RecordsGrid
+        columns={PROVIDER_USAGE_COLUMNS}
+        emptyLabel="No Provider Usage Groups Yet."
+        label="Provider Usage"
+        rows={rows}
+      />
     </div>
   )
 }
@@ -773,62 +744,87 @@ function ProviderLatencyTable({
 }: {
   summary: ChatObservabilitySummary
 }) {
+  const rows = providerUsageRows(summary.provider_usage.groups)
+
   return (
     <div className="lg:col-span-2">
-      <BreakdownCard
-        label={`${summary.provider_usage.groups.length} groups`}
-        title="Provider Latency"
-      >
-        {summary.provider_usage.groups.length === 0 ? (
-          <EmptyState className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-3 text-left max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
-            No Provider Latency Groups Yet.
-          </EmptyState>
-        ) : (
-          <TableScroll>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Operation</TableHead>
-                  <TableHead>Provider</TableHead>
-                  <TableHead>Model</TableHead>
-                  <TableHead className={tableNumericClass}>Calls</TableHead>
-                  <TableHead className={tableNumericClass}>Avg</TableHead>
-                  <TableHead className={tableNumericClass}>P50</TableHead>
-                  <TableHead className={tableNumericClass}>P95</TableHead>
-                  <TableHead className={tableNumericClass}>Max</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {summary.provider_usage.groups.map((group) => (
-                  <TableRow key={`${group.operation}-${group.provider}-${group.model}`}>
-                    <TableCell>{group.operation}</TableCell>
-                    <TableCell>{group.provider}</TableCell>
-                    <TableCell>{group.model}</TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNumber(group.record_count)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableMs(group.latency_ms.avg)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableMs(group.latency_ms.p50)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableMs(group.latency_ms.p95)}
-                    </TableCell>
-                    <TableCell className={tableNumericClass}>
-                      {formatNullableMs(group.latency_ms.max)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableScroll>
-        )}
-      </BreakdownCard>
+      <RecordsGrid
+        columns={PROVIDER_LATENCY_COLUMNS}
+        emptyLabel="No Provider Latency Groups Yet."
+        label="Provider Latency"
+        rows={rows}
+      />
     </div>
   )
 }
+
+type ProviderUsageRow = {
+  group: ChatObservabilityProviderUsageGroup
+  id: string
+}
+
+function providerUsageRows(
+  groups: readonly ChatObservabilityProviderUsageGroup[],
+): ProviderUsageRow[] {
+  return groups.map((group, index) => ({
+    group,
+    id: `${group.operation}-${group.provider}-${group.model}-${index}`,
+  }))
+}
+
+function NumericValue({ children }: { children: ReactNode }) {
+  return <span className={tableNumericClass}>{children}</span>
+}
+
+const PROVIDER_USAGE_COLUMNS: readonly RecordsGridColumn<ProviderUsageRow>[] = [
+  { header: 'Operation', id: 'operation', render: ({ group }) => group.operation },
+  { header: 'Provider', id: 'provider', render: ({ group }) => group.provider },
+  { header: 'Model', id: 'model', render: ({ group }) => group.model },
+  {
+    header: 'Calls',
+    id: 'calls',
+    render: ({ group }) => <NumericValue>{formatNumber(group.record_count)}</NumericValue>,
+  },
+  {
+    header: 'Tokens',
+    id: 'tokens',
+    render: ({ group }) => <NumericValue>{formatNullableNumber(group.total_tokens)}</NumericValue>,
+  },
+  {
+    header: 'Cost',
+    id: 'cost',
+    render: ({ group }) => <NumericValue>{formatNullableUsd(group.estimated_cost_usd)}</NumericValue>,
+  },
+  {
+    header: 'P95',
+    id: 'p95',
+    render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p95)}</NumericValue>,
+  },
+]
+
+const PROVIDER_LATENCY_COLUMNS: readonly RecordsGridColumn<ProviderUsageRow>[] = [
+  ...PROVIDER_USAGE_COLUMNS.slice(0, 4),
+  {
+    header: 'Avg',
+    id: 'avg',
+    render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.avg)}</NumericValue>,
+  },
+  {
+    header: 'P50',
+    id: 'p50',
+    render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p50)}</NumericValue>,
+  },
+  {
+    header: 'P95',
+    id: 'p95',
+    render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.p95)}</NumericValue>,
+  },
+  {
+    header: 'Max',
+    id: 'max',
+    render: ({ group }) => <NumericValue>{formatNullableMs(group.latency_ms.max)}</NumericValue>,
+  },
+]
 
 function SessionHealth({ summary }: { summary: ChatObservabilitySummary }) {
   const total = summary.sessions.total

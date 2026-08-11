@@ -7,6 +7,12 @@ import {
 } from 'react'
 import { ChevronDown } from 'lucide-react'
 
+import { LoadingGrid } from '@/components/beautiful-ui/loading-grid'
+import { ParameterTuner } from '@/components/beautiful-ui/parameter-tuner'
+import {
+  RecordsGrid,
+  type RecordsGridColumn,
+} from '@/components/beautiful-ui/records-grid'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
@@ -706,16 +712,9 @@ export function RuntimeConnectionsPanel({
         </form>
       )}
 
-      <section aria-label="Provider Connections" className="grid gap-3 max-[680px]:gap-0">
+      <>
         {state === 'loading' && connections.length === 0 ? (
-          <EmptyState
-            aria-busy="true"
-            className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-            data-slot-state="loading"
-            role="status"
-          >
-            Loading Connections…
-          </EmptyState>
+          <LoadingGrid label="Loading Connections…" />
         ) : state === 'canceled' && connections.length === 0 ? (
           <EmptyState
             className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -729,17 +728,19 @@ export function RuntimeConnectionsPanel({
             No Connections Yet.
           </EmptyState>
         ) : (
-          <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            {connections.map((connection) => {
+          <RecordsGrid
+            columns={[{
+              header: 'Connection',
+              id: 'connection',
+              render: ({ connection }: { connection: ProviderConnection; id: string }) => {
               const isChecking =
                 checkingConnectionId === connection.connection_id
               const checkResult =
                 connectionCheckResults[connection.connection_id]
               return (
-                <DataListItem
+                <div
                   aria-busy={isChecking || undefined}
                   className="max-[680px]:grid-cols-1 max-[680px]:text-left max-[680px]:touch-manipulation max-[680px]:overflow-hidden grid gap-3 max-[680px]:gap-0 max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary md:grid-cols-[minmax(0,1fr)_auto]"
-                  key={connection.connection_id}
                 >
                   <div className="grid min-w-0 gap-2 max-[680px]:gap-0">
                     <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
@@ -863,12 +864,18 @@ export function RuntimeConnectionsPanel({
                       </DataListItemActions>
                     </form>
                   ) : null}
-                </DataListItem>
+                </div>
               )
-            })}
-          </DataList>
+            }}]}
+            emptyLabel="No Connections Yet."
+            label="Provider Connections"
+            rows={connections.map((connection) => ({
+              connection,
+              id: connection.connection_id,
+            }))}
+          />
         )}
-      </section>
+      </>
     </RuntimePanel>
   )
 }
@@ -1279,18 +1286,12 @@ export function RuntimeGlobalDefaultsPanel({
         </Button>
       </form>
 
-      <section aria-label="Global Chat Models" className="grid gap-3 max-[680px]:gap-0">
-        <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Models</h3>
-        {state === 'loading' && chatModels.length === 0 ? (
-          <EmptyState
-            aria-busy="true"
-            className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-            data-slot-state="loading"
-            role="status"
-          >
-            Loading Chat Models…
-          </EmptyState>
-        ) : state === 'canceled' && chatModels.length === 0 ? (
+      {state === 'loading' && chatModels.length === 0 ? (
+        <section aria-label="Global Chat Models" className="grid gap-3">
+          <LoadingGrid label="Loading Chat Models…" />
+        </section>
+      ) : state === 'canceled' && chatModels.length === 0 ? (
+        <section aria-label="Global Chat Models" className="grid gap-3">
           <EmptyState
             className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
             data-slot-state="canceled"
@@ -1298,33 +1299,38 @@ export function RuntimeGlobalDefaultsPanel({
           >
             Chat Models Load Canceled.
           </EmptyState>
-        ) : chatModels.length === 0 ? (
-          <EmptyState className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
-            No Chat Models Yet.
-          </EmptyState>
-        ) : (
-          <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-            {chatModels.map((model) => (
-              <DataListItem
-                className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
-                key={`${model.connection_id}-${model.model_id}`}
-              >
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {model.model_id}
-                  </strong>
-                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {model.connection_id}
-                  </small>
-                </div>
-                <Badge className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone={model.is_default ? 'primary' : 'neutral'}>
+        </section>
+      ) : (
+        <RecordsGrid
+          columns={[
+            {
+              header: 'Model',
+              id: 'model',
+              render: ({ model }) => <strong className="text-sm font-semibold">{model.model_id}</strong>,
+            },
+            {
+              header: 'Connection',
+              id: 'connection',
+              render: ({ model }) => <small className="text-xs text-muted-foreground">{model.connection_id}</small>,
+            },
+            {
+              header: 'Status',
+              id: 'status',
+              render: ({ model }) => (
+                <Badge tone={model.is_default ? 'primary' : 'neutral'}>
                   {model.is_default ? 'Default' : 'Enabled'}
                 </Badge>
-              </DataListItem>
-            ))}
-          </DataList>
-        )}
-      </section>
+              ),
+            },
+          ]}
+          emptyLabel="No Chat Models Yet."
+          label="Global Chat Models"
+          rows={chatModels.map((model) => ({
+            id: `${model.connection_id}-${model.model_id}`,
+            model,
+          }))}
+        />
+      )}
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatModel}>
         <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-2">
@@ -1369,14 +1375,7 @@ export function RuntimeGlobalDefaultsPanel({
       <section aria-label="Global Chat Retrieval" className="grid gap-3 max-[680px]:gap-0">
         <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Chat Retrieval</h3>
         {state === 'loading' && chatRetrievalSettings === null ? (
-          <EmptyState
-            aria-busy="true"
-            className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-            data-slot-state="loading"
-            role="status"
-          >
-            Loading Chat Retrieval Defaults…
-          </EmptyState>
+          <LoadingGrid label="Loading Chat Retrieval Defaults…" />
         ) : state === 'canceled' && chatRetrievalSettings === null ? (
           <EmptyState
             className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
@@ -1410,27 +1409,36 @@ export function RuntimeGlobalDefaultsPanel({
           </EmptyState>
         )}
         <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveGlobalChatRetrieval}>
-          <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
-            <RuntimeField
-              id="runtime-global-retrieval-limit"
-              label="Retrieval Limit"
-            >
-              {(fieldId) => (
-                <Input
-                  className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                  id={fieldId}
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRetrievalLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRetrievalLimit}
-                />
-              )}
-            </RuntimeField>
+          <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <ParameterTuner
+              label="Chat retrieval parameters"
+              onChange={(id, value) => {
+                const normalizedValue = normalizeChatRetrievalLimit(String(value))
+                if (id === 'retrieval-limit') {
+                  onGlobalChatRetrievalLimitChange(normalizedValue)
+                } else if (id === 'candidate-limit') {
+                  onGlobalChatRerankCandidateLimitChange(normalizedValue)
+                }
+              }}
+              parameters={[
+                {
+                  id: 'retrieval-limit',
+                  label: 'Retrieval Limit',
+                  max: CHAT_RETRIEVAL_MAX_LIMIT,
+                  min: 1,
+                  step: 1,
+                  value: globalChatRetrievalLimit,
+                },
+                {
+                  id: 'candidate-limit',
+                  label: 'Candidate Limit',
+                  max: CHAT_RETRIEVAL_MAX_LIMIT,
+                  min: 1,
+                  step: 1,
+                  value: globalChatRerankCandidateLimit,
+                },
+              ]}
+            />
             <RuntimeField id="runtime-global-rerank" label="Rerank">
               {(fieldId) => (
                 <Select
@@ -1444,26 +1452,6 @@ export function RuntimeGlobalDefaultsPanel({
                     { label: 'Off', value: 'false' },
                   ]}
                   value={String(globalChatRerankEnabled)}
-                />
-              )}
-            </RuntimeField>
-            <RuntimeField
-              id="runtime-global-candidate-limit"
-              label="Candidate Limit"
-            >
-              {(fieldId) => (
-                <Input
-                  className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                  id={fieldId}
-                  max={CHAT_RETRIEVAL_MAX_LIMIT}
-                  min={1}
-                  onChange={(event) =>
-                    onGlobalChatRerankCandidateLimitChange(
-                      normalizeChatRetrievalLimit(event.currentTarget.value),
-                    )
-                  }
-                  type="number"
-                  value={globalChatRerankCandidateLimit}
                 />
               )}
             </RuntimeField>
@@ -1556,27 +1544,36 @@ export function RuntimeWorkspaceOverridesPanel({
       />
 
       <form className="grid gap-4 max-[680px]:gap-0" onSubmit={onSaveWorkspaceChatRetrieval}>
-        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-3">
-          <RuntimeField
-            id="runtime-workspace-retrieval-limit"
-            label="Retrieval Limit"
-          >
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                max={CHAT_RETRIEVAL_MAX_LIMIT}
-                min={1}
-                onChange={(event) =>
-                  onWorkspaceChatRetrievalLimitChange(
-                    normalizeChatRetrievalLimit(event.currentTarget.value),
-                  )
-                }
-                type="number"
-                value={workspaceChatRetrievalLimit}
-              />
-            )}
-          </RuntimeField>
+        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 max-[680px]:gap-0 md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+          <ParameterTuner
+            label="Workspace chat retrieval parameters"
+            onChange={(id, value) => {
+              const normalizedValue = normalizeChatRetrievalLimit(String(value))
+              if (id === 'retrieval-limit') {
+                onWorkspaceChatRetrievalLimitChange(normalizedValue)
+              } else if (id === 'candidate-limit') {
+                onWorkspaceChatRerankCandidateLimitChange(normalizedValue)
+              }
+            }}
+            parameters={[
+              {
+                id: 'retrieval-limit',
+                label: 'Retrieval Limit',
+                max: CHAT_RETRIEVAL_MAX_LIMIT,
+                min: 1,
+                step: 1,
+                value: workspaceChatRetrievalLimit,
+              },
+              {
+                id: 'candidate-limit',
+                label: 'Candidate Limit',
+                max: CHAT_RETRIEVAL_MAX_LIMIT,
+                min: 1,
+                step: 1,
+                value: workspaceChatRerankCandidateLimit,
+              },
+            ]}
+          />
           <RuntimeField id="runtime-workspace-rerank" label="Rerank">
             {(fieldId) => (
               <Select
@@ -1590,26 +1587,6 @@ export function RuntimeWorkspaceOverridesPanel({
                   { label: 'Off', value: 'false' },
                 ]}
                 value={String(workspaceChatRerankEnabled)}
-              />
-            )}
-          </RuntimeField>
-          <RuntimeField
-            id="runtime-workspace-candidate-limit"
-            label="Candidate Limit"
-          >
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                max={CHAT_RETRIEVAL_MAX_LIMIT}
-                min={1}
-                onChange={(event) =>
-                  onWorkspaceChatRerankCandidateLimitChange(
-                    normalizeChatRetrievalLimit(event.currentTarget.value),
-                  )
-                }
-                type="number"
-                value={workspaceChatRerankCandidateLimit}
               />
             )}
           </RuntimeField>
@@ -1860,93 +1837,103 @@ export function ProviderModelCatalogView({
   const connectionsById = new Map(
     connections.map((connection) => [connection.connection_id, connection]),
   )
+  if (isLoading && providerModels.length === 0) {
+    return (
+      <section aria-label="Provider Model Catalog" className="grid gap-3">
+        <LoadingGrid label="Loading Provider Models…" />
+      </section>
+    )
+  }
+
+  const rows = providerModels.map((model) => ({
+    id: `${model.connection_id}-${model.model_id}`,
+    model,
+  }))
+  const columns: readonly RecordsGridColumn<(typeof rows)[number]>[] = [
+    {
+      header: 'Model',
+      id: 'model',
+      render: ({ model }) => {
+        const connection = connectionsById.get(model.connection_id)
+        const displayCapabilities = effectiveModelCapabilities({
+          connection: connection ?? null,
+          model,
+        })
+        const endpointWarning =
+          connection === undefined
+            ? null
+            : qwenServiceModelEndpointWarning({
+                provider: connection.provider,
+                baseUrl: connection.base_url,
+                capabilities: displayCapabilities,
+              })
+        return (
+          <div className="grid min-w-0 gap-1">
+            <strong className="text-sm font-semibold">{model.model_id}</strong>
+            <small className="text-xs text-muted-foreground">
+              {displayCapabilities.map((capability) => slotLabel(capability)).join(', ')}
+            </small>
+            {endpointWarning ? (
+              <small className="text-xs text-amber-700 dark:text-amber-400" data-endpoint-warning="true" role="status">
+                {endpointWarning}
+              </small>
+            ) : null}
+          </div>
+        )
+      },
+    },
+    {
+      header: 'Pricing',
+      id: 'pricing',
+      render: ({ model }) => {
+        const pricing = formatProviderModelPricing(model.pricing)
+        return (
+          <small
+            className="text-xs tabular-nums text-muted-foreground"
+            data-pricing-state={pricing.hasPricing ? 'priced' : 'missing'}
+          >
+            {pricing.hasPricing ? pricing.summary : 'No pricing'}
+          </small>
+        )
+      },
+    },
+    {
+      header: 'Status',
+      id: 'status',
+      render: ({ model }) => {
+        const pricing = formatProviderModelPricing(model.pricing)
+        const connection = connectionsById.get(model.connection_id)
+        const displayCapabilities = effectiveModelCapabilities({
+          connection: connection ?? null,
+          model,
+        })
+        const endpointWarning =
+          connection === undefined
+            ? null
+            : qwenServiceModelEndpointWarning({
+                provider: connection.provider,
+                baseUrl: connection.base_url,
+                capabilities: displayCapabilities,
+              })
+        return (
+          <div className="flex flex-wrap items-start gap-2">
+            {endpointWarning ? <Badge tone="warning">Endpoint risk</Badge> : null}
+            <Badge tone={pricing.hasPricing ? 'primary' : 'neutral'}>
+              {pricing.badgeLabel}
+            </Badge>
+          </div>
+        )
+      },
+    },
+  ]
+
   return (
-    <section aria-label="Provider Model Catalog" className="grid gap-3 max-[680px]:gap-0">
-      <h3 className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-base font-semibold leading-none max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter">Model Catalog</h3>
-      {isLoading && providerModels.length === 0 ? (
-        <EmptyState
-          aria-busy="true"
-          className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-          data-slot-state="loading"
-          role="status"
-        >
-          Loading Provider Models…
-        </EmptyState>
-      ) : providerModels.length === 0 ? (
-        <EmptyState className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate p-4 text-left tracking-tight max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm" data-slot-state="empty" role="status">
-          No Provider Models Yet.
-        </EmptyState>
-      ) : (
-        <DataList className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:scroll-smooth max-[680px]:touch-manipulation max-[680px]:select-none max-[680px]:overscroll-contain max-[680px]:border max-[680px]:border-primary max-[680px]:rounded-sm max-[680px]:ring-offset-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:overflow-hidden max-[680px]:gap-0">
-          {providerModels.map((model) => {
-            const pricing = formatProviderModelPricing(model.pricing)
-            const connection = connectionsById.get(model.connection_id)
-            const displayCapabilities = effectiveModelCapabilities({
-              connection: connection ?? null,
-              model,
-            })
-            const endpointWarning =
-              connection === undefined
-                ? null
-                : qwenServiceModelEndpointWarning({
-                    provider: connection.provider,
-                    baseUrl: connection.base_url,
-                    capabilities: displayCapabilities,
-                  })
-            return (
-              <DataListItem
-                className="max-[680px]:justify-start max-[680px]:text-left max-[680px]:items-start max-[680px]:touch-manipulation max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-primary max-[680px]:p-0 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary flex flex-wrap items-center justify-between gap-3 max-[680px]:gap-0"
-                key={`${model.connection_id}-${model.model_id}`}
-              >
-                <div className="min-w-0 grid gap-1 max-[680px]:gap-0">
-                  <strong className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:font-medium max-[680px]:truncate text-sm font-semibold max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {model.model_id}
-                  </strong>
-                  <small className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter">
-                    {displayCapabilities
-                      .map((capability) => slotLabel(capability))
-                      .join(', ')}
-                  </small>
-                  <small
-                    className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:truncate text-xs text-muted-foreground max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter tabular-nums"
-                    data-pricing-state={
-                      pricing.hasPricing ? 'priced' : 'missing'
-                    }
-                  >
-                    {pricing.hasPricing ? pricing.summary : 'No pricing'}
-                  </small>
-                  {endpointWarning ? (
-                    <small
-                      className="max-[680px]:text-left max-[680px]:min-w-0 max-[680px]:max-w-full text-xs text-amber-700 dark:text-amber-400 max-[680px]:text-[0.5rem] max-[680px]:leading-tight max-[680px]:tracking-tighter"
-                      data-endpoint-warning="true"
-                      role="status"
-                    >
-                      {endpointWarning}
-                    </small>
-                  ) : null}
-                </div>
-                <div className="flex flex-wrap items-start gap-2 max-[680px]:gap-0">
-                  {endpointWarning ? (
-                    <Badge
-                      className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                      tone="warning"
-                    >
-                      Endpoint risk
-                    </Badge>
-                  ) : null}
-                  <Badge
-                    className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:self-start max-[680px]:tabular-nums max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:shrink max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                    tone={pricing.hasPricing ? 'primary' : 'neutral'}
-                  >
-                    {pricing.badgeLabel}
-                  </Badge>
-                </div>
-              </DataListItem>
-            )
-          })}
-        </DataList>
-      )}
-    </section>
+    <RecordsGrid
+      columns={columns}
+      emptyLabel="No Provider Models Yet."
+      label="Provider Model Catalog"
+      rows={rows}
+    />
   )
 }
 
@@ -1958,16 +1945,7 @@ export function RuntimeSlotList({
   state?: RequestState
 }) {
   if (state === 'loading' && slots.length === 0) {
-    return (
-      <EmptyState
-        aria-busy="true"
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="loading"
-        role="status"
-      >
-        Loading Global Slots…
-      </EmptyState>
-    )
+    return <LoadingGrid label="Loading Global Slots…" />
   }
   if (state === 'canceled' && slots.length === 0) {
     return (
@@ -2021,16 +1999,7 @@ export function WorkspaceRuntimeSettingsView({
   state?: RequestState
 }) {
   if (state === 'loading' && settings === null) {
-    return (
-      <EmptyState
-        aria-busy="true"
-        className="max-[680px]:hyphens-none max-[680px]:max-w-full max-[680px]:items-start max-[680px]:motion-reduce:animate-none max-[680px]:isolate max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:min-w-0 max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate border-border/60 bg-muted/20 p-4 text-left tracking-tight motion-safe:animate-pulse max-[680px]:p-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:border-primary/95 max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:tracking-tighter max-[680px]:rounded-sm"
-        data-slot-state="loading"
-        role="status"
-      >
-        Loading Workspace Runtime Settings…
-      </EmptyState>
-    )
+    return <LoadingGrid label="Loading Workspace Runtime Settings…" />
   }
   if (state === 'canceled' && settings === null) {
     return (
