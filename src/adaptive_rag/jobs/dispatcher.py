@@ -64,6 +64,7 @@ class JobDispatcher:
         now: datetime,
         supported_handlers: Collection[HandlerKey] | None = None,
         queue_names: Collection[str] | None = None,
+        workspace_id: UUID | None = None,
     ) -> ClaimedJob | None:
         supported = (
             self._registry.supported_handlers
@@ -102,6 +103,7 @@ class JobDispatcher:
                 advisory_lock_ids=handler_lock_ids,
                 key_lock_id_factory=lambda *parts: advisory_lock_id("key", *parts),
                 now=now,
+                workspace_id=workspace_id,
             )
             if claim is None:
                 continue

@@ -5,14 +5,16 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
+from sqlalchemy import Connection, Engine, inspect
 from sqlalchemy.orm import Session
 
 from adaptive_rag import authoring
 from adaptive_rag.contextualization import Contextualizer
 from adaptive_rag.db.models import Job, JobEvent
 from adaptive_rag.db.repositories import JobRepository
+from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.ingestion.indexing import (
     INDEX_DOCUMENT_VERSION_JOB_TYPE,
@@ -27,6 +29,9 @@ from adaptive_rag.ingestion.pipeline import (
     IngestionPipeline,
     IngestionRunResult,
 )
+from adaptive_rag.jobs.handlers import build_ingestion_registry
+from adaptive_rag.jobs.service import EnqueueJobRequest, JobService
+from adaptive_rag.jobs.worker import JobWorker, WorkerRunReport
 
 
 class IngestionOpsError(Exception):
@@ -79,6 +84,25 @@ def enqueue_source_ingestion(
         authoring.get_source(session, workspace_id=workspace_id, source_id=source_id)
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
+
+    if _uses_postgresql_job_platform(session):
+        registry = build_ingestion_registry(
+            session_factory=create_session_factory(_session_engine(session))
+        )
+        return (
+            JobService(session=session, registry=registry)
+            .enqueue(
+                EnqueueJobRequest.workspace(
+                    workspace_id=workspace_id,
+                    job_type=INGEST_SOURCE_JOB_TYPE,
+                    payload={"source_id": str(source_id)},
+                    priority=priority,
+                    idempotency_key=f"source:{source_id}",
+                    run_after=run_after,
+                )
+            )
+            .job
+        )
 
     job_repo = JobRepository(session)
     existing = job_repo.find_open_ingest_source(
@@ -173,6 +197,17 @@ def run_next_ingestion_job(
 ) -> IngestionRunReport:
     _ensure_workspace_exists(session=session, workspace_id=workspace_id)
     active_now = now or datetime.now(UTC)
+    if _uses_postgresql_job_platform(session):
+        return _run_next_general_worker(
+            session=session,
+            workspace_id=workspace_id,
+            worker_id=worker_id,
+            lease_seconds=lease_seconds,
+            now=active_now,
+            dense_embedding_provider=dense_embedding_provider,
+            sparse_embedding_provider=sparse_embedding_provider,
+            contextualizer=contextualizer,
+        )
     lease_until = active_now + timedelta(seconds=lease_seconds)
     job_repo = JobRepository(session)
     # Recover kill-mid-job / crashed workers before selecting new work.
@@ -415,6 +450,107 @@ def _ensure_workspace_exists(*, session: Session, workspace_id: UUID) -> None:
         authoring.get_workspace(session, workspace_id)
     except authoring.AuthoringError as exc:
         raise IngestionOpsError(exc.detail, status_code=exc.status_code) from exc
+
+
+def _uses_postgresql_job_platform(session: Session) -> bool:
+    bind = session.get_bind()
+    return bind.dialect.name == "postgresql" and inspect(bind).has_table("job_attempts")
+
+
+def _run_next_general_worker(
+    *,
+    session: Session,
+    workspace_id: UUID,
+    worker_id: str,
+    lease_seconds: int,
+    now: datetime,
+    dense_embedding_provider: DenseEmbeddingProvider | None,
+    sparse_embedding_provider: SparseEmbeddingProvider | None,
+    contextualizer: Contextualizer | None,
+) -> IngestionRunReport:
+    factory = create_session_factory(_session_engine(session))
+    registry = build_ingestion_registry(
+        session_factory=factory,
+        dense_embedding_provider=dense_embedding_provider,
+        sparse_embedding_provider=sparse_embedding_provider,
+        contextualizer=contextualizer,
+        lease_seconds=lease_seconds,
+    )
+    report = JobWorker(
+        session_factory=factory,
+        registry=registry,
+        queue_names=("ingestion",),
+        worker_id=uuid5(NAMESPACE_URL, f"adaptive-rag-worker:{worker_id}"),
+        workspace_id=workspace_id,
+        now_source=lambda: now,
+    ).run_once_sync()
+    return _ingestion_report_from_worker(
+        report=report,
+        workspace_id=workspace_id,
+        worker_id=worker_id,
+    )
+
+
+def _ingestion_report_from_worker(
+    *,
+    report: WorkerRunReport,
+    workspace_id: UUID,
+    worker_id: str,
+) -> IngestionRunReport:
+    result = report.result if isinstance(report.result, dict) else {}
+    status = {
+        "succeeded": "processed",
+        "retry_scheduled": "failed",
+    }.get(report.status, report.status)
+    return IngestionRunReport(
+        status=status,
+        workspace_id=workspace_id,
+        worker_id=worker_id,
+        job_id=report.job_id,
+        job_type=report.job_type,
+        source_id=_optional_uuid(result.get("source_id")),
+        document_id=_optional_uuid(result.get("document_id")),
+        document_version_id=_optional_uuid(result.get("document_version_id")),
+        created_document_version=_optional_bool(result.get("created_document_version")),
+        chunk_count=_optional_int(result.get("chunk_count")),
+        contextualized_chunk_count=_optional_int(
+            result.get("contextualized_chunk_count")
+        ),
+        reused_contextualized_chunk_count=_optional_int(
+            result.get("reused_contextualized_chunk_count")
+        ),
+        embedded_chunk_count=_optional_int(result.get("embedded_chunk_count")),
+        reused_chunk_count=_optional_int(result.get("reused_chunk_count")),
+        sparse_embedded_chunk_count=_optional_int(
+            result.get("sparse_embedded_chunk_count")
+        ),
+        sparse_reused_chunk_count=_optional_int(
+            result.get("sparse_reused_chunk_count")
+        ),
+        error_message=report.error_message,
+    )
+
+
+def _optional_uuid(value: object) -> UUID | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
+
+
+def _optional_int(value: object) -> int | None:
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _optional_bool(value: object) -> bool | None:
+    return value if isinstance(value, bool) else None
+
+
+def _session_engine(session: Session) -> Engine:
+    bind = session.get_bind()
+    return bind.engine if isinstance(bind, Connection) else bind
 
 
 def _job_source_id(job: Job) -> UUID | None:

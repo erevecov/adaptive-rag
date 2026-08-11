@@ -61,6 +61,7 @@ class JobRuntimeRepository:
         advisory_lock_ids: Mapping[HandlerKey, int],
         key_lock_id_factory: Callable[[str, str, str], int],
         now: datetime,
+        workspace_id: UUID | None = None,
     ) -> RuntimeClaim | None:
         queue = self._session.scalars(
             select(JobQueue).where(JobQueue.name == queue_name).with_for_update()
@@ -73,16 +74,20 @@ class JobRuntimeRepository:
         ):
             return None
 
+        state_query = select(JobQueueWorkspaceState).where(
+            JobQueueWorkspaceState.queue_name == queue_name
+        )
+        if workspace_id is not None:
+            state_query = state_query.where(
+                JobQueueWorkspaceState.scope_key == f"workspace:{workspace_id}"
+            )
         states = list(
             self._session.scalars(
-                select(JobQueueWorkspaceState)
-                .where(JobQueueWorkspaceState.queue_name == queue_name)
-                .order_by(
+                state_query.order_by(
                     JobQueueWorkspaceState.last_claimed_at.asc().nullsfirst(),
                     JobQueueWorkspaceState.created_at,
                     JobQueueWorkspaceState.scope_key,
-                )
-                .with_for_update(skip_locked=True)
+                ).with_for_update(skip_locked=True)
             )
         )
         supported = tuple(handler_configs)

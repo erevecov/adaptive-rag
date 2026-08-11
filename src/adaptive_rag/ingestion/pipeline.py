@@ -76,6 +76,14 @@ class IngestionRunResult:
 
 
 @dataclass(frozen=True, slots=True)
+class IngestionDomainResult:
+    source: Source
+    document: Document
+    document_version: DocumentVersion
+    created_document_version: bool
+
+
+@dataclass(frozen=True, slots=True)
 class IngestionBlockedResult:
     job: Job
     error_message: str
@@ -219,6 +227,23 @@ class IngestionPipeline:
 
     def _process_job(self, *, workspace_id: UUID, job: Job) -> IngestionRunResult:
         source_id = _source_id_from_payload(job.payload_json)
+        result = self.process_source(workspace_id=workspace_id, source_id=source_id)
+        return IngestionRunResult(
+            job=job,
+            source=result.source,
+            document=result.document,
+            document_version=result.document_version,
+            created_document_version=result.created_document_version,
+        )
+
+    def process_source(
+        self,
+        *,
+        workspace_id: UUID,
+        source_id: UUID,
+    ) -> IngestionDomainResult:
+        """Run ingestion domain work without mutating queue lifecycle state."""
+
         source = self._source_repo.get(workspace_id=workspace_id, source_id=source_id)
         if source is None:
             raise IngestionPipelineError("source does not belong to workspace")
@@ -258,8 +283,7 @@ class IngestionPipeline:
                 source_id=source.id,
                 content_hash=content_hash,
             )
-            return IngestionRunResult(
-                job=job,
+            return IngestionDomainResult(
                 source=source,
                 document=document,
                 document_version=latest,
@@ -285,8 +309,7 @@ class IngestionPipeline:
             source_id=source.id,
             content_hash=content_hash,
         )
-        return IngestionRunResult(
-            job=job,
+        return IngestionDomainResult(
             source=source,
             document=document,
             document_version=document_version,
