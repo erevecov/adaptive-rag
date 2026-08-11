@@ -469,6 +469,9 @@ def _run_next_general_worker(
     sparse_embedding_provider: SparseEmbeddingProvider | None,
     contextualizer: Contextualizer | None,
 ) -> IngestionRunReport:
+    # The general worker claims and executes jobs in independent sessions.
+    # Publish caller-owned enqueue state before those sessions try to lock it.
+    session.commit()
     monotonic_start = monotonic()
 
     def advancing_now() -> datetime:
@@ -490,6 +493,7 @@ def _run_next_general_worker(
         workspace_id=workspace_id,
         now_source=advancing_now,
     ).run_once_sync()
+    session.expire_all()
     return _ingestion_report_from_worker(
         report=report,
         workspace_id=workspace_id,

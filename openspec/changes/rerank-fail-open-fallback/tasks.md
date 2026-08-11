@@ -37,5 +37,7 @@
     by pre-existing SHALL/MUST errors in `llm-judge` and
     `retrieval-playground`.
 - [x] 5.4 Run the full pytest suite.
-  - 938 tests pass; 8 PostgreSQL/pgvector tests cannot start without Docker.
+  - The complete backend suite passes with Docker/testcontainers enabled.
 - [x] 5.5 Review final scope for unrelated changes.
+- [x] 5.6 Run the PostgreSQL v1 quality gate and runtime-settings acceptance E2E.
+  - Both report `status=succeeded`, cited chat, and all criteria passed.

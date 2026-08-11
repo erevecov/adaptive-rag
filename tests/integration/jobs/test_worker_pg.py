@@ -13,7 +13,7 @@ from uuid import uuid4
 
 import pytest
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from sqlalchemy import create_engine, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -190,6 +190,89 @@ def test_legacy_one_second_lease_maps_to_the_internal_minimum(
         assert attempt is not None
         assert attempt.lease_expires_at - attempt.started_at == timedelta(seconds=15)
         assert report.status == "processed"
+
+
+def test_legacy_runner_commits_enqueued_job_before_general_worker(
+    job_database_url: str,
+) -> None:
+    engine = create_engine(
+        job_database_url,
+        pool_pre_ping=True,
+        connect_args={"options": "-c lock_timeout=1000"},
+    )
+    session_factory = sessionmaker(
+        bind=engine,
+        autoflush=False,
+        expire_on_commit=False,
+    )
+    try:
+        with session_factory() as session:
+            workspace = WorkspaceRepository(session).create(
+                name="legacy-uncommitted-enqueue"
+            )
+            source = SourceRepository(session).create(
+                workspace_id=workspace.id,
+                source_type="markdown",
+                external_id="legacy-uncommitted-enqueue.md",
+                extra_metadata={"content": "# Transaction boundary"},
+            )
+            job = enqueue_source_ingestion(
+                session,
+                workspace_id=workspace.id,
+                source_id=source.id,
+                run_after=NOW,
+            )
+            job_id = job.id
+
+            report = run_next_ingestion_job(
+                session,
+                workspace_id=workspace.id,
+                worker_id="legacy-uncommitted-enqueue",
+                now=NOW,
+            )
+
+        assert report.status == "processed"
+        assert report.job_id == job_id
+        with session_factory() as session:
+            persisted_job = session.get(Job, job_id)
+            assert persisted_job is not None
+            assert persisted_job.status == "succeeded"
+    finally:
+        engine.dispose()
+
+
+def test_legacy_runner_refreshes_caller_state_after_general_worker(
+    job_session_factory: sessionmaker[Session],
+) -> None:
+    with job_session_factory() as session:
+        workspace = WorkspaceRepository(session).create(
+            name="legacy-worker-state-refresh"
+        )
+        source = SourceRepository(session).create(
+            workspace_id=workspace.id,
+            source_type="markdown",
+            external_id="legacy-worker-state-refresh.md",
+            extra_metadata={"content": "# Worker state refresh"},
+        )
+        job = enqueue_source_ingestion(
+            session,
+            workspace_id=workspace.id,
+            source_id=source.id,
+            run_after=NOW,
+        )
+        session.commit()
+        assert job.status == "queued"
+
+        report = run_next_ingestion_job(
+            session,
+            workspace_id=workspace.id,
+            worker_id="legacy-worker-state-refresh",
+            now=NOW,
+        )
+
+        assert report.status == "processed"
+        assert session.get(Job, job.id) is job
+        assert job.status == "succeeded"
 
 
 def test_ingestion_enqueue_uses_platform_idempotency_on_postgresql(
