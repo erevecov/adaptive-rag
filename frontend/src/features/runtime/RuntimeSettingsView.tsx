@@ -1966,16 +1966,31 @@ function providerModelSortPrice(model: ProviderModel): number {
   const pricing = model.pricing
   if (pricing === null) return Number.POSITIVE_INFINITY
 
-  for (const key of [
-    'input_per_million_tokens_usd',
-    'output_per_million_tokens_usd',
-    'output_thinking_per_million_tokens_usd',
-  ]) {
-    const value = pricing[key]
-    if (typeof value === 'number' && Number.isFinite(value)) return value
+  // Keep the first visible price dimension aligned with formatProviderModelPricing.
+  for (const key of PROVIDER_MODEL_PRICE_SORT_FIELDS) {
+    const value = sortableProviderPrice(pricing[key])
+    if (value !== null) return value
   }
 
   return Number.POSITIVE_INFINITY
+}
+
+const PROVIDER_MODEL_PRICE_SORT_FIELDS = [
+  'usd_per_image',
+  'input_per_10k_characters_usd',
+  'input_per_million_tokens_usd',
+  'output_per_million_tokens_usd',
+  'output_thinking_per_million_tokens_usd',
+] as const
+
+function sortableProviderPrice(value: unknown): number | null {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) && value >= 0 ? value : null
+  }
+  if (typeof value !== 'string' || value.trim().length === 0) return null
+
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
 
 export function RuntimeSlotList({

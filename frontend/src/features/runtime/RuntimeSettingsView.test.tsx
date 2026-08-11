@@ -924,6 +924,77 @@ describe('RuntimeSettingsPanel', () => {
     expect(models).toEqual(pricedProviderModels)
   })
 
+  test('sorts every visible provider price using formatter field priority', async () => {
+    const user = userEvent.setup()
+    const baseModel = pricedProviderModels[0]!
+    const models: ProviderModel[] = [
+      { ...baseModel, model_id: 'absent-price', pricing: null },
+      { ...baseModel, model_id: 'blank-price', pricing: { usd_per_image: ' ' } },
+      {
+        ...baseModel,
+        model_id: 'non-finite-price',
+        pricing: { input_per_10k_characters_usd: 'Infinity' },
+      },
+      {
+        ...baseModel,
+        model_id: 'malformed-price',
+        pricing: { input_per_million_tokens_usd: 'not-a-price' },
+      },
+      {
+        ...baseModel,
+        model_id: 'token-string-price',
+        pricing: {
+          input_per_million_tokens_usd: '0.07',
+          output_per_million_tokens_usd: '0.01',
+        },
+      },
+      {
+        ...baseModel,
+        model_id: 'character-price',
+        pricing: { input_per_10k_characters_usd: 0.2 },
+      },
+      { ...baseModel, model_id: 'image-price', pricing: { usd_per_image: 0.03 } },
+      {
+        ...baseModel,
+        model_id: 'multi-dimension-price',
+        pricing: {
+          usd_per_image: '0.5',
+          input_per_10k_characters_usd: 0.001,
+          input_per_million_tokens_usd: 0.0001,
+        },
+      },
+    ]
+    const originalModels = [...models]
+    render(<ProviderModelCatalogView providerModels={models} />)
+    const catalog = screen.getByRole('region', { name: 'Provider Model Catalog' })
+    const pricingSort = within(catalog).getByRole('button', { name: 'Pricing' })
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('image-price'),
+      expect.stringContaining('token-string-price'),
+      expect.stringContaining('character-price'),
+      expect.stringContaining('multi-dimension-price'),
+      expect.stringContaining('absent-price'),
+      expect.stringContaining('blank-price'),
+      expect.stringContaining('non-finite-price'),
+      expect.stringContaining('malformed-price'),
+    ])
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('absent-price'),
+      expect.stringContaining('blank-price'),
+      expect.stringContaining('non-finite-price'),
+      expect.stringContaining('malformed-price'),
+      expect.stringContaining('multi-dimension-price'),
+      expect.stringContaining('character-price'),
+      expect.stringContaining('token-string-price'),
+      expect.stringContaining('image-price'),
+    ])
+    expect(models).toEqual(originalModels)
+  })
+
   test('enables delete confirmation only for the exact connection id', async () => {
     const user = userEvent.setup()
     render(<StatefulDeleteRuntimePanel />)
