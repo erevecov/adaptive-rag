@@ -1,4 +1,4 @@
-import { isValidElement, type ReactNode, useMemo } from 'react'
+import { isValidElement, type ReactNode, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
@@ -107,12 +107,7 @@ export function MarkdownAnswer({
         )?.[1]
         return (
           <div className="mb-2 last:mb-0" data-slot="markdown-code-block">
-            <CodeStream
-              code={code}
-              copyLabel="Copy code"
-              language={language}
-              onCopy={copyCode}
-            />
+            <MarkdownCodeBlock code={code} language={language} />
           </div>
         )
       },
@@ -140,13 +135,51 @@ export function MarkdownAnswer({
   )
 }
 
-function copyCode(code: string): void | Promise<void> {
-  if (
+function MarkdownCodeBlock({
+  code,
+  language,
+}: {
+  code: string
+  language?: string
+}) {
+  const [copyResult, setCopyResult] = useState<'error' | 'success' | null>(null)
+  const clipboard =
     typeof navigator !== 'undefined' &&
     typeof navigator.clipboard?.writeText === 'function'
-  ) {
-    return navigator.clipboard.writeText(code)
+      ? navigator.clipboard
+      : null
+
+  async function copyCode(codeToCopy: string) {
+    if (clipboard === null) {
+      return
+    }
+
+    setCopyResult(null)
+    try {
+      await clipboard.writeText(codeToCopy)
+      setCopyResult('success')
+    } catch {
+      setCopyResult('error')
+    }
   }
+
+  return (
+    <>
+      <CodeStream
+        code={code}
+        copyLabel="Copy code"
+        language={language}
+        onCopy={clipboard === null ? undefined : copyCode}
+      />
+      {copyResult !== null ? (
+        <span aria-live="polite" className="sr-only" role="status">
+          {copyResult === 'success'
+            ? 'Code copied to clipboard.'
+            : 'Code could not be copied.'}
+        </span>
+      ) : null}
+    </>
+  )
 }
 
 /** `[doc-1]`, `[1]`, or `[uuid]` (chunk/source id). */

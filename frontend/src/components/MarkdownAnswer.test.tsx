@@ -11,6 +11,10 @@ import { MarkdownAnswer } from './MarkdownAnswer'
 
 afterEach(() => {
   cleanup()
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: undefined,
+  })
 })
 
 const citation = (chunkId: string, sourceId = 'source-1'): RetrievalResult => ({
@@ -65,6 +69,43 @@ describe('MarkdownAnswer', () => {
       }),
     )
     expect(writeText).toHaveBeenCalledWith('const answer = 42\nreturn answer')
+    expect((await screen.findByRole('status')).textContent).toBe(
+      'Code copied to clipboard.',
+    )
+  })
+
+  test('disables fenced-code copy when the Clipboard API is unavailable', () => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: undefined,
+    })
+
+    render(<MarkdownAnswer>{'```ts\nconst answer = 42\n```'}</MarkdownAnswer>)
+
+    const copyButton = screen.getByRole('button', { name: 'Copy code' })
+    expect((copyButton as HTMLButtonElement).disabled).toBe(true)
+    expect(screen.queryByRole('status')).toBeNull()
+  })
+
+  test('reports clipboard rejection without exposing error details', async () => {
+    const user = userEvent.setup()
+    const writeText = vi
+      .fn()
+      .mockRejectedValue(new Error('Denied Bearer sk-review-secret'))
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    render(<MarkdownAnswer>{'```ts\nconst answer = 42\n```'}</MarkdownAnswer>)
+
+    await user.click(screen.getByRole('button', { name: 'Copy code' }))
+
+    expect(writeText).toHaveBeenCalledWith('const answer = 42')
+    const status = await screen.findByRole('status')
+    expect(status.textContent).toBe('Code could not be copied.')
+    expect(status.textContent).not.toContain('sk-review-secret')
+    expect(document.body.textContent).not.toContain('sk-review-secret')
   })
 
   test.each([
