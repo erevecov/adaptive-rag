@@ -15,7 +15,7 @@ from adaptive_rag.api.dependencies import get_session
 from adaptive_rag.auth import hash_access_token
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import Source, User, Workspace, WorkspaceMembership
-from adaptive_rag.db.models.user import UserAccessToken
+from adaptive_rag.db.models.user import UserAccessToken, UserPasswordCredential
 from adaptive_rag.db.repositories import (
     UserRepository,
     WorkspaceMembershipRepository,
@@ -36,6 +36,7 @@ def _make_session() -> Session:
             Workspace.__table__,
             User.__table__,
             UserAccessToken.__table__,
+            UserPasswordCredential.__table__,
             WorkspaceMembership.__table__,
             Source.__table__,
         ],
@@ -60,27 +61,27 @@ def _bearer(raw_token: str) -> dict[str, str]:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
     system_role: str = "user",
 ) -> User:
     repo = UserRepository(session)
     user = repo.create_user(
-        login=login,
-        display_name=login,
+        email=email,
+        display_name=email,
         system_role=system_role,
     )
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
 
 def test_me_resolves_bearer_token_user() -> None:
     session = _make_session()
-    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    user = _create_user(session, email="viewer@example.com", token="viewer-token")
     session.commit()
     client = _client(session=session)
 
@@ -89,54 +90,47 @@ def test_me_resolves_bearer_token_user() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["id"] == str(user.id)
-    assert payload["login"] == "viewer@example.com"
+    assert payload["email"] == "viewer@example.com"
     assert payload["system_role"] == "user"
     assert payload["last_workspace_id"] is None
 
 
 def test_auth_required_when_users_exist() -> None:
     session = _make_session()
-    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(session, email="viewer@example.com", token="viewer-token")
     session.commit()
     client = _client(session=session)
 
     response = client.get("/auth/me")
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "authentication required"
+    assert response.json()["detail"]["code"] == "authentication_required"
 
 
-def test_bootstrap_can_create_first_superadmin() -> None:
+def test_empty_database_does_not_allow_implicit_superadmin_creation() -> None:
     session = _make_session()
     client = _client(session=session)
 
     response = client.post(
         "/admin/users",
         json={
-            "login": "root@example.com",
+            "email": "root@example.com",
             "display_name": "Root",
             "system_role": "superadmin",
             "access_token": "root-token",
         },
     )
 
-    assert response.status_code == 200
-    payload = response.json()
-    assert payload["login"] == "root@example.com"
-    assert payload["system_role"] == "superadmin"
-    root = UserRepository(session).get_by_login("root@example.com")
-    assert root is not None
-    assert (
-        UserRepository(session).get_user_by_token_hash(hash_access_token("root-token"))
-        == root
-    )
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "authentication_required"
+    assert UserRepository(session).get_by_email("root@example.com") is None
 
 
 def test_superadmin_creates_users_and_workspace_memberships() -> None:
     session = _make_session()
     root = _create_user(
         session,
-        login="root@example.com",
+        email="root@example.com",
         token="root-token",
         system_role="superadmin",
     )
@@ -148,23 +142,17 @@ def test_superadmin_creates_users_and_workspace_memberships() -> None:
         "/admin/users",
         headers=_bearer("root-token"),
         json={
-            "login": "admin@example.com",
+            "email": "admin@example.com",
             "display_name": "Admin",
             "system_role": "user",
-            "access_token": "admin-token",
+            "initial_workspace_id": str(workspace.id),
+            "initial_workspace_role": "admin",
         },
     )
-    admin_id = UUID(user_response.json()["id"])
-    membership_response = client.put(
-        f"/workspaces/{workspace.id}/memberships/{admin_id}",
-        headers=_bearer("root-token"),
-        json={"role": "admin"},
-    )
+    admin_id = UUID(user_response.json()["user"]["id"])
 
     assert root.system_role == "superadmin"
-    assert user_response.status_code == 200
-    assert membership_response.status_code == 200
-    assert membership_response.json()["role"] == "admin"
+    assert user_response.status_code == 201
     assert (
         WorkspaceMembershipRepository(session).get_membership(
             workspace_id=workspace.id,
@@ -177,8 +165,8 @@ def test_superadmin_creates_users_and_workspace_memberships() -> None:
 def test_workspace_admin_can_manage_workspace_users_but_viewer_cannot() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    admin = _create_user(session, login="admin@example.com", token="admin-token")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    admin = _create_user(session, email="admin@example.com", token="admin-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=admin.id,
@@ -206,14 +194,14 @@ def test_workspace_admin_can_manage_workspace_users_but_viewer_cannot() -> None:
     assert allowed.status_code == 200
     assert allowed.json()["role"] == "contributor"
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "workspace admin role required"
+    assert denied.json()["detail"]["code"] == "workspace_admin_required"
 
 
 def test_workspace_list_returns_only_membership_workspaces_for_non_superadmin() -> None:
     session = _make_session()
     allowed_workspace = WorkspaceRepository(session).create(name="Allowed")
     denied_workspace = WorkspaceRepository(session).create(name="Denied")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=allowed_workspace.id,
         user_id=viewer.id,
@@ -235,7 +223,7 @@ def test_workspace_list_returns_only_membership_workspaces_for_non_superadmin() 
     assert workspaces["Allowed"]["can_access"] is True
     assert workspaces["Allowed"]["access_role"] == "viewer"
     assert denied_detail.status_code == 403
-    assert denied_detail.json()["detail"] == "workspace access required"
+    assert denied_detail.json()["detail"]["code"] == "workspace_access_required"
 
 
 def test_superadmin_workspace_list_includes_all_workspaces() -> None:
@@ -244,7 +232,7 @@ def test_superadmin_workspace_list_includes_all_workspaces() -> None:
     WorkspaceRepository(session).create(name="Beta")
     _create_user(
         session,
-        login="root@example.com",
+        email="root@example.com",
         token="root-token",
         system_role="superadmin",
     )
@@ -264,7 +252,7 @@ def test_user_can_store_accessible_last_workspace_preference() -> None:
     session = _make_session()
     allowed_workspace = WorkspaceRepository(session).create(name="Allowed")
     denied_workspace = WorkspaceRepository(session).create(name="Denied")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=allowed_workspace.id,
         user_id=viewer.id,
@@ -294,7 +282,7 @@ def test_user_can_store_accessible_last_workspace_preference() -> None:
     assert allowed.json()["last_workspace_id"] == str(allowed_workspace.id)
     assert me.json()["last_workspace_id"] == str(allowed_workspace.id)
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "workspace access required"
+    assert denied.json()["detail"]["code"] == "workspace_access_required"
     assert cleared.status_code == 200
     assert cleared.json()["last_workspace_id"] is None
     session.refresh(viewer)
@@ -304,10 +292,10 @@ def test_user_can_store_accessible_last_workspace_preference() -> None:
 def test_source_create_requires_contributor_or_workspace_admin() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
-        login="contributor@example.com",
+        email="contributor@example.com",
         token="contributor-token",
     )
     WorkspaceMembershipRepository(session).upsert_membership(
@@ -343,7 +331,7 @@ def test_source_create_requires_contributor_or_workspace_admin() -> None:
     )
 
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "workspace contributor role required"
+    assert denied.json()["detail"]["code"] == "workspace_contributor_required"
     assert allowed.status_code == 200
     assert allowed.json()["external_id"] == "contributor.md"
 
@@ -351,7 +339,7 @@ def test_source_create_requires_contributor_or_workspace_admin() -> None:
 def test_missing_workspace_membership_returns_403_for_workspace_tools() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    outsider = _create_user(session, login="outsider@example.com", token="token")
+    outsider = _create_user(session, email="outsider@example.com", token="token")
     session.commit()
     client = _client(session=session)
 
@@ -362,24 +350,24 @@ def test_missing_workspace_membership_returns_403_for_workspace_tools() -> None:
 
     assert outsider.system_role == "user"
     assert response.status_code == 403
-    assert response.json()["detail"] == "workspace access required"
+    assert response.json()["detail"]["code"] == "workspace_access_required"
 
 
 def test_invalid_bearer_token_returns_401() -> None:
     session = _make_session()
-    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(session, email="viewer@example.com", token="viewer-token")
     session.commit()
     client = _client(session=session)
 
     response = client.get("/auth/me", headers=_bearer("wrong-token"))
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "invalid access token"
+    assert response.json()["detail"]["code"] == "invalid_access_token"
 
 
 def test_inactive_user_token_returns_inactive_user_error() -> None:
     session = _make_session()
-    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    user = _create_user(session, email="viewer@example.com", token="viewer-token")
     user.is_active = False
     session.commit()
     client = _client(session=session)
@@ -387,18 +375,18 @@ def test_inactive_user_token_returns_inactive_user_error() -> None:
     response = client.get("/auth/me", headers=_bearer("viewer-token"))
 
     assert response.status_code == 401
-    assert response.json()["detail"] == "inactive_user"
+    assert response.json()["detail"]["code"] == "invalid_access_token"
 
 
 def test_workspace_detail_returns_404_before_access_check_for_missing_workspace() -> (
     None
 ):
     session = _make_session()
-    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(session, email="viewer@example.com", token="viewer-token")
     session.commit()
     client = _client(session=session)
 
     response = client.get(f"/workspaces/{uuid4()}", headers=_bearer("viewer-token"))
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "workspace not found"
+    assert response.json()["detail"]["code"] == "workspace_not_found"

@@ -37,7 +37,7 @@ def _assert_integrity_error(session) -> None:
 
 def test_user_defaults_to_active_regular_user() -> None:
     session = _make_session()
-    user = User(login="viewer@example.com", display_name="Viewer")
+    user = User(email="viewer@example.com", display_name="Viewer")
 
     session.add(user)
     session.commit()
@@ -56,7 +56,7 @@ def test_user_rejects_unsupported_system_role() -> None:
     session = _make_session()
     session.add(
         User(
-            login="bad@example.com",
+            email="bad@example.com",
             display_name="Bad",
             system_role="owner",
         )
@@ -69,8 +69,8 @@ def test_user_login_is_unique() -> None:
     session = _make_session()
     session.add_all(
         [
-            User(login="same@example.com", display_name="First"),
-            User(login="same@example.com", display_name="Second"),
+            User(email="same@example.com", display_name="First"),
+            User(email="same@example.com", display_name="Second"),
         ]
     )
 
@@ -79,7 +79,7 @@ def test_user_login_is_unique() -> None:
 
 def test_user_access_token_stores_hash_not_plaintext() -> None:
     session = _make_session()
-    user = User(login="token@example.com", display_name="Token User")
+    user = User(email="token@example.com", display_name="Token User")
     session.add(user)
     session.flush()
     token = UserAccessToken(
@@ -104,7 +104,7 @@ def test_user_access_token_stores_hash_not_plaintext() -> None:
 def test_workspace_membership_persists_single_role_per_workspace_user() -> None:
     session = _make_session()
     workspace = Workspace(name="demo")
-    user = User(login="admin@example.com", display_name="Admin")
+    user = User(email="admin@example.com", display_name="Admin")
     session.add_all([workspace, user])
     session.flush()
     membership = WorkspaceMembership(
@@ -132,7 +132,7 @@ def test_workspace_membership_persists_single_role_per_workspace_user() -> None:
 def test_workspace_membership_rejects_unsupported_role() -> None:
     session = _make_session()
     workspace = Workspace(name="demo")
-    user = User(login="bad-role@example.com", display_name="Bad Role")
+    user = User(email="bad-role@example.com", display_name="Bad Role")
     session.add_all([workspace, user])
     session.flush()
     session.add(

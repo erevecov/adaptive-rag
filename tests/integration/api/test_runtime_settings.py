@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -56,6 +57,7 @@ def _client(*, session: Session) -> TestClient:
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     return TestClient(app)
 
 
@@ -87,20 +89,20 @@ def _bearer(raw_token: str) -> dict[str, str]:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
     system_role: str = "user",
 ) -> User:
     repo = UserRepository(session)
     user = repo.create_user(
-        login=login,
-        display_name=login,
+        email=email,
+        display_name=email,
         system_role=system_role,
     )
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -117,10 +119,10 @@ def test_global_runtime_settings_require_superadmin_when_users_exist() -> None:
             metadata_json=None,
         )
     )
-    _create_user(session, login="viewer@example.com", token="viewer-token")
+    _create_user(session, email="viewer@example.com", token="viewer-token")
     _create_user(
         session,
-        login="root@example.com",
+        email="root@example.com",
         token="root-token",
         system_role="superadmin",
     )
@@ -141,7 +143,7 @@ def test_global_runtime_settings_require_superadmin_when_users_exist() -> None:
 
     assert unauthenticated.status_code == 401
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "superadmin role required"
+    assert denied.json()["detail"]["code"] == "superadmin_required"
     assert allowed.status_code == 200
 
 

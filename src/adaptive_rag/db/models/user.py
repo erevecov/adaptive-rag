@@ -6,10 +6,12 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import (
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
+    String,
     UniqueConstraint,
     func,
 )
@@ -31,11 +33,11 @@ class User(Base):
             "system_role IN ('superadmin', 'user')",
             name="users_system_role_check",
         ),
-        UniqueConstraint("login", name="uq_users_login"),
+        UniqueConstraint("email", name="uq_users_email"),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
-    login: Mapped[str] = mapped_column(nullable=False)
+    email: Mapped[str] = mapped_column(String(), nullable=False)
     display_name: Mapped[str] = mapped_column(nullable=False)
     system_role: Mapped[str] = mapped_column(
         nullable=False, default="user", server_default="user"
@@ -94,6 +96,98 @@ class UserAccessToken(Base):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False,
+    )
+
+
+class UserPasswordCredential(Base):
+    """One-to-one local password credential for a human user."""
+
+    __tablename__ = "user_password_credentials"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), primary_key=True
+    )
+    password_hash: Mapped[str] = mapped_column(String(512), nullable=False)
+    must_change_password: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+    )
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class UserSession(Base):
+    """Hash-only server-side session for browser authentication."""
+
+    __tablename__ = "user_sessions"
+    __table_args__ = (
+        UniqueConstraint("token_hash", name="uq_user_sessions_token_hash"),
+        Index("ix_user_sessions_user_revoked", "user_id", "revoked_at"),
+        Index("ix_user_sessions_expires_at", "expires_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    token_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    csrf_token_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False
+    )
+    revoked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=utc_now,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
+
+
+class LoginAttempt(Base):
+    """Privacy-preserving durable login throttling input."""
+
+    __tablename__ = "login_attempts"
+    __table_args__ = (
+        Index("ix_login_attempts_email_attempted", "email_hash", "attempted_at"),
+        Index("ix_login_attempts_ip_attempted", "ip_hash", "attempted_at"),
+        Index("ix_login_attempts_attempted_at", "attempted_at"),
+    )
+
+    id: Mapped[UUID] = mapped_column(primary_key=True, default=uuid4)
+    email_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    ip_hash: Mapped[str] = mapped_column(String(80), nullable=False)
+    succeeded: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    attempted_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, nullable=False
     )
 
 

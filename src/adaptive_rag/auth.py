@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from dataclasses import dataclass
+from typing import Literal
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -28,14 +29,18 @@ class CurrentPrincipal:
 
     user: User | None
     is_bootstrap: bool = False
+    auth_method: Literal["session", "bearer", "bootstrap"] = "bearer"
+    session_id: UUID | None = None
+    csrf_token_hash: str | None = None
+    must_change_password: bool = False
 
     @property
     def user_id(self) -> UUID | None:
         return None if self.user is None else self.user.id
 
     @property
-    def login(self) -> str:
-        return "bootstrap" if self.user is None else self.user.login
+    def email(self) -> str:
+        return "bootstrap" if self.user is None else self.user.email
 
     @property
     def display_name(self) -> str:

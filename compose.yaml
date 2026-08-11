@@ -29,6 +29,8 @@ services:
     environment:
       ADAPTIVE_RAG_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
       ADAPTIVE_RAG_JOB_DATABASE_URL: postgresql+psycopg://adaptive_rag:adaptive_rag@postgres:5432/adaptive_rag
+      # Compose reads this interpolation value from the local .env file.
+      ADAPTIVE_RAG_BOOTSTRAP_SECRET: ${ADAPTIVE_RAG_BOOTSTRAP_SECRET:-}
     command: ["uvicorn", "adaptive_rag.api.app:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
     ports:
       - "8000:8000"

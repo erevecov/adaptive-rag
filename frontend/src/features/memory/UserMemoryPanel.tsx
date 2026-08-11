@@ -1,6 +1,7 @@
 import {
   type FormEvent,
   type KeyboardEvent,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -109,13 +110,13 @@ export function UserMemoryPanel({ apiClient, workspaceId }: UserMemoryPanelProps
     return () => window.clearTimeout(timer)
   }, [filterSwitchNotice])
 
-  function dismissUndoBanner(memoryId: string) {
+  const dismissUndoBanner = useCallback((memoryId: string) => {
     setUndoRemoveId(null)
     setFilterSwitchNotice(null)
     requestAnimationFrame(() => {
       focusAfterUndoBannerClear(memoryId, draftFieldId)
     })
-  }
+  }, [draftFieldId])
 
   useEffect(() => {
     if (undoRemoveId === null) {
@@ -140,7 +141,7 @@ export function UserMemoryPanel({ apiClient, workspaceId }: UserMemoryPanelProps
       window.clearTimeout(timer)
       window.removeEventListener('keydown', onKeyDown)
     }
-  }, [confirmRemoveId, undoRemoveId])
+  }, [confirmRemoveId, dismissUndoBanner, undoRemoveId])
 
   useEffect(() => {
     if (confirmRemoveId === null) {

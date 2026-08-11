@@ -15,14 +15,16 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
 
 import { installPointerEventMocks } from './test/pointerEvents'
 import { chooseRadixSelectOption } from './test/radixSelect'
-import App from './App'
+import Application from './App'
 import type {
+  AdminUser,
   ApiClient,
   ChatObservabilitySummary,
   ChatResponseBody,
   ChatSessionDetailResponse,
   ChatSessionListResponse,
   ChatStreamHandlers,
+  CurrentUser,
   IngestionJob,
   IngestionJobListResponse,
   IngestionRunResponse,
@@ -30,8 +32,6 @@ import type {
   KnowledgeProposal,
   KnowledgeProposalListResponse,
   Workspace,
-  WorkspaceMembership,
-  WorkspaceMembershipListResponse,
   WorkspaceRuntimeSettings,
   ProviderConnectionListResponse,
   ProviderModelListResponse,
@@ -39,12 +39,28 @@ import type {
   WorkspaceListResponse,
   Source,
   SourceListResponse,
-  User,
-  UserListResponse,
 } from './lib/apiClient'
 import { ApiClientError } from './lib/apiClient'
 
 const workspaceId = '11111111-1111-4111-8111-111111111111'
+
+const defaultTestCurrentUser: CurrentUser = {
+  display_name: 'Test Superadmin',
+  email: 'superadmin@example.com',
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  last_workspace_id: null,
+  must_change_password: false,
+  system_role: 'superadmin',
+}
+
+function App(props: Parameters<typeof Application>[0]) {
+  return (
+    <Application
+      {...props}
+      initialCurrentUser={props.initialCurrentUser ?? defaultTestCurrentUser}
+    />
+  )
+}
 
 type NodeFsModule = {
   readFileSync(path: string, encoding: 'utf8'): string
@@ -184,6 +200,7 @@ function createClientStub(options: Partial<ApiClient> & {
   createProviderConnection?: ApiClient['createProviderConnection']
   createSource?: ApiClient['createSource']
   createUser?: ApiClient['createUser']
+  addWorkspaceMember?: ApiClient['addWorkspaceMember']
   deactivateUser?: ApiClient['deactivateUser']
   deleteWorkspace?: ApiClient['deleteWorkspace']
   deleteWorkspaceMembership?: ApiClient['deleteWorkspaceMembership']
@@ -202,6 +219,7 @@ function createClientStub(options: Partial<ApiClient> & {
   listIngestionJobs?: ApiClient['listIngestionJobs']
   listKnowledgeProposals?: ApiClient['listKnowledgeProposals']
   listWorkspaceMemberships?: ApiClient['listWorkspaceMemberships']
+  listWorkspaceMembers?: ApiClient['listWorkspaceMembers']
   listProviderConnections?: ApiClient['listProviderConnections']
   listProviderModels?: ApiClient['listProviderModels']
   listWorkspaces?: ApiClient['listWorkspaces']
@@ -218,6 +236,8 @@ function createClientStub(options: Partial<ApiClient> & {
   updateChatRetrievalSettings?: ApiClient['updateChatRetrievalSettings']
   updateCurrentUserPreferences?: ApiClient['updateCurrentUserPreferences']
   updateWorkspace?: ApiClient['updateWorkspace']
+  updateUser?: ApiClient['updateUser']
+  updateWorkspaceMember?: ApiClient['updateWorkspaceMember']
   updateSource?: ApiClient['updateSource']
   refineKnowledgeProposal?: ApiClient['refineKnowledgeProposal']
   approveKnowledgeProposal?: ApiClient['approveKnowledgeProposal']
@@ -238,6 +258,10 @@ function createClientStub(options: Partial<ApiClient> & {
   deleteProviderConnection?: ApiClient['deleteProviderConnection']
   deleteWorkspaceChatRetrievalSettings?: ApiClient['deleteWorkspaceChatRetrievalSettings']
   deleteWorkspaceRuntimeSlotOverride?: ApiClient['deleteWorkspaceRuntimeSlotOverride']
+  removeWorkspaceMember?: ApiClient['removeWorkspaceMember']
+  resetUserPassword?: ApiClient['resetUserPassword']
+  reactivateUser?: ApiClient['reactivateUser']
+  suspendUser?: ApiClient['suspendUser']
   syncProviderModels?: ApiClient['syncProviderModels']
 }): ApiClient {
   return {
@@ -256,6 +280,7 @@ function createClientStub(options: Partial<ApiClient> & {
     createProviderConnection: options.createProviderConnection ?? vi.fn(),
     createSource: options.createSource ?? vi.fn(),
     createUser: options.createUser ?? vi.fn(),
+    addWorkspaceMember: options.addWorkspaceMember ?? vi.fn(),
     deactivateUser: options.deactivateUser ?? vi.fn(),
     deleteWorkspace: options.deleteWorkspace ?? vi.fn(),
     deleteWorkspaceMembership: options.deleteWorkspaceMembership ?? vi.fn(),
@@ -305,11 +330,32 @@ function createClientStub(options: Partial<ApiClient> & {
       vi.fn(async () => ({
         display_name: 'Bootstrap Superadmin',
         id: null,
-        is_bootstrap: true,
+        must_change_password: false,
         last_workspace_id: null,
-        login: 'bootstrap',
+        email: 'bootstrap',
         system_role: 'superadmin',
       })),
+    login:
+      options.login ??
+      vi.fn(async () => ({
+        display_name: 'Test User',
+        email: 'test@example.com',
+        id: '11111111-1111-4111-8111-111111111111',
+        last_workspace_id: null,
+        must_change_password: false,
+        system_role: 'user',
+      })),
+    changePassword:
+      options.changePassword ??
+      vi.fn(async () => ({
+        display_name: 'Test User',
+        email: 'test@example.com',
+        id: '11111111-1111-4111-8111-111111111111',
+        last_workspace_id: null,
+        must_change_password: false,
+        system_role: 'user',
+      })),
+    logout: options.logout ?? vi.fn(async () => undefined),
     getChatObservabilitySummary:
       options.getChatObservabilitySummary ?? vi.fn(),
     getChatSession: options.getChatSession ?? vi.fn(async () => emptySessionDetail),
@@ -332,6 +378,8 @@ function createClientStub(options: Partial<ApiClient> & {
     listIngestionJobs: options.listIngestionJobs ?? vi.fn(),
     listKnowledgeProposals: options.listKnowledgeProposals ?? vi.fn(),
     listWorkspaceMemberships: options.listWorkspaceMemberships ?? vi.fn(),
+    listWorkspaceMembers:
+      options.listWorkspaceMembers ?? vi.fn(async () => ({ items: [] })),
     listProviderConnections:
       options.listProviderConnections ?? vi.fn(async () => ({ items: [] })),
     listProviderModels: options.listProviderModels ?? vi.fn(),
@@ -339,7 +387,7 @@ function createClientStub(options: Partial<ApiClient> & {
       options.listWorkspaces ?? vi.fn(async () => ({ items: [] })),
     listRuntimeSlotDefaults: options.listRuntimeSlotDefaults ?? vi.fn(),
     listSources: options.listSources ?? vi.fn(),
-    listUsers: options.listUsers ?? vi.fn(),
+    listUsers: options.listUsers ?? vi.fn(async () => ({ items: [] })),
     listUserMemories:
       options.listUserMemories ?? vi.fn(async () => ({ items: [] })),
     proposeUserMemory: options.proposeUserMemory ?? vi.fn(),
@@ -361,12 +409,14 @@ function createClientStub(options: Partial<ApiClient> & {
       vi.fn(async () => ({
         display_name: 'Bootstrap Superadmin',
         id: null,
-        is_bootstrap: true,
+        must_change_password: false,
         last_workspace_id: null,
-        login: 'bootstrap',
+        email: 'bootstrap',
         system_role: 'superadmin',
     })),
     updateWorkspace: options.updateWorkspace ?? vi.fn(),
+    updateUser: options.updateUser ?? vi.fn(),
+    updateWorkspaceMember: options.updateWorkspaceMember ?? vi.fn(),
     updateSource: options.updateSource ?? vi.fn(),
     upsertChatModel: options.upsertChatModel ?? vi.fn(),
     upsertWorkspaceChatRetrievalSettings:
@@ -387,6 +437,9 @@ function createClientStub(options: Partial<ApiClient> & {
     deleteProviderConnection: options.deleteProviderConnection ?? vi.fn(),
     deleteProviderSecret: vi.fn(),
     deleteRuntimeSlotDefault: vi.fn(),
+    removeWorkspaceMember: options.removeWorkspaceMember ?? vi.fn(),
+    resetUserPassword: options.resetUserPassword ?? vi.fn(),
+    reactivateUser: options.reactivateUser ?? vi.fn(),
     revokeAccessToken: options.revokeAccessToken ?? vi.fn(),
     setDefaultChatModel: vi.fn(),
     setDefaultWorkspaceChatModel: vi.fn(),
@@ -397,6 +450,7 @@ function createClientStub(options: Partial<ApiClient> & {
         items: [],
         synced_count: 0,
       })),
+    suspendUser: options.suspendUser ?? vi.fn(),
   }
 }
 
@@ -503,32 +557,17 @@ const workspaceListResponse: WorkspaceListResponse = {
   items: [workspaceSummary],
 }
 
-const viewerUser: User = {
+const viewerUser: AdminUser = {
   created_at: '2026-06-22T00:00:00Z',
   display_name: 'Viewer User',
   id: '44444444-4444-4444-8444-444444444444',
   is_active: true,
   last_workspace_id: null,
-  login: 'viewer@example.com',
+  memberships: [],
+  must_change_password: true,
+  email: 'viewer@example.com',
   system_role: 'user',
   updated_at: '2026-06-22T00:00:00Z',
-}
-
-const userListResponse: UserListResponse = {
-  items: [viewerUser],
-}
-
-const viewerMembership: WorkspaceMembership = {
-  created_at: '2026-06-22T00:00:00Z',
-  id: '55555555-5555-4555-8555-555555555555',
-  workspace_id: workspaceId,
-  role: 'viewer',
-  updated_at: '2026-06-22T00:00:00Z',
-  user_id: viewerUser.id,
-}
-
-const membershipListResponse: WorkspaceMembershipListResponse = {
-  items: [viewerMembership],
 }
 
 const pendingKnowledgeProposal: KnowledgeProposal = {
@@ -949,7 +988,7 @@ async function openSettingsSubmodule(
   moduleName: 'Authoring' | 'Background Jobs' | 'Observability' | 'Runtime',
   submoduleName: string,
 ) {
-  await user.click(screen.getByRole('button', { name: 'Settings' }))
+  await user.click(await screen.findByRole('button', { name: 'Settings' }))
   const settingsNavigation = screen.getByRole('navigation', {
     name: 'Settings Navigation',
   })
@@ -1119,7 +1158,14 @@ describe('App chat workspace', () => {
 
     expect(within(settingsNavigation).getByRole('button', { name: 'Authoring' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Workspaces' })).toBeTruthy()
-    expect(within(settingsNavigation).getByRole('button', { name: 'Users' })).toBeTruthy()
+    expect(
+      within(settingsNavigation).getByRole('button', { name: 'Global users' }),
+    ).toBeTruthy()
+    expect(
+      within(settingsNavigation).getByRole('button', {
+        name: 'Workspace members',
+      }),
+    ).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Knowledge' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Sources' })).toBeTruthy()
     expect(within(settingsNavigation).getByRole('button', { name: 'Observability' })).toBeTruthy()
@@ -1139,17 +1185,33 @@ describe('App chat workspace', () => {
 
   test('shows workspace job sections but hides global controls from regular users', async () => {
     const user = userEvent.setup()
+    const workspaceReader: CurrentUser = {
+      display_name: 'Workspace Reader',
+      id: 'user-1',
+      must_change_password: false,
+      last_workspace_id: null,
+      email: 'reader@example.com',
+      system_role: 'user',
+    }
     const client = createClientStub({
-      getCurrentUser: vi.fn(async () => ({
-        display_name: 'Workspace Reader',
-        id: 'user-1',
-        is_bootstrap: false,
-        last_workspace_id: null,
-        login: 'reader',
-        system_role: 'user',
+      getCurrentUser: vi.fn(async () => workspaceReader),
+      listWorkspaces: vi.fn(async () => ({
+        items: [
+          {
+            ...workspaceSummary,
+            access_role: 'admin',
+            can_access: true,
+          },
+        ],
       })),
     })
-    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+    render(
+      <App
+        apiClient={client}
+        initialCurrentUser={workspaceReader}
+        initialWorkspaceId={workspaceId}
+      />,
+    )
 
     await openSettingsSubmodule(user, 'Background Jobs', 'Schedules')
 
@@ -1180,19 +1242,35 @@ describe('App chat workspace', () => {
   test('normalizes an unauthorized global job route without a global request', async () => {
     window.history.replaceState(null, '', '/settings/jobs/workers')
     const listJobWorkers = vi.fn()
+    const workspaceReader: CurrentUser = {
+      display_name: 'Workspace Reader',
+      id: 'user-1',
+      must_change_password: false,
+      last_workspace_id: null,
+      email: 'reader@example.com',
+      system_role: 'user',
+    }
     const client = createClientStub({
-      getCurrentUser: vi.fn(async () => ({
-        display_name: 'Workspace Reader',
-        id: 'user-1',
-        is_bootstrap: false,
-        last_workspace_id: null,
-        login: 'reader',
-        system_role: 'user',
-      })),
+      getCurrentUser: vi.fn(async () => workspaceReader),
       listJobWorkers,
+      listWorkspaces: vi.fn(async () => ({
+        items: [
+          {
+            ...workspaceSummary,
+            access_role: 'admin',
+            can_access: true,
+          },
+        ],
+      })),
     })
 
-    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+    render(
+      <App
+        apiClient={client}
+        initialCurrentUser={workspaceReader}
+        initialWorkspaceId={workspaceId}
+      />,
+    )
 
     await waitFor(() =>
       expect(window.location.pathname).toBe('/settings/jobs/jobs'),
@@ -1200,13 +1278,135 @@ describe('App chat workspace', () => {
     expect(listJobWorkers).not.toHaveBeenCalled()
   })
 
+  test('viewer navigation is limited to RAG chat and account', async () => {
+    const viewer: CurrentUser = {
+      display_name: 'Viewer',
+      email: 'viewer@example.com',
+      id: 'viewer-1',
+      last_workspace_id: workspaceId,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    render(
+      <App
+        apiClient={createClientStub({
+          listWorkspaces: vi.fn(async () => ({
+            items: [
+              {
+                ...workspaceSummary,
+                access_role: 'viewer',
+                can_access: true,
+              },
+            ],
+          })),
+        })}
+        initialCurrentUser={viewer}
+        initialWorkspaceId={workspaceId}
+      />,
+    )
+
+    await screen.findByRole('button', { name: /Workspace selector: Demo/ })
+    const navigation = screen.getByRole('navigation', {
+      name: 'Primary Navigation',
+    })
+    expect(within(navigation).getByRole('button', { name: 'Chat' })).toBeTruthy()
+    expect(
+      within(navigation).getByRole('button', { name: 'My Account' }),
+    ).toBeTruthy()
+    expect(within(navigation).queryByRole('button', { name: 'Settings' })).toBeNull()
+  })
+
+  test('contributor sees knowledge surfaces but no admin modules', async () => {
+    const user = userEvent.setup()
+    const contributor: CurrentUser = {
+      display_name: 'Contributor',
+      email: 'contributor@example.com',
+      id: 'contributor-1',
+      last_workspace_id: workspaceId,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    render(
+      <App
+        apiClient={createClientStub({
+          listWorkspaces: vi.fn(async () => ({
+            items: [
+              {
+                ...workspaceSummary,
+                access_role: 'contributor',
+                can_access: true,
+              },
+            ],
+          })),
+        })}
+        initialCurrentUser={contributor}
+        initialWorkspaceId={workspaceId}
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const navigation = screen.getByRole('navigation', {
+      name: 'Settings Navigation',
+    })
+    expect(within(navigation).getByRole('button', { name: 'Knowledge' })).toBeTruthy()
+    expect(within(navigation).getByRole('button', { name: 'Sources' })).toBeTruthy()
+    expect(within(navigation).queryByRole('button', { name: 'Workspaces' })).toBeNull()
+    expect(
+      within(navigation).queryByRole('button', { name: 'Workspace members' }),
+    ).toBeNull()
+    expect(within(navigation).queryByRole('button', { name: 'Runtime' })).toBeNull()
+    expect(
+      within(navigation).queryByRole('button', { name: 'Background Jobs' }),
+    ).toBeNull()
+  })
+
+  test('workspace admin sees members but not global users', async () => {
+    const user = userEvent.setup()
+    const admin: CurrentUser = {
+      display_name: 'Admin',
+      email: 'admin@example.com',
+      id: 'admin-1',
+      last_workspace_id: workspaceId,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    render(
+      <App
+        apiClient={createClientStub({
+          listWorkspaces: vi.fn(async () => ({
+            items: [
+              {
+                ...workspaceSummary,
+                access_role: 'admin',
+                can_access: true,
+              },
+            ],
+          })),
+        })}
+        initialCurrentUser={admin}
+        initialWorkspaceId={workspaceId}
+      />,
+    )
+
+    await user.click(await screen.findByRole('button', { name: 'Settings' }))
+    const navigation = screen.getByRole('navigation', {
+      name: 'Settings Navigation',
+    })
+    expect(
+      within(navigation).getByRole('button', { name: 'Workspace members' }),
+    ).toBeTruthy()
+    expect(
+      within(navigation).queryByRole('button', { name: 'Global users' }),
+    ).toBeNull()
+  })
+
   test('routes settings sidebar submodules to focused content', async () => {
     const user = userEvent.setup()
 
     render(<App apiClient={createClientStub({})} initialWorkspaceId={workspaceId} />)
 
-    await openSettingsSubmodule(user, 'Authoring', 'Users')
-    expect(screen.getByRole('heading', { name: 'Users' })).toBeTruthy()
+    await openSettingsSubmodule(user, 'Authoring', 'Global users')
+    expect(screen.getByRole('heading', { name: 'Global users' })).toBeTruthy()
     expect(screen.queryByRole('heading', { name: 'Content Registry' })).toBeNull()
 
     await openSettingsSubmodule(user, 'Authoring', 'Sources')
@@ -1483,9 +1683,9 @@ describe('App chat workspace', () => {
     const updateCurrentUserPreferences = vi.fn(async () => ({
       display_name: 'Viewer',
       id: '22222222-2222-4222-8222-222222222222',
-      is_bootstrap: false,
+      must_change_password: false,
       last_workspace_id: workspaceId,
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
       system_role: 'user',
     }))
     const client = createClientStub({
@@ -1696,20 +1896,21 @@ describe('App chat workspace', () => {
   })
 
   test('hydrates the last sidebar workspace from the authenticated account', async () => {
-    const getCurrentUser = vi.fn(async () => ({
+    const hydratedCurrentUser: CurrentUser = {
       display_name: 'Viewer',
       id: '22222222-2222-4222-8222-222222222222',
-      is_bootstrap: false,
+      must_change_password: false,
       last_workspace_id: workspaceId,
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
       system_role: 'user',
-    }))
+    }
+    const getCurrentUser = vi.fn(async () => hydratedCurrentUser)
     const updateCurrentUserPreferences = vi.fn(async () => ({
       display_name: 'Viewer',
       id: '22222222-2222-4222-8222-222222222222',
-      is_bootstrap: false,
+      must_change_password: false,
       last_workspace_id: workspaceId,
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
       system_role: 'user',
     }))
     const client = createClientStub({
@@ -1718,7 +1919,9 @@ describe('App chat workspace', () => {
       updateCurrentUserPreferences,
     })
 
-    render(<App apiClient={client} />)
+    render(
+      <App apiClient={client} initialCurrentUser={hydratedCurrentUser} />,
+    )
 
     expect(
       await screen.findByRole('button', { name: /Workspace selector: Demo/ }),
@@ -2050,53 +2253,50 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('Approved')).toBeTruthy()
   })
 
-  test('creates users and assigns workspace membership from authoring', async () => {
+  test('creates a human user and reveals the one-time password from authoring', async () => {
     const user = userEvent.setup()
-    const createUser = vi.fn(async () => viewerUser)
-    const upsertWorkspaceMembership = vi.fn(async () => viewerMembership)
+    const createdUser = {
+      ...viewerUser,
+      memberships: [
+        {
+          role: 'viewer' as const,
+          workspace_id: workspaceId,
+          workspace_name: workspaceSummary.name,
+        },
+      ],
+    }
+    const createUser = vi.fn(async () => ({
+      temporary_password: 'temporary-human-password',
+      user: createdUser,
+    }))
 
     render(
       <App
         apiClient={createClientStub({
           createUser,
-          listWorkspaceMemberships: vi.fn(async () => membershipListResponse),
-          listUsers: vi.fn(async () => userListResponse),
-          upsertWorkspaceMembership,
+          listUsers: vi.fn(async () => ({ items: [] })),
+          listWorkspaces: vi.fn(async () => workspaceListResponse),
         })}
         initialWorkspaceId={workspaceId}
       />,
     )
 
-    await openSettingsSubmodule(user, 'Authoring', 'Users')
-    await user.type(screen.getByLabelText('User Login'), viewerUser.login)
-    await user.type(screen.getByLabelText('Display Name'), viewerUser.display_name)
-    await user.type(screen.getByLabelText('Access Token'), 'viewer-token')
-    await user.click(screen.getByRole('button', { name: 'Create User' }))
+    await openSettingsSubmodule(user, 'Authoring', 'Global users')
+    await user.type(screen.getByLabelText('Email'), viewerUser.email)
+    await user.type(screen.getByLabelText('Display name'), viewerUser.display_name)
+    await user.click(screen.getByRole('button', { name: 'Create user' }))
 
     await waitFor(() =>
       expect(createUser).toHaveBeenCalledWith({
-        access_token: 'viewer-token',
         display_name: viewerUser.display_name,
-        login: viewerUser.login,
+        email: viewerUser.email,
+        initial_workspace_id: workspaceId,
+        initial_workspace_role: 'viewer',
         system_role: 'user',
       }),
     )
-
-    await user.type(screen.getByLabelText('Member User ID'), viewerUser.id)
-    await chooseRadixSelectOption(
-      user,
-      screen.getByLabelText('Workspace Role'),
-      'Admin',
-    )
-    await user.click(screen.getByRole('button', { name: 'Save Membership' }))
-
-    await waitFor(() =>
-      expect(upsertWorkspaceMembership).toHaveBeenCalledWith(
-        workspaceId,
-        viewerUser.id,
-        { role: 'admin' },
-      ),
-    )
+    expect(screen.getByDisplayValue('temporary-human-password')).toBeTruthy()
+    expect(screen.queryByLabelText(/access token/i)).toBeNull()
   })
 
   test('reviews pending knowledge proposals from authoring', async () => {

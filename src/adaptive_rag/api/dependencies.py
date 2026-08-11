@@ -2,35 +2,37 @@
 
 from __future__ import annotations
 
+import hmac
 from collections.abc import Callable, Iterator, Sequence
+from datetime import timedelta
 from inspect import Parameter, signature
 from typing import Annotated, Any, cast
 from uuid import UUID
 
-from fastapi import Depends, Header, HTTPException
+from fastapi import Depends, Header, HTTPException, Request
 from fastapi.params import Depends as DependsMarker
 from sqlalchemy import Connection
-from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from adaptive_rag.api.errors import raise_api_error
 from adaptive_rag.auth import (
     CurrentPrincipal,
     get_workspace_role,
     hash_access_token,
     role_meets,
-    users_exist,
 )
 from adaptive_rag.chat import ChatRunner, ChatService, SqlAlchemyChatAuditWriter
 from adaptive_rag.chat.attachments import ChatAttachmentContext
 from adaptive_rag.chat.knowledge import SqlAlchemyKnowledgeProposalSubmitter
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.models import Workspace
+from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.db.repositories import (
     ChatAuditRepository,
     ProviderUsageRepository,
     WorkspaceRepository,
 )
-from adaptive_rag.db.repositories.users import UserRepository
+from adaptive_rag.db.repositories.users import HumanAuthRepository, UserRepository
 from adaptive_rag.db.session import create_session_factory, session_scope
 from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever, get_graph_store
@@ -56,6 +58,13 @@ from adaptive_rag.retrieval.providers import (
     get_default_dense_embedding_provider,
     get_default_sparse_embedding_provider,
 )
+from adaptive_rag.security.human_auth import hash_opaque_secret
+
+SESSION_COOKIE_NAME = "adaptive_rag_session"
+SAFE_HTTP_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+PASSWORD_CHANGE_PATHS = frozenset(
+    {"/auth/me", "/auth/csrf", "/auth/change-password", "/auth/logout"}
+)
 
 RerankProviderFactory = Callable[[], RerankProvider]
 SparseEmbeddingProviderFactory = Callable[[], SparseEmbeddingProvider]
@@ -75,34 +84,61 @@ def get_job_registry(
 
 
 def get_current_user(
+    request: Request,
     session: Annotated[Session, Depends(get_session)],
     authorization: Annotated[str | None, Header()] = None,
 ) -> CurrentPrincipal:
+    raw_session_token = request.cookies.get(SESSION_COOKIE_NAME)
+    if raw_session_token:
+        settings = get_settings()
+        auth_repo = HumanAuthRepository(session)
+        human_session = auth_repo.get_active_session(
+            token_hash=hash_opaque_secret(raw_session_token),
+            now=utc_now(),
+            idle_timeout=timedelta(hours=settings.auth_session_idle_hours),
+        )
+        if human_session is None:
+            session.commit()
+            raise_api_error(401, "authentication_required")
+        user = UserRepository(session).get_user(human_session.user_id)
+        if user is None:
+            raise_api_error(401, "authentication_required")
+        credential = auth_repo.get_credential(user.id)
+        current = CurrentPrincipal(
+            user=user,
+            auth_method="session",
+            session_id=human_session.id,
+            csrf_token_hash=human_session.csrf_token_hash,
+            must_change_password=(
+                credential.must_change_password if credential is not None else False
+            ),
+        )
+        _enforce_cookie_request_security(request, current)
+        session.commit()
+        if (
+            current.must_change_password
+            and request.url.path not in PASSWORD_CHANGE_PATHS
+        ):
+            raise_api_error(403, "password_change_required")
+        return current
+
     if authorization is None or authorization.strip() == "":
-        try:
-            empty_user_table = not users_exist(session)
-        except OperationalError:
-            # Fail closed: never grant bootstrap superadmin on DB blips.
-            raise HTTPException(
-                status_code=503,
-                detail="authentication unavailable",
-            ) from None
-        if empty_user_table:
-            return CurrentPrincipal(user=None, is_bootstrap=True)
-        raise HTTPException(status_code=401, detail="authentication required")
+        raise_api_error(401, "authentication_required")
 
     raw_token = _parse_bearer_token(authorization)
     user = UserRepository(session).get_user_by_token_hash(hash_access_token(raw_token))
-    if user is None:
-        raise HTTPException(status_code=401, detail="invalid access token")
-    if not user.is_active:
-        raise HTTPException(status_code=401, detail="inactive_user")
-    return CurrentPrincipal(user=user)
+    if user is None or not user.is_active:
+        raise_api_error(401, "invalid_access_token")
+    return CurrentPrincipal(
+        user=user,
+        auth_method="bearer",
+        must_change_password=False,
+    )
 
 
 def require_superadmin(current: CurrentPrincipal) -> None:
     if not current.is_superadmin:
-        raise HTTPException(status_code=403, detail="superadmin role required")
+        raise_api_error(403, "superadmin_required")
 
 
 def get_superadmin_user(
@@ -120,10 +156,10 @@ def get_workspace_access(
     # WorkspaceRepository.get omits soft-deleted rows (deleted_at set).
     workspace = WorkspaceRepository(session).get(workspace_id)
     if workspace is None:
-        raise HTTPException(status_code=404, detail="workspace not found")
+        raise_api_error(404, "workspace_not_found")
     role = get_workspace_role(session, principal=current, workspace_id=workspace_id)
     if role is None:
-        raise HTTPException(status_code=403, detail="workspace access required")
+        raise_api_error(403, "workspace_access_required")
     return workspace, role
 
 
@@ -131,10 +167,7 @@ def get_workspace_contributor_access(
     access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> tuple[Workspace, str]:
     if not role_meets(access[1], "contributor"):
-        raise HTTPException(
-            status_code=403,
-            detail="workspace contributor role required",
-        )
+        raise_api_error(403, "workspace_contributor_required")
     return access
 
 
@@ -142,15 +175,35 @@ def get_workspace_admin_access(
     access: Annotated[tuple[Workspace, str], Depends(get_workspace_access)],
 ) -> tuple[Workspace, str]:
     if not role_meets(access[1], "admin"):
-        raise HTTPException(status_code=403, detail="workspace admin role required")
+        raise_api_error(403, "workspace_admin_required")
     return access
 
 
 def _parse_bearer_token(authorization: str) -> str:
     scheme, separator, token = authorization.partition(" ")
     if separator == "" or scheme.lower() != "bearer" or token.strip() == "":
-        raise HTTPException(status_code=401, detail="invalid authorization header")
+        raise_api_error(401, "invalid_access_token")
     return token.strip()
+
+
+def _enforce_cookie_request_security(
+    request: Request, current: CurrentPrincipal
+) -> None:
+    if request.method in SAFE_HTTP_METHODS:
+        return
+    origin = request.headers.get("origin")
+    csrf_token = request.headers.get("x-csrf-token")
+    settings = get_settings()
+    if origin not in settings.cors_allowed_origins:
+        raise_api_error(403, "csrf_failed")
+    if (
+        csrf_token is None
+        or current.csrf_token_hash is None
+        or not hmac.compare_digest(
+            hash_opaque_secret(csrf_token), current.csrf_token_hash
+        )
+    ):
+        raise_api_error(403, "csrf_failed")
 
 
 def get_graph_retriever() -> GraphRetriever | None:

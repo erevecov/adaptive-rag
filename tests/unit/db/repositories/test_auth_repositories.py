@@ -38,13 +38,13 @@ def _create_workspace(session, name: str = "demo") -> Workspace:
 def test_user_repository_create_flushes_without_committing() -> None:
     session = _make_session()
     user = UserRepository(session).create_user(
-        login="Owner@Example.com ",
+        email="Owner@Example.com ",
         display_name="Owner",
         system_role="superadmin",
     )
     user_id = user.id
 
-    assert user.login == "owner@example.com"
+    assert user.email == "owner@example.com"
     assert user.system_role == "superadmin"
     assert user_id is not None
 
@@ -57,24 +57,24 @@ def test_user_repository_create_flushes_without_committing() -> None:
 def test_user_repository_rejects_duplicate_login() -> None:
     session = _make_session()
     repo = UserRepository(session)
-    repo.create_user(login="viewer@example.com", display_name="Viewer")
+    repo.create_user(email="viewer@example.com", display_name="Viewer")
     session.commit()
 
-    with pytest.raises(ValueError, match="user_login_already_exists"):
-        repo.create_user(login=" VIEWER@example.com ", display_name="Duplicate")
+    with pytest.raises(ValueError, match="email_already_exists"):
+        repo.create_user(email=" VIEWER@example.com ", display_name="Duplicate")
 
 
 def test_user_repository_lists_users_by_login() -> None:
     session = _make_session()
     repo = UserRepository(session)
-    repo.create_user(login="z@example.com", display_name="Zed")
-    repo.create_user(login="a@example.com", display_name="Ada")
-    repo.create_user(login="m@example.com", display_name="Mia")
+    repo.create_user(email="z@example.com", display_name="Zed")
+    repo.create_user(email="a@example.com", display_name="Ada")
+    repo.create_user(email="m@example.com", display_name="Mia")
     session.commit()
 
     users = repo.list_users()
 
-    assert [user.login for user in users] == [
+    assert [user.email for user in users] == [
         "a@example.com",
         "m@example.com",
         "z@example.com",
@@ -84,7 +84,7 @@ def test_user_repository_lists_users_by_login() -> None:
 def test_user_repository_updates_user_fields() -> None:
     session = _make_session()
     repo = UserRepository(session)
-    user = repo.create_user(login="member@example.com", display_name="Member")
+    user = repo.create_user(email="member@example.com", display_name="Member")
     session.commit()
 
     updated = repo.update_user(
@@ -104,7 +104,7 @@ def test_user_repository_updates_last_workspace_preference() -> None:
     session = _make_session()
     repo = UserRepository(session)
     workspace = _create_workspace(session)
-    user = repo.create_user(login="member@example.com", display_name="Member")
+    user = repo.create_user(email="member@example.com", display_name="Member")
     session.commit()
 
     updated = repo.update_last_workspace_id(
@@ -125,7 +125,7 @@ def test_user_repository_updates_last_workspace_preference() -> None:
 def test_user_repository_upserts_token_hash_and_can_revoke() -> None:
     session = _make_session()
     repo = UserRepository(session)
-    user = repo.create_user(login="token@example.com", display_name="Token")
+    user = repo.create_user(email="token@example.com", display_name="Token")
     expires_at = datetime(2026, 1, 1, tzinfo=UTC)
     token = repo.upsert_access_token(
         user_id=user.id,
@@ -167,7 +167,7 @@ def test_workspace_membership_repository_creates_and_updates_role() -> None:
     session = _make_session()
     workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
-        login="admin@example.com",
+        email="admin@example.com",
         display_name="Admin",
     )
     repo = WorkspaceMembershipRepository(session)
@@ -192,7 +192,7 @@ def test_workspace_membership_repository_rejects_unsupported_role() -> None:
     session = _make_session()
     workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
-        login="bad-role@example.com",
+        email="bad-role@example.com",
         display_name="Bad Role",
     )
 
@@ -209,9 +209,9 @@ def test_workspace_membership_repository_lists_deterministic_orders() -> None:
     workspace = _create_workspace(session)
     other_workspace = _create_workspace(session, "other")
     user_repo = UserRepository(session)
-    bob = user_repo.create_user(login="bob@example.com", display_name="Bob")
-    ada = user_repo.create_user(login="ada@example.com", display_name="Ada")
-    mia = user_repo.create_user(login="mia@example.com", display_name="Mia")
+    bob = user_repo.create_user(email="bob@example.com", display_name="Bob")
+    ada = user_repo.create_user(email="ada@example.com", display_name="Ada")
+    mia = user_repo.create_user(email="mia@example.com", display_name="Mia")
     repo = WorkspaceMembershipRepository(session)
     repo.upsert_membership(workspace_id=workspace.id, user_id=bob.id, role="viewer")
     repo.upsert_membership(workspace_id=workspace.id, user_id=ada.id, role="admin")
@@ -237,7 +237,7 @@ def test_workspace_membership_repository_removes_membership() -> None:
     session = _make_session()
     workspace = _create_workspace(session)
     user = UserRepository(session).create_user(
-        login="remove@example.com",
+        email="remove@example.com",
         display_name="Remove",
     )
     repo = WorkspaceMembershipRepository(session)

@@ -92,20 +92,20 @@ def _create_member(
     session: Session,
     *,
     workspace: Workspace,
-    login: str,
+    email: str,
     token: str,
     role: str = "viewer",
 ) -> User:
     repo = UserRepository(session)
     user = repo.create_user(
-        login=login,
-        display_name=login,
+        email=email,
+        display_name=email,
         system_role="user",
     )
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
@@ -149,7 +149,7 @@ def test_upload_png_image_returns_201_and_persists(tmp_path: Path) -> None:
     session = session_factory()
     workspace = _create_workspace(session)
     user = _create_member(
-        session, workspace=workspace, login="a@example.com", token="a-token"
+        session, workspace=workspace, email="a@example.com", token="a-token"
     )
     session.commit()
     client = _client(session=session)
@@ -186,7 +186,7 @@ def test_upload_pdf_document_extracts_text(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -215,7 +215,7 @@ def test_upload_docx_document_extracts_text(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -246,7 +246,7 @@ def test_upload_txt_normalizes_and_markdown_via_extension_fallback(
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -296,7 +296,7 @@ def test_upload_document_text_is_truncated(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -321,7 +321,7 @@ def test_upload_unsupported_type_returns_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -352,7 +352,7 @@ def test_upload_too_large_returns_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -373,7 +373,7 @@ def test_upload_empty_file_returns_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -394,7 +394,7 @@ def test_upload_missing_filename_returns_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -415,7 +415,7 @@ def test_upload_pdf_without_embedded_text_returns_422(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -437,7 +437,7 @@ def test_upload_with_session_id_links_chat_session(tmp_path: Path) -> None:
     session = session_factory()
     workspace = _create_workspace(session)
     user = _create_member(
-        session, workspace=workspace, login="a@example.com", token="a-token"
+        session, workspace=workspace, email="a@example.com", token="a-token"
     )
     chat_session = ChatAuditRepository(session).create_session(
         workspace_id=workspace.id,
@@ -468,7 +468,7 @@ def test_upload_with_foreign_or_missing_session_returns_404(tmp_path: Path) -> N
     session = session_factory()
     workspace = _create_workspace(session)
     other_workspace = _create_workspace(session, name="other")
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     foreign_session = ChatAuditRepository(session).create_session(
         workspace_id=other_workspace.id,
     )
@@ -504,7 +504,7 @@ def test_get_content_roundtrip_returns_bytes_and_mime(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -533,8 +533,8 @@ def test_other_user_cannot_read_or_delete_attachment(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
-    _create_member(session, workspace=workspace, login="b@example.com", token="b-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="b@example.com", token="b-token")
     session.commit()
     client = _client(session=session)
 
@@ -582,7 +582,7 @@ def test_delete_then_get_returns_404(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 
@@ -625,7 +625,7 @@ def test_unauthenticated_requests_return_401(tmp_path: Path) -> None:
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    _create_member(session, workspace=workspace, login="a@example.com", token="a-token")
+    _create_member(session, workspace=workspace, email="a@example.com", token="a-token")
     session.commit()
     client = _client(session=session)
 

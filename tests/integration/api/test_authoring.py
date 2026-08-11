@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from uuid import uuid4
 
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -39,6 +40,7 @@ def _client(*, session: Session) -> TestClient:
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     return TestClient(app)
 
 
@@ -81,7 +83,7 @@ def test_get_workspace_returns_404_for_missing_workspace() -> None:
     response = client.get(f"/workspaces/{uuid4()}")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "workspace not found"
+    assert response.json()["detail"]["code"] == "workspace_not_found"
 
 
 def test_create_workspace_accepts_explicit_dense_mode() -> None:
@@ -234,7 +236,7 @@ def test_create_source_rejects_unknown_workspace_and_source_type() -> None:
     )
 
     assert missing_workspace.status_code == 404
-    assert missing_workspace.json()["detail"] == "workspace not found"
+    assert missing_workspace.json()["detail"]["code"] == "workspace_not_found"
 
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")

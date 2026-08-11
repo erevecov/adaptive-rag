@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict
@@ -14,11 +15,37 @@ from adaptive_rag.db.models import User, WorkspaceMembership
 class UserCreateRequestBody(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    login: str
+    email: str
     display_name: str
-    system_role: str = "user"
-    access_token: str | None = None
-    is_active: bool = True
+    system_role: Literal["user", "superadmin"] = "user"
+    initial_workspace_id: UUID | None = None
+    initial_workspace_role: Literal["viewer", "contributor", "admin"] | None = None
+
+
+class SetupRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    display_name: str
+    password: str
+
+
+class LoginRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    password: str
+
+
+class ChangePasswordRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    current_password: str | None = None
+    new_password: str
+
+
+class CsrfTokenResponse(BaseModel):
+    csrf_token: str
 
 
 class AccessTokenRevokeRequestBody(BaseModel):
@@ -29,7 +56,7 @@ class AccessTokenRevokeRequestBody(BaseModel):
 
 class UserResponse(BaseModel):
     id: UUID
-    login: str
+    email: str
     display_name: str
     system_role: str
     is_active: bool
@@ -41,7 +68,7 @@ class UserResponse(BaseModel):
     def from_user(cls, user: User) -> UserResponse:
         return cls(
             id=user.id,
-            login=user.login,
+            email=user.email,
             display_name=user.display_name,
             system_role=user.system_role,
             is_active=user.is_active,
@@ -49,6 +76,68 @@ class UserResponse(BaseModel):
             created_at=user.created_at,
             updated_at=user.updated_at,
         )
+
+
+class UserMembershipSummary(BaseModel):
+    workspace_id: UUID
+    workspace_name: str
+    role: Literal["viewer", "contributor", "admin"]
+
+
+class AdminUserResponse(UserResponse):
+    must_change_password: bool
+    memberships: list[UserMembershipSummary]
+
+
+class AdminUserListResponse(BaseModel):
+    items: list[AdminUserResponse]
+
+
+class UserCreateResponse(BaseModel):
+    user: AdminUserResponse
+    temporary_password: str
+
+
+class UserUpdateRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str | None = None
+    display_name: str | None = None
+    system_role: Literal["user", "superadmin"] | None = None
+
+
+class TemporaryPasswordResponse(BaseModel):
+    user: AdminUserResponse
+    temporary_password: str
+
+
+class WorkspaceMemberAddRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    role: Literal["viewer", "contributor", "admin"]
+
+
+class WorkspaceMemberUpdateRequestBody(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    role: Literal["viewer", "contributor", "admin"]
+
+
+class WorkspaceMemberResponse(BaseModel):
+    id: UUID
+    workspace_id: UUID
+    user_id: UUID
+    email: str
+    display_name: str
+    is_active: bool
+    role: Literal["viewer", "contributor", "admin"]
+    created_at: datetime
+    updated_at: datetime
+
+
+class WorkspaceMemberListResponse(BaseModel):
+    items: list[WorkspaceMemberResponse]
 
 
 class CurrentUserPreferencesRequestBody(BaseModel):
@@ -59,20 +148,20 @@ class CurrentUserPreferencesRequestBody(BaseModel):
 
 class CurrentUserResponse(BaseModel):
     id: UUID | None
-    login: str
+    email: str
     display_name: str
     system_role: str
-    is_bootstrap: bool
+    must_change_password: bool
     last_workspace_id: UUID | None
 
     @classmethod
     def from_principal(cls, principal: CurrentPrincipal) -> CurrentUserResponse:
         return cls(
             id=principal.user_id,
-            login=principal.login,
+            email=principal.email,
             display_name=principal.display_name,
             system_role=principal.system_role,
-            is_bootstrap=principal.is_bootstrap,
+            must_change_password=principal.must_change_password,
             last_workspace_id=(
                 None if principal.user is None else principal.user.last_workspace_id
             ),

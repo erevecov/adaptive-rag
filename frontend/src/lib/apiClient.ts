@@ -40,11 +40,21 @@ export type WorkspaceListResponse = {
 
 export type CurrentUser = {
   id: string | null
-  login: string
+  email: string
   display_name: string
   system_role: string
-  is_bootstrap: boolean
+  must_change_password: boolean
   last_workspace_id: string | null
+}
+
+export type LoginBody = {
+  email: string
+  password: string
+}
+
+export type ChangePasswordBody = {
+  current_password?: string | null
+  new_password: string
 }
 
 export type CurrentUserPreferencesBody = {
@@ -53,7 +63,7 @@ export type CurrentUserPreferencesBody = {
 
 export type User = {
   id: string
-  login: string
+  email: string
   display_name: string
   system_role: string
   is_active: boolean
@@ -62,17 +72,49 @@ export type User = {
   updated_at: string
 }
 
-export type UserCreateBody = {
-  login: string
-  display_name: string
-  system_role?: string
-  access_token?: string | null
-  is_active?: boolean
+export type SystemRole = 'user' | 'superadmin'
+export type WorkspaceRole = 'viewer' | 'contributor' | 'admin'
+
+export type UserMembershipSummary = {
+  workspace_id: string
+  workspace_name: string
+  role: WorkspaceRole
 }
 
-export type UserListResponse = {
-  items: User[]
+export type AdminUser = User & {
+  memberships: UserMembershipSummary[]
+  must_change_password: boolean
 }
+
+export type UserCreateBody = {
+  email: string
+  display_name: string
+  system_role: SystemRole
+  initial_workspace_id?: string | null
+  initial_workspace_role?: WorkspaceRole | null
+}
+
+export type UserCreateResponse = {
+  user: AdminUser
+  temporary_password: string
+}
+
+export type UserUpdateBody = {
+  email?: string
+  display_name?: string
+  system_role?: SystemRole
+}
+
+export type TemporaryPasswordResponse = {
+  user: AdminUser
+  temporary_password: string
+}
+
+export type AdminUserListResponse = {
+  items: AdminUser[]
+}
+
+export type UserListResponse = AdminUserListResponse
 
 export type WorkspaceMembership = {
   id: string
@@ -89,6 +131,31 @@ export type WorkspaceMembershipUpsertBody = {
 
 export type WorkspaceMembershipListResponse = {
   items: WorkspaceMembership[]
+}
+
+export type WorkspaceMember = {
+  id: string
+  workspace_id: string
+  user_id: string
+  email: string
+  display_name: string
+  is_active: boolean
+  role: WorkspaceRole
+  created_at: string
+  updated_at: string
+}
+
+export type WorkspaceMemberAddBody = {
+  email: string
+  role: WorkspaceRole
+}
+
+export type WorkspaceMemberUpdateBody = {
+  role: WorkspaceRole
+}
+
+export type WorkspaceMemberListResponse = {
+  items: WorkspaceMember[]
 }
 
 export type Source = {
@@ -990,11 +1057,29 @@ export class ApiClientError extends Error {
 
 export type ApiClient = {
   getCurrentUser(): Promise<CurrentUser>
+  login(body: LoginBody): Promise<CurrentUser>
+  changePassword(body: ChangePasswordBody): Promise<CurrentUser>
+  logout(): Promise<void>
   updateCurrentUserPreferences(
     body: CurrentUserPreferencesBody,
   ): Promise<CurrentUser>
-  createUser(body: UserCreateBody): Promise<User>
-  listUsers(): Promise<UserListResponse>
+  createUser(body: UserCreateBody): Promise<UserCreateResponse>
+  listUsers(): Promise<AdminUserListResponse>
+  updateUser(userId: string, body: UserUpdateBody): Promise<AdminUser>
+  suspendUser(userId: string): Promise<AdminUser>
+  reactivateUser(userId: string): Promise<AdminUser>
+  resetUserPassword(userId: string): Promise<TemporaryPasswordResponse>
+  listWorkspaceMembers(workspaceId: string): Promise<WorkspaceMemberListResponse>
+  addWorkspaceMember(
+    workspaceId: string,
+    body: WorkspaceMemberAddBody,
+  ): Promise<WorkspaceMember>
+  updateWorkspaceMember(
+    workspaceId: string,
+    userId: string,
+    body: WorkspaceMemberUpdateBody,
+  ): Promise<WorkspaceMember>
+  removeWorkspaceMember(workspaceId: string, userId: string): Promise<void>
   listWorkspaceMemberships(
     workspaceId: string,
   ): Promise<WorkspaceMembershipListResponse>
@@ -1004,7 +1089,7 @@ export type ApiClient = {
     body: WorkspaceMembershipUpsertBody,
   ): Promise<WorkspaceMembership>
   deleteWorkspaceMembership(workspaceId: string, userId: string): Promise<void>
-  deactivateUser(userId: string): Promise<User>
+  deactivateUser(userId: string): Promise<AdminUser>
   revokeAccessToken(body: AccessTokenRevokeBody): Promise<{ revoked: boolean }>
   createWorkspace(body: WorkspaceCreateBody): Promise<Workspace>
   listWorkspaces(): Promise<WorkspaceListResponse>
@@ -1313,17 +1398,127 @@ export type ApiClientOptions = {
 
 export function createApiClient(options: ApiClientOptions): ApiClient {
   const baseUrl = options.baseUrl.replace(/\/+$/, '')
-  const fetchImpl = withAuthToken(
-    options.fetch ?? globalThis.fetch,
-    options.authToken ?? null,
-  )
+  const rawFetch = options.fetch ?? globalThis.fetch
+  const authToken = options.authToken?.trim() ?? ''
+  const bearerFetch = withAuthToken(rawFetch, authToken)
+  let humanSessionActive = false
+  let csrfToken: string | null = null
+  let csrfInflight: Promise<string> | null = null
+
+  async function fetchCsrfToken(): Promise<string> {
+    const csrfResponse = await rawFetch(`${baseUrl}/auth/csrf`, {
+      credentials: 'include',
+      method: 'GET',
+    })
+    const csrfPayload = await readJson(csrfResponse)
+    if (!csrfResponse.ok || typeof csrfPayload !== 'object' || csrfPayload === null) {
+      throw new ApiClientError('Unable to establish request security.', {
+        detail: getErrorDetail(csrfPayload),
+        status: csrfResponse.status,
+      })
+    }
+    const token = (csrfPayload as { csrf_token?: unknown }).csrf_token
+    if (typeof token !== 'string' || token.length === 0) {
+      throw new ApiClientError('Invalid CSRF response.', {
+        detail: csrfPayload,
+        status: csrfResponse.status,
+      })
+    }
+    csrfToken = token
+    return token
+  }
+
+  async function ensureCsrfToken(): Promise<string> {
+    if (csrfToken !== null) {
+      return csrfToken
+    }
+    if (csrfInflight !== null) {
+      return csrfInflight
+    }
+    csrfInflight = fetchCsrfToken().finally(() => {
+      csrfInflight = null
+    })
+    return csrfInflight
+  }
+
+  const fetchImpl: typeof fetch = async (input, init) => {
+    if (authToken.length > 0) {
+      return bearerFetch(input, init)
+    }
+    const method = (init?.method ?? 'GET').toUpperCase()
+    const url = String(input)
+    const needsCsrf =
+      humanSessionActive &&
+      !['GET', 'HEAD', 'OPTIONS'].includes(method) &&
+      !url.endsWith('/auth/login') &&
+      !url.endsWith('/auth/setup')
+
+    async function sendWithCsrf(token: string | null): Promise<Response> {
+      return rawFetch(input, {
+        ...init,
+        credentials: 'include',
+        headers:
+          needsCsrf && token !== null
+            ? {
+                ...headersToRecord(init?.headers),
+                'X-CSRF-Token': token,
+              }
+            : init?.headers,
+      })
+    }
+
+    if (needsCsrf && csrfToken === null) {
+      await ensureCsrfToken()
+    }
+
+    const response = await sendWithCsrf(needsCsrf ? csrfToken : null)
+    if (!needsCsrf || response.status !== 403) {
+      return response
+    }
+
+    // Stale cached CSRF (rotation race or concurrent fetch): clear, refresh once, retry.
+    const probe = await readJson(response.clone())
+    if (!isCsrfFailedDetail(probe)) {
+      return response
+    }
+    csrfToken = null
+    const freshToken = await ensureCsrfToken()
+    return sendWithCsrf(freshToken)
+  }
 
   return {
-    getCurrentUser() {
-      return requestJson<CurrentUser>(fetchImpl, {
+    async getCurrentUser() {
+      const current = await requestJson<CurrentUser>(fetchImpl, {
         method: 'GET',
         url: `${baseUrl}/auth/me`,
       })
+      if (authToken.length === 0) humanSessionActive = true
+      return current
+    },
+    async login(body) {
+      const current = await requestJson<CurrentUser>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/auth/login`,
+      })
+      humanSessionActive = true
+      csrfToken = null
+      return current
+    },
+    changePassword(body) {
+      return requestJson<CurrentUser>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/auth/change-password`,
+      })
+    },
+    async logout() {
+      await requestVoid(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/auth/logout`,
+      })
+      humanSessionActive = false
+      csrfToken = null
     },
     updateCurrentUserPreferences(body) {
       return requestJson<CurrentUser>(fetchImpl, {
@@ -1333,16 +1528,71 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       })
     },
     createUser(body) {
-      return requestJson<User>(fetchImpl, {
+      return requestJson<UserCreateResponse>(fetchImpl, {
         body,
         method: 'POST',
         url: `${baseUrl}/admin/users`,
       })
     },
     listUsers() {
-      return requestJson<UserListResponse>(fetchImpl, {
+      return requestJson<AdminUserListResponse>(fetchImpl, {
         method: 'GET',
         url: `${baseUrl}/admin/users`,
+      })
+    },
+    updateUser(userId, body) {
+      return requestJson<AdminUser>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/admin/users/${encodePathSegment(userId)}`,
+      })
+    },
+    suspendUser(userId) {
+      return requestJson<AdminUser>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/admin/users/${encodePathSegment(userId)}/suspend`,
+      })
+    },
+    reactivateUser(userId) {
+      return requestJson<AdminUser>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/admin/users/${encodePathSegment(userId)}/reactivate`,
+      })
+    },
+    resetUserPassword(userId) {
+      return requestJson<TemporaryPasswordResponse>(fetchImpl, {
+        method: 'POST',
+        url: `${baseUrl}/admin/users/${encodePathSegment(userId)}/reset-password`,
+      })
+    },
+    listWorkspaceMembers(workspaceId) {
+      return requestJson<WorkspaceMemberListResponse>(fetchImpl, {
+        method: 'GET',
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/members`,
+      })
+    },
+    addWorkspaceMember(workspaceId, body) {
+      return requestJson<WorkspaceMember>(fetchImpl, {
+        body,
+        method: 'POST',
+        url: `${baseUrl}/workspaces/${encodePathSegment(workspaceId)}/members`,
+      })
+    },
+    updateWorkspaceMember(workspaceId, userId, body) {
+      return requestJson<WorkspaceMember>(fetchImpl, {
+        body,
+        method: 'PATCH',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/members/${encodePathSegment(userId)}`,
+      })
+    },
+    removeWorkspaceMember(workspaceId, userId) {
+      return requestVoid(fetchImpl, {
+        method: 'DELETE',
+        url: `${baseUrl}/workspaces/${encodePathSegment(
+          workspaceId,
+        )}/members/${encodePathSegment(userId)}`,
       })
     },
     listWorkspaceMemberships(workspaceId) {
@@ -1369,7 +1619,7 @@ export function createApiClient(options: ApiClientOptions): ApiClient {
       })
     },
     deactivateUser(userId) {
-      return requestJson<User>(fetchImpl, {
+      return requestJson<AdminUser>(fetchImpl, {
         method: 'POST',
         url: `${baseUrl}/admin/users/${encodePathSegment(userId)}/deactivate`,
       })
@@ -2624,6 +2874,10 @@ function getErrorDetail(payload: unknown): unknown {
     return (payload as { detail: unknown }).detail
   }
   return payload
+}
+
+function isCsrfFailedDetail(payload: unknown): boolean {
+  return extractErrorCode(getErrorDetail(payload)) === 'csrf_failed'
 }
 
 function getApiErrorMessage(detail: unknown, status: number): string {

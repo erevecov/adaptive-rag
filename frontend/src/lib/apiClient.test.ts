@@ -77,6 +77,233 @@ function jobPayload({
 }
 
 describe('createApiClient', () => {
+  test('uses cookie credentials and session CSRF after resolving a human user', async () => {
+    const currentUser = {
+      display_name: 'Viewer',
+      email: 'viewer@example.com',
+      id: '11111111-1111-4111-8111-111111111111',
+      last_workspace_id: null,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    const { fetch, calls } = createFetchStub(
+      jsonResponse(currentUser),
+      jsonResponse({ csrf_token: 'csrf-secret' }),
+      jsonResponse(currentUser),
+    )
+    const client = createApiClient({ baseUrl: 'http://api.local', fetch })
+
+    await client.getCurrentUser()
+    await client.updateCurrentUserPreferences({ last_workspace_id: null })
+
+    expect(calls.map((call) => String(call.input))).toEqual([
+      'http://api.local/auth/me',
+      'http://api.local/auth/csrf',
+      'http://api.local/auth/me/preferences',
+    ])
+    expect(calls[0].init?.credentials).toBe('include')
+    expect(calls[2].init?.credentials).toBe('include')
+    expect(calls[2].init?.headers).toEqual({
+      'content-type': 'application/json',
+      'X-CSRF-Token': 'csrf-secret',
+    })
+  })
+
+  test('logs in and changes a mandatory password through human auth routes', async () => {
+    const user = {
+      display_name: 'Viewer',
+      email: 'viewer@example.com',
+      id: '11111111-1111-4111-8111-111111111111',
+      last_workspace_id: null,
+      must_change_password: true,
+      system_role: 'user',
+    }
+    const { fetch, calls } = createFetchStub(
+      jsonResponse(user),
+      jsonResponse({ csrf_token: 'csrf-secret' }),
+      jsonResponse({ ...user, must_change_password: false }),
+    )
+    const client = createApiClient({ baseUrl: 'http://api.local', fetch })
+
+    await client.login({
+      email: 'viewer@example.com',
+      password: 'temporary correct horse password',
+    })
+    await client.changePassword({
+      new_password: 'permanent correct horse password',
+    })
+
+    expect(String(calls[0].input)).toBe('http://api.local/auth/login')
+    expect(String(calls[1].input)).toBe('http://api.local/auth/csrf')
+    expect(String(calls[2].input)).toBe('http://api.local/auth/change-password')
+    expect(calls[2].init?.headers).toMatchObject({
+      'X-CSRF-Token': 'csrf-secret',
+    })
+  })
+
+  test('single-flights concurrent CSRF bootstrap requests', async () => {
+    const currentUser = {
+      display_name: 'Viewer',
+      email: 'viewer@example.com',
+      id: '11111111-1111-4111-8111-111111111111',
+      last_workspace_id: null,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    let csrfFetches = 0
+    let csrfRelease: (() => void) | undefined
+    const csrfGate = new Promise<void>((resolve) => {
+      csrfRelease = resolve
+    })
+    const fetch: typeof globalThis.fetch = async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/auth/me') && (init?.method ?? 'GET') === 'GET') {
+        return jsonResponse(currentUser)
+      }
+      if (url.endsWith('/auth/csrf')) {
+        csrfFetches += 1
+        await csrfGate
+        return jsonResponse({ csrf_token: 'csrf-shared' })
+      }
+      if (url.endsWith('/auth/me/preferences')) {
+        const headers = new Headers(init?.headers)
+        expect(headers.get('X-CSRF-Token')).toBe('csrf-shared')
+        return jsonResponse(currentUser)
+      }
+      throw new Error(`unexpected url ${url}`)
+    }
+    const client = createApiClient({ baseUrl: 'http://api.local', fetch })
+
+    await client.getCurrentUser()
+    const pending = Promise.all([
+      client.updateCurrentUserPreferences({ last_workspace_id: null }),
+      client.updateCurrentUserPreferences({ last_workspace_id: null }),
+    ])
+    await Promise.resolve()
+    expect(csrfFetches).toBe(1)
+    csrfRelease?.()
+    await pending
+    expect(csrfFetches).toBe(1)
+  })
+
+  test('refreshes CSRF and retries once after csrf_failed', async () => {
+    const currentUser = {
+      display_name: 'Viewer',
+      email: 'viewer@example.com',
+      id: '11111111-1111-4111-8111-111111111111',
+      last_workspace_id: null,
+      must_change_password: false,
+      system_role: 'user',
+    }
+    const tokensSeen: Array<string | null> = []
+    let csrfFetches = 0
+    let preferenceAttempts = 0
+    const fetch: typeof globalThis.fetch = async (input, init) => {
+      const url = String(input)
+      if (url.endsWith('/auth/me') && (init?.method ?? 'GET') === 'GET') {
+        return jsonResponse(currentUser)
+      }
+      if (url.endsWith('/auth/csrf')) {
+        csrfFetches += 1
+        return jsonResponse({
+          csrf_token: csrfFetches === 1 ? 'csrf-stale' : 'csrf-fresh',
+        })
+      }
+      if (url.endsWith('/auth/me/preferences')) {
+        preferenceAttempts += 1
+        const headers = new Headers(init?.headers)
+        const token = headers.get('X-CSRF-Token')
+        tokensSeen.push(token)
+        if (preferenceAttempts === 1) {
+          return jsonResponse(
+            { detail: { code: 'csrf_failed', message: 'CSRF validation failed' } },
+            { status: 403 },
+          )
+        }
+        return jsonResponse(currentUser)
+      }
+      throw new Error(`unexpected url ${url}`)
+    }
+    const client = createApiClient({ baseUrl: 'http://api.local', fetch })
+
+    await client.getCurrentUser()
+    const updated = await client.updateCurrentUserPreferences({
+      last_workspace_id: null,
+    })
+
+    expect(updated.email).toBe('viewer@example.com')
+    expect(csrfFetches).toBe(2)
+    expect(tokensSeen).toEqual(['csrf-stale', 'csrf-fresh'])
+  })
+
+  test('uses the human user-management endpoints without exposing API keys', async () => {
+    const user = {
+      created_at: '2026-08-11T00:00:00Z',
+      display_name: 'Workspace Viewer',
+      email: 'viewer@example.com',
+      id: '22222222-2222-4222-8222-222222222222',
+      is_active: true,
+      last_workspace_id: null,
+      memberships: [
+        {
+          role: 'viewer',
+          workspace_id: '11111111-1111-4111-8111-111111111111',
+          workspace_name: 'Research',
+        },
+      ],
+      must_change_password: true,
+      system_role: 'user',
+      updated_at: '2026-08-11T00:00:00Z',
+    }
+    const member = {
+      created_at: user.created_at,
+      display_name: user.display_name,
+      email: user.email,
+      id: '33333333-3333-4333-8333-333333333333',
+      is_active: true,
+      role: 'viewer',
+      updated_at: user.updated_at,
+      user_id: user.id,
+      workspace_id: '11111111-1111-4111-8111-111111111111',
+    }
+    const { fetch, calls } = createFetchStub(
+      jsonResponse({ items: [user] }),
+      jsonResponse({ temporary_password: 'one-time-password', user }),
+      jsonResponse(member),
+      new Response(null, { status: 204 }),
+    )
+    const client = createApiClient({
+      authToken: 'technical-test-token',
+      baseUrl: 'http://api.local',
+      fetch,
+    })
+
+    await client.listUsers()
+    await client.createUser({
+      display_name: user.display_name,
+      email: user.email,
+      initial_workspace_id: member.workspace_id,
+      initial_workspace_role: 'viewer',
+      system_role: 'user',
+    })
+    await client.addWorkspaceMember(member.workspace_id, {
+      email: user.email,
+      role: 'viewer',
+    })
+    await client.removeWorkspaceMember(member.workspace_id, user.id)
+
+    expect(calls.map((call) => String(call.input))).toEqual([
+      'http://api.local/admin/users',
+      'http://api.local/admin/users',
+      `http://api.local/workspaces/${member.workspace_id}/members`,
+      `http://api.local/workspaces/${member.workspace_id}/members/${user.id}`,
+    ])
+    expect(calls[1].init?.body).not.toContain('access_token')
+    expect(calls[2].init?.body).toBe(
+      JSON.stringify({ email: user.email, role: 'viewer' }),
+    )
+  })
+
   test('lists background jobs with stable filters and mutates one job', async () => {
     const workspaceId = '11111111-1111-4111-8111-111111111111'
     const jobId = '33333333-3333-4333-8333-333333333333'
@@ -108,9 +335,9 @@ describe('createApiClient', () => {
       jsonResponse({
         display_name: 'Viewer',
         id: '11111111-1111-4111-8111-111111111111',
-        is_bootstrap: false,
+        must_change_password: false,
         last_workspace_id: null,
-        login: 'viewer@example.com',
+        email: 'viewer@example.com',
         system_role: 'user',
       }),
     )
@@ -139,16 +366,16 @@ describe('createApiClient', () => {
       id: userId,
       is_active: true,
       last_workspace_id: null,
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
       system_role: 'user',
       updated_at: createdAt,
     }
     const currentUser = {
       display_name: 'Viewer',
       id: userId,
-      is_bootstrap: false,
+      must_change_password: false,
       last_workspace_id: workspaceId,
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
       system_role: 'user',
     }
     const membership = {
@@ -201,9 +428,11 @@ describe('createApiClient', () => {
     })
 
     await client.createUser({
-      access_token: 'viewer-token',
       display_name: 'Viewer',
-      login: 'viewer@example.com',
+      email: 'viewer@example.com',
+      initial_workspace_id: workspaceId,
+      initial_workspace_role: 'viewer',
+      system_role: 'user',
     })
     await client.listUsers()
     await client.updateCurrentUserPreferences({ last_workspace_id: workspaceId })
@@ -317,7 +546,7 @@ describe('createApiClient', () => {
       id: userId,
       is_active: false,
       last_workspace_id: null,
-      login: 'temp',
+      email: 'temp',
       system_role: 'user',
       updated_at: createdAt,
     }

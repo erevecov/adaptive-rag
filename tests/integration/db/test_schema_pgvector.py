@@ -12,13 +12,29 @@ from __future__ import annotations
 
 import os
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import Barrier
 from uuid import uuid4
 
 import psycopg.errors
 import pytest
+from fastapi import HTTPException
 from sqlalchemy import Engine, inspect, text
 from sqlalchemy.exc import DataError, IntegrityError, StatementError
+from sqlalchemy.orm import Session
+
+from adaptive_rag.api.routes import auth as auth_routes
+from adaptive_rag.api.schemas.auth import (
+    UserUpdateRequestBody,
+    WorkspaceMemberUpdateRequestBody,
+)
+from adaptive_rag.auth import CurrentPrincipal
+from adaptive_rag.db.repositories import (
+    UserRepository,
+    WorkspaceMembershipRepository,
+    WorkspaceRepository,
+)
 
 # Errores que indican que Postgres rechazo el vector por dimension.
 DB_ERROR = (
@@ -45,6 +61,24 @@ def run_alembic_upgrade(database_url: str, target: str = "head") -> None:
     if result.returncode != 0:
         raise AssertionError(
             f"alembic upgrade head failed (rc={result.returncode}).\n"
+            f"STDOUT:\n{result.stdout}\n"
+            f"STDERR:\n{result.stderr}"
+        )
+
+
+def run_alembic_downgrade(database_url: str, target: str) -> None:
+    """Aplica `alembic downgrade <target>` via `uv run` con la URL dada."""
+    env = {**os.environ, "ADAPTIVE_RAG_DATABASE_URL": database_url}
+    result = subprocess.run(
+        ["uv", "run", "alembic", "downgrade", target],
+        cwd=REPO_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        raise AssertionError(
+            f"alembic downgrade {target} failed (rc={result.returncode}).\n"
             f"STDOUT:\n{result.stdout}\n"
             f"STDERR:\n{result.stderr}"
         )
@@ -164,12 +198,182 @@ def test_alembic_upgrade_applies_cleanly(pg_url: str, pg_engine: Engine) -> None
         "chunk_sparse_embeddings",
         "jobs",
         "job_events",
+        "user_password_credentials",
+        "user_sessions",
+        "login_attempts",
     ):
         assert expected in table_names, expected
 
     workspace_columns = {c["name"] for c in inspector.get_columns("workspaces")}
     assert "budget_config_json" in workspace_columns
     assert "budget_config" not in workspace_columns
+
+
+def test_human_auth_migration_preserves_identity_tokens_and_memberships(
+    pg_url: str, pg_engine: Engine
+) -> None:
+    # The module fixture is shared and an earlier schema test may already be at
+    # head. Downgrade explicitly so this proves both migration directions.
+    run_alembic_downgrade(pg_url, target="p5q6r7s8t9u0")
+    run_alembic_upgrade(pg_url, target="p5q6r7s8t9u0")
+    workspace_id = uuid4()
+    user_id = uuid4()
+    token_id = uuid4()
+    membership_id = uuid4()
+    with pg_engine.begin() as connection:
+        connection.execute(
+            text("INSERT INTO workspaces (id, name) VALUES (:id, 'auth-migrate')"),
+            {"id": workspace_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO users (id, login, display_name, system_role) "
+                "VALUES (:id, ' Legacy@Example.COM ', 'Legacy', 'user')"
+            ),
+            {"id": user_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO user_access_tokens (id, user_id, token_hash) "
+                "VALUES (:id, :user_id, 'sha256:legacy')"
+            ),
+            {"id": token_id, "user_id": user_id},
+        )
+        connection.execute(
+            text(
+                "INSERT INTO workspace_memberships "
+                "(id, workspace_id, user_id, role) "
+                "VALUES (:id, :workspace_id, :user_id, 'admin')"
+            ),
+            {
+                "id": membership_id,
+                "workspace_id": workspace_id,
+                "user_id": user_id,
+            },
+        )
+
+    run_alembic_upgrade(pg_url)
+
+    inspector = inspect(pg_engine)
+    user_columns = {column["name"] for column in inspector.get_columns("users")}
+    with pg_engine.connect() as connection:
+        migrated = connection.execute(
+            text("SELECT email FROM users WHERE id=:id"), {"id": user_id}
+        ).scalar_one()
+        token_user_id = connection.execute(
+            text("SELECT user_id FROM user_access_tokens WHERE id=:id"),
+            {"id": token_id},
+        ).scalar_one()
+        membership_user_id = connection.execute(
+            text("SELECT user_id FROM workspace_memberships WHERE id=:id"),
+            {"id": membership_id},
+        ).scalar_one()
+
+    assert "email" in user_columns
+    assert "login" not in user_columns
+    assert migrated == "legacy@example.com"
+    assert token_user_id == user_id
+    assert membership_user_id == user_id
+
+
+def test_concurrent_workspace_admin_demotions_preserve_one_active_admin(
+    pg_url: str, pg_engine: Engine
+) -> None:
+    run_alembic_upgrade(pg_url)
+    with Session(pg_engine, expire_on_commit=False) as session:
+        workspace = WorkspaceRepository(session).create(name=f"lock-{uuid4()}")
+        actor = UserRepository(session).create_user(
+            email=f"actor-{uuid4()}@example.com",
+            display_name="Actor",
+            system_role="superadmin",
+        )
+        admins = [
+            UserRepository(session).create_user(
+                email=f"admin-{uuid4()}@example.com", display_name="Admin"
+            )
+            for _ in range(2)
+        ]
+        for admin in admins:
+            WorkspaceMembershipRepository(session).upsert_membership(
+                workspace_id=workspace.id,
+                user_id=admin.id,
+                role="admin",
+            )
+        session.commit()
+        workspace_id = workspace.id
+        actor_id = actor.id
+        admin_ids = [admin.id for admin in admins]
+
+    barrier = Barrier(2)
+
+    def demote(user_id):
+        with Session(pg_engine, expire_on_commit=False) as session:
+            actor = UserRepository(session).get_user(actor_id)
+            workspace = WorkspaceRepository(session).get(workspace_id)
+            assert actor is not None and workspace is not None
+            barrier.wait()
+            try:
+                response = auth_routes.update_workspace_member(
+                    workspace_id,
+                    user_id,
+                    WorkspaceMemberUpdateRequestBody(role="viewer"),
+                    session,
+                    CurrentPrincipal(user=actor),
+                    (workspace, "admin"),
+                )
+                return response.role
+            except HTTPException as exc:
+                session.rollback()
+                return exc.detail["code"]
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = list(executor.map(demote, admin_ids))
+
+    assert sorted(outcomes) == ["last_active_workspace_admin", "viewer"]
+
+
+def test_concurrent_superadmin_demotions_preserve_one_active_superadmin(
+    pg_url: str, pg_engine: Engine
+) -> None:
+    run_alembic_upgrade(pg_url)
+    with Session(pg_engine, expire_on_commit=False) as session:
+        session.execute(
+            text("UPDATE users SET system_role='user' WHERE system_role='superadmin'")
+        )
+        superadmins = [
+            UserRepository(session).create_user(
+                email=f"root-{uuid4()}@example.com",
+                display_name="Root",
+                system_role="superadmin",
+            )
+            for _ in range(2)
+        ]
+        session.commit()
+        user_ids = [user.id for user in superadmins]
+
+    barrier = Barrier(2)
+
+    def demote(user_id):
+        with Session(pg_engine, expire_on_commit=False) as session:
+            actor = UserRepository(session).get_user(user_id)
+            assert actor is not None
+            barrier.wait()
+            try:
+                response = auth_routes.update_user(
+                    user_id,
+                    UserUpdateRequestBody(system_role="user"),
+                    session,
+                    CurrentPrincipal(user=actor),
+                )
+                return response.system_role
+            except HTTPException as exc:
+                session.rollback()
+                return exc.detail["code"]
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        outcomes = list(executor.map(demote, user_ids))
+
+    assert sorted(outcomes) == ["last_active_superadmin", "user"]
 
 
 def test_chunks_embedding_is_vector_type(pg_url: str, pg_engine: Engine) -> None:

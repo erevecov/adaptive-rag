@@ -39,6 +39,8 @@ CORS_ALLOW_HEADERS = (
     "Accept",
     "X-Request-Id",
     "X-Access-Token",
+    "X-CSRF-Token",
+    "X-Setup-Secret",
 )
 
 # Misconfigured / incomplete provider runtime: request may be valid, service cannot

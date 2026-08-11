@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import pytest
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -47,6 +48,7 @@ def _client(*, session: Session) -> TestClient:
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     return TestClient(app)
 
 

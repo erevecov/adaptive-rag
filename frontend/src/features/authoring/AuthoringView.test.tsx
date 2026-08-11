@@ -12,9 +12,7 @@ import type {
   IngestionRunResponse,
   KnowledgeProposal,
   Workspace,
-  WorkspaceMembership,
   Source,
-  User,
 } from '@/lib/apiClient'
 import { AuthoringPanel } from './AuthoringView'
 
@@ -53,26 +51,6 @@ const source: Source = {
   source_type: 'markdown',
   tags: ['docs'],
   updated_at: '2026-06-22T00:00:00Z',
-}
-
-const user: User = {
-  created_at: '2026-06-22T00:00:00Z',
-  display_name: 'Viewer User',
-  id: 'user-1',
-  is_active: true,
-  last_workspace_id: null,
-  login: 'viewer@example.com',
-  system_role: 'user',
-  updated_at: '2026-06-22T00:00:00Z',
-}
-
-const membership: WorkspaceMembership = {
-  created_at: '2026-06-22T00:00:00Z',
-  id: 'membership-1',
-  workspace_id: workspace.id,
-  role: 'admin',
-  updated_at: '2026-06-22T00:00:00Z',
-  user_id: user.id,
 }
 
 const proposal: KnowledgeProposal = {
@@ -129,9 +107,10 @@ function renderAuthoringPanel(
   overrides: Partial<React.ComponentProps<typeof AuthoringPanel>> = {},
 ) {
   const props: React.ComponentProps<typeof AuthoringPanel> = {
-    accessError: null,
-    accessState: 'idle',
     activeSubmodule: 'workspaces',
+    canCreateWorkspace: true,
+    canDeleteSource: true,
+    canDeleteWorkspace: true,
     ingestionError: null,
     ingestionJobs: [ingestionJob],
     ingestionRun,
@@ -139,44 +118,29 @@ function renderAuthoringPanel(
     knowledgeProposals: [proposal],
     knowledgeReviewError: null,
     knowledgeReviewState: 'idle',
-    memberRole: 'viewer',
-    memberUserId: '',
-    memberships: [membership],
     onApproveKnowledgeProposal: vi.fn(),
     onCreateWorkspace: vi.fn(noopSubmit),
     onCreateSource: vi.fn(noopSubmit),
-    onCreateUser: vi.fn(noopSubmit),
-    onDeactivateUser: vi.fn(),
-    onDeleteMembership: vi.fn(),
     onDeleteWorkspace: vi.fn(),
     onDeleteSource: vi.fn(),
     onEnqueueIngestion: vi.fn(),
-    onMemberRoleChange: vi.fn(),
-    onMemberUserIdChange: vi.fn(),
     onWorkspaceIdChange: vi.fn(),
     onWorkspaceNameChange: vi.fn(),
     onProposalDraftChange: vi.fn(),
     onProposalRejectReasonChange: vi.fn(),
-    onRefreshAccess: vi.fn(),
     onRefreshIngestionJobs: vi.fn(),
     onRefreshKnowledgeProposals: vi.fn(),
     onRefreshSources: vi.fn(),
     onRefineKnowledgeProposal: vi.fn(),
     onRejectKnowledgeProposal: vi.fn(),
     onRetryIngestionJob: vi.fn(),
-    onRevokeAccessToken: vi.fn(),
     onRunNextIngestion: vi.fn(),
-    onSaveWorkspaceMembership: vi.fn(noopSubmit),
     onSelectWorkspace: vi.fn(),
     onSourceContentChange: vi.fn(),
     onSourceExternalIdChange: vi.fn(),
     onSourceFileChange: vi.fn(),
     onSourceTagsChange: vi.fn(),
     onSourceTypeChange: vi.fn(),
-    onUserAccessTokenChange: vi.fn(),
-    onUserDisplayNameChange: vi.fn(),
-    onUserLoginChange: vi.fn(),
-    onUserSystemRoleChange: vi.fn(),
     workspaceError: null,
     workspaceId: workspace.id,
     workspaceName: '',
@@ -192,11 +156,6 @@ function renderAuthoringPanel(
     sourceTags: '',
     sourceType: 'markdown',
     sources: [source],
-    userAccessToken: '',
-    userDisplayName: '',
-    userLogin: '',
-    userSystemRole: 'user',
-    users: [user],
     ...overrides,
   }
 
@@ -254,49 +213,6 @@ describe('AuthoringPanel', () => {
         'disabled',
       ),
     ).not.toBeNull()
-  })
-
-  test('users submodule keeps form labels addressable and uses Radix selects', async () => {
-    const userDriver = userEvent.setup()
-    const { props, view } = renderAuthoringPanel({ activeSubmodule: 'users' })
-
-    expect(screen.getByLabelText('User Login').getAttribute('data-slot')).toBe(
-      'input',
-    )
-    expect(screen.getByLabelText('Display Name').getAttribute('data-slot')).toBe(
-      'input',
-    )
-    const accessToken = screen.getByLabelText('Access Token')
-    expect(accessToken.getAttribute('data-slot')).toBe('input')
-    expect(accessToken.getAttribute('type')).toBe('password')
-    expect(accessToken.getAttribute('aria-describedby')).toBe(
-      'authoring-user-access-token-help',
-    )
-    const tokenHelp = screen.getByText('Paste Once; Never Shown After Save.')
-    expect(tokenHelp.getAttribute('data-slot')).toBe('field-help')
-    expect(tokenHelp.id).toBe('authoring-user-access-token-help')
-    expect(tokenHelp.closest('[data-slot="field-control"]')).toBeNull()
-    expect(tokenHelp.closest('[data-slot="field"]')).toBeTruthy()
-    expect(screen.getByLabelText('System Role').getAttribute('data-slot')).toBe(
-      'select-trigger',
-    )
-    expect(screen.getByLabelText('Workspace Role').getAttribute('data-slot')).toBe(
-      'select-trigger',
-    )
-    await chooseRadixSelectOption(
-      userDriver,
-      screen.getByLabelText('System Role'),
-      'Superadmin',
-    )
-    await chooseRadixSelectOption(
-      userDriver,
-      screen.getByLabelText('Workspace Role'),
-      'Admin',
-    )
-    expect(props.onUserSystemRoleChange).toHaveBeenCalledWith('superadmin')
-    expect(props.onMemberRoleChange).toHaveBeenCalledWith('admin')
-    expect(screen.getAllByText(user.id).length).toBeGreaterThanOrEqual(1)
-    expectNoLegacyAuthoringClasses(view.container)
   })
 
   test('workspace list shows loading instead of empty while busy', () => {
@@ -406,37 +322,12 @@ describe('AuthoringPanel', () => {
     expect(screen.getByText(/Deleted /)).toBeTruthy()
   })
 
-  test('shows per-column empties when users or memberships are missing', () => {
-    renderAuthoringPanel({
-      activeSubmodule: 'users',
-      memberships: [],
-      users: [user],
-    })
-    expect(screen.getByText('No Workspace Memberships Yet.')).toBeTruthy()
-    expect(screen.getByText(user.login)).toBeTruthy()
-    cleanup()
-
-    renderAuthoringPanel({
-      activeSubmodule: 'users',
-      memberships: [membership],
-      users: [],
-    })
-    expect(screen.getByText('No Users Yet.')).toBeTruthy()
-    expect(screen.getByText(membership.user_id)).toBeTruthy()
-  })
-
-  test('Title Case soft-delete and inactive badges keep full contrast', () => {
+  test('Title Case soft-delete badges keep full contrast', () => {
     const deletedSource: Source = {
       ...source,
       deleted_at: '2026-06-22T12:00:00Z',
       external_id: 'gone-source',
       id: 'source-deleted',
-    }
-    const inactiveUser: User = {
-      ...user,
-      id: 'user-inactive',
-      is_active: false,
-      login: 'inactive@example.com',
     }
     renderAuthoringPanel({
       activeSubmodule: 'sources',
@@ -444,19 +335,6 @@ describe('AuthoringPanel', () => {
     })
     expect(screen.getByText('Deleted').getAttribute('data-tone')).toBe('danger')
     expect(screen.getByText(/Deleted /)).toBeTruthy()
-    cleanup()
-
-    const { view } = renderAuthoringPanel({
-      activeSubmodule: 'users',
-      users: [inactiveUser],
-    })
-    expect(screen.getByText('Inactive').getAttribute('data-tone')).toBe(
-      'warning',
-    )
-    expect(
-      view.container.querySelector('[data-inactive]')?.querySelector('strong')
-        ?.className,
-    ).toMatch(/text-muted-foreground/)
   })
 
   test('knowledge empty is structured and proposal status is Title Case', () => {

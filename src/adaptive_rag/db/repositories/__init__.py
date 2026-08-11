@@ -45,6 +45,7 @@ from adaptive_rag.db.repositories.sparse_embeddings import SparseEmbeddingReposi
 from adaptive_rag.db.repositories.system_tasks import SystemTaskRepository
 from adaptive_rag.db.repositories.user_memories import UserMemoryRepository
 from adaptive_rag.db.repositories.users import (
+    HumanAuthRepository,
     UserRepository,
     WorkspaceMembershipRepository,
 )
@@ -90,5 +91,6 @@ __all__ = [
     "SparseEmbeddingRepository",
     "SystemTaskRepository",
     "UserRepository",
+    "HumanAuthRepository",
     "UserMemoryRepository",
 ]
