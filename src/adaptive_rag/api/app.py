@@ -8,6 +8,8 @@ from adaptive_rag.api.routes.chat import router as chat_router
 from adaptive_rag.api.routes.chat_attachments import router as chat_attachments_router
 from adaptive_rag.api.routes.health import router as health_router
 from adaptive_rag.api.routes.ingestion_ops import router as ingestion_ops_router
+from adaptive_rag.api.routes.jobs import admin_router as jobs_admin_router
+from adaptive_rag.api.routes.jobs import router as jobs_router
 from adaptive_rag.api.routes.knowledge import router as knowledge_router
 from adaptive_rag.api.routes.provider_connections import (
     router as provider_connections_router,
@@ -70,6 +72,8 @@ def create_app() -> FastAPI:
     app.include_router(auth_router)
     app.include_router(authoring_router)
     app.include_router(ingestion_ops_router)
+    app.include_router(jobs_router)
+    app.include_router(jobs_admin_router)
     app.include_router(retrieval_router)
     app.include_router(chat_router)
     app.include_router(chat_attachments_router)

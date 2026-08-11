@@ -126,6 +126,23 @@ class JobScheduleService:
             )
         )
 
+    def get(
+        self,
+        *,
+        schedule_id: UUID,
+        scope: JobScope,
+        workspace_id: UUID | None,
+    ) -> JobSchedule:
+        self._validate_scope(scope=scope, workspace_id=workspace_id)
+        schedule = self._repository.get_scoped(
+            schedule_id=schedule_id,
+            scope=scope,
+            workspace_id=workspace_id,
+        )
+        if schedule is None:
+            raise JobNotFoundError(f"Schedule not found: {schedule_id}")
+        return schedule
+
     def pause(
         self,
         *,
@@ -145,6 +162,75 @@ class JobScheduleService:
         if schedule.paused_at is not None:
             raise JobStateConflictError("Schedule is already paused")
         schedule.paused_at = now or utc_now()
+        self._touch(schedule=schedule, actor=actor)
+        self._session.flush()
+        return schedule
+
+    def update(
+        self,
+        *,
+        schedule_id: UUID,
+        scope: JobScope,
+        workspace_id: UUID | None,
+        actor: JobActor,
+        expected_version: int,
+        name: str | None = None,
+        description: str | None = None,
+        payload: Mapping[str, object] | None = None,
+        queue_name: str | None = None,
+        priority: int | None = None,
+        concurrency_key: str | None = None,
+        cron_expression: str | None = None,
+        timezone: str | None = None,
+        misfire_policy: str | None = None,
+        max_catch_up: int | None = None,
+        now: datetime | None = None,
+    ) -> JobSchedule:
+        schedule = self._action_target(
+            schedule_id=schedule_id,
+            scope=scope,
+            workspace_id=workspace_id,
+            expected_version=expected_version,
+        )
+        if name is not None:
+            schedule.name = name.strip()
+        if description is not None:
+            schedule.description = description
+        if payload is not None:
+            schedule.payload_json = self._registry.validate_payload(
+                schedule.job_type,
+                schedule.handler_version,
+                payload,
+            ).model_dump(mode="json")
+        if queue_name is not None:
+            if self._session.get(JobQueue, queue_name) is None:
+                raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
+            schedule.queue_name = queue_name
+        if priority is not None:
+            schedule.priority = priority
+        if concurrency_key is not None:
+            schedule.concurrency_key = concurrency_key
+        expression = cron_expression or schedule.cron_expression
+        zone = timezone or schedule.timezone
+        policy = misfire_policy or schedule.misfire_policy
+        catch_up = max_catch_up or schedule.max_catch_up
+        if policy not in {"skip", "run_once", "catch_up"}:
+            raise ValueError("Unknown misfire policy")
+        validate_cron_schedule(
+            expression=expression,
+            timezone=zone,
+            max_catch_up=catch_up,
+        )
+        schedule.cron_expression = expression
+        schedule.timezone = zone
+        schedule.misfire_policy = policy
+        schedule.max_catch_up = catch_up
+        if cron_expression is not None or timezone is not None:
+            schedule.next_run_at = next_occurrence(
+                expression=expression,
+                timezone=zone,
+                after_utc=now or utc_now(),
+            )
         self._touch(schedule=schedule, actor=actor)
         self._session.flush()
         return schedule

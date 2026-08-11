@@ -11,10 +11,16 @@ from hashlib import sha256
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
-from adaptive_rag.db.models import Job, JobAttempt, JobEvent
+from adaptive_rag.db.models import (
+    Job,
+    JobAttempt,
+    JobEvent,
+    JobQueue,
+    JobWorker,
+)
 from adaptive_rag.db.models.job import utc_now
 from adaptive_rag.db.repositories.jobs import JobRepository
 from adaptive_rag.jobs.errors import (
@@ -274,6 +280,60 @@ class JobService:
                 self._repository.list_events_bounded(job_id=job.id, limit=history_limit)
             ),
         )
+
+    def snapshot(self, job: Job) -> JobSnapshot:
+        return self._snapshot(job)
+
+    def list_queues(self) -> list[JobQueue]:
+        return list(self._session.scalars(select(JobQueue).order_by(JobQueue.name)))
+
+    def configure_queue(
+        self,
+        *,
+        queue_name: str,
+        actor: JobActor,
+        expected_version: int,
+        paused: bool | None = None,
+        global_concurrency_limit: int | None = None,
+        workspace_concurrency_limit: int | None = None,
+        default_lease_seconds: int | None = None,
+        now: datetime | None = None,
+    ) -> JobQueue:
+        queue = self._repository.get_queue(queue_name)
+        if queue is None:
+            raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
+        if queue.version != expected_version:
+            raise JobStateConflictError("Queue version changed")
+        operation_time = now or utc_now()
+        if paused is not None:
+            queue.paused_at = operation_time if paused else None
+            queue.paused_by_actor = actor.actor_id if paused else None
+        if global_concurrency_limit is not None:
+            queue.global_concurrency_limit = global_concurrency_limit
+        if workspace_concurrency_limit is not None:
+            queue.workspace_concurrency_limit = workspace_concurrency_limit
+        if default_lease_seconds is not None:
+            queue.default_lease_seconds = default_lease_seconds
+        queue.version += 1
+        self._session.flush()
+        return queue
+
+    def list_workers(self, *, limit: int = 200) -> list[JobWorker]:
+        if not 1 <= limit <= 500:
+            raise ValueError("worker limit must be within [1, 500]")
+        return list(
+            self._session.scalars(
+                select(JobWorker)
+                .order_by(JobWorker.heartbeat_at.desc(), JobWorker.id)
+                .limit(limit)
+            )
+        )
+
+    def get_queue(self, queue_name: str) -> JobQueue:
+        queue = self._repository.get_queue(queue_name)
+        if queue is None:
+            raise JobQueueNotFoundError(f"Unknown job queue: {queue_name}")
+        return queue
 
     def cancel(
         self,
