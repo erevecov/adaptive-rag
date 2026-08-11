@@ -48,6 +48,18 @@ def test_system_jobs_are_superadmin_only() -> None:
     assert superadmin.json()["items"] == []
 
 
+def test_superadmin_can_list_workspace_job_handlers() -> None:
+    setup = make_job_api_setup()
+
+    response = setup.client.get(
+        f"/workspaces/{setup.workspace.id}/job-handlers",
+        headers=bearer(setup.superadmin_token),
+    )
+
+    assert response.status_code == 200
+    assert [handler["name"] for handler in response.json()] == ["ingest_source"]
+
+
 def test_idempotent_reuse_and_stale_cancel_conflict() -> None:
     setup = make_job_api_setup()
     url = f"/workspaces/{setup.workspace.id}/jobs"

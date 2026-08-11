@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import asyncio
 import json
+import signal
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
@@ -10,6 +12,7 @@ from sqlalchemy import select
 from typer.testing import CliRunner
 
 from adaptive_rag.cli.app import app
+from adaptive_rag.cli.jobs import _run_worker_with_signal_handlers
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     Chunk,
@@ -67,6 +70,54 @@ def test_job_platform_nested_command_help(
 
     assert result.exit_code == 0
     assert expected in result.stdout
+
+
+@pytest.mark.asyncio
+async def test_worker_cli_routes_sigterm_through_graceful_shutdown(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    callbacks: dict[signal.Signals, object] = {}
+    removed: list[signal.Signals] = []
+
+    class FakeLoop:
+        def add_signal_handler(self, signum, callback) -> None:
+            callbacks[signum] = callback
+
+        def remove_signal_handler(self, signum) -> bool:
+            removed.append(signum)
+            return True
+
+    class FakeWorker:
+        shutdown_requests = 0
+        run_arguments: tuple[float, float] | None = None
+
+        def request_shutdown(self) -> None:
+            self.shutdown_requests += 1
+
+        async def run(
+            self,
+            *,
+            poll_interval_seconds: float,
+            drain_timeout_seconds: float,
+        ) -> None:
+            self.run_arguments = (poll_interval_seconds, drain_timeout_seconds)
+            callback = callbacks[signal.SIGTERM]
+            assert callable(callback)
+            callback()
+
+    fake_loop = FakeLoop()
+    fake_worker = FakeWorker()
+    monkeypatch.setattr(asyncio, "get_running_loop", lambda: fake_loop)
+
+    await _run_worker_with_signal_handlers(
+        fake_worker,  # type: ignore[arg-type]
+        poll_interval_seconds=2.5,
+        drain_timeout_seconds=7.0,
+    )
+
+    assert fake_worker.shutdown_requests == 1
+    assert fake_worker.run_arguments == (2.5, 7.0)
+    assert removed == [signal.SIGTERM, signal.SIGINT]
 
 
 def test_jobs_enqueue_rejects_invalid_json_before_opening_transaction(

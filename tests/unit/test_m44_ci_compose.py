@@ -41,6 +41,17 @@ def test_compose_frontend_uses_build_time_api_base_var() -> None:
     assert "ARG VITE_ADAPTIVE_RAG_API_BASE_URL" in dockerfile
 
 
+def test_frontend_docker_context_excludes_local_build_artifacts() -> None:
+    dockerignore = (ROOT / "frontend" / ".dockerignore").read_text(
+        encoding="utf-8"
+    )
+    ignored = {line.strip() for line in dockerignore.splitlines() if line.strip()}
+
+    assert "node_modules" in ignored
+    assert "dist" in ignored
+    assert "coverage" in ignored
+
+
 def test_deferred_defaults_no_longer_list_auth_multi_user() -> None:
     assert "auth_multi_user" not in DEFERRED_DEFAULTS
     assert "pdf_office_ingestion" in DEFERRED_DEFAULTS

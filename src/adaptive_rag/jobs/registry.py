@@ -33,6 +33,7 @@ type ConcurrencyKeyFactory = Callable[[BaseModel], str | None]
 
 _SLUG_PATTERN = re.compile(r"[a-z][a-z0-9_-]{0,99}\Z")
 _ROLE_RANK = {role: index for index, role in enumerate(reversed(WORKSPACE_ROLE_VALUES))}
+_ROLE_RANK["superadmin"] = len(_ROLE_RANK)
 
 
 @dataclass(frozen=True, slots=True)

@@ -6,11 +6,17 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, expect, test, vi } from 'vitest'
 
-import type { ApiClient, BackgroundJob, BackgroundJobDetail } from '@/lib/apiClient'
+import type {
+  ApiClient,
+  BackgroundJob,
+  BackgroundJobDetail,
+  JobSchedule,
+} from '@/lib/apiClient'
 
 import { JobPlatformPanel } from './JobPlatformView'
 
@@ -159,6 +165,49 @@ test('polls only while visible and removes its timers on unmount', async () => {
 
   unmount()
   expect(vi.getTimerCount()).toBe(0)
+})
+
+test('keeps archived schedules visible without mutable actions', async () => {
+  const archivedSchedule: JobSchedule = {
+    archived_at: '2026-08-10T13:00:00Z',
+    concurrency_key: null,
+    created_at: '2026-08-10T12:00:00Z',
+    cron_expression: '0 * * * *',
+    description: null,
+    handler_version: 1,
+    id: 'schedule-1',
+    job_type: 'ingest_source',
+    last_scheduled_for: null,
+    max_catch_up: 1,
+    misfire_policy: 'run_once',
+    name: 'Archived ingestion',
+    next_run_at: '2026-08-10T14:00:00Z',
+    paused_at: null,
+    payload_json: { source_id: 'source-1' },
+    priority: 0,
+    queue_name: 'ingestion',
+    scope: 'workspace',
+    timezone: 'UTC',
+    updated_at: '2026-08-10T13:00:00Z',
+    version: 2,
+    workspace_id: 'workspace-1',
+  }
+  const client = clientStub()
+  client.listJobSchedules = vi.fn(async () => ({ items: [archivedSchedule] }))
+
+  render(
+    <JobPlatformPanel
+      activeSubmodule="schedules"
+      apiClient={client}
+      canAdminWorkspace
+      isSuperadmin={false}
+      workspaceId="workspace-1"
+    />,
+  )
+
+  const row = await screen.findByRole('row', { name: /Archived ingestion/ })
+  expect(within(row).getByText('Archived')).toBeTruthy()
+  expect(within(row).queryByRole('button')).toBeNull()
 })
 
 function clientStub(): ApiClient {

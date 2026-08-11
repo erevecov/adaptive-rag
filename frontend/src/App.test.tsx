@@ -2482,6 +2482,17 @@ describe('App chat workspace', () => {
     ).toMatch(/min-h-0/)
   })
 
+  test('removes the fixed sidebar host from mobile column flow', () => {
+    render(<App apiClient={createClientStub({})} initialWorkspaceId={workspaceId} />)
+
+    const sidebarHost = document.querySelector(
+      '[data-slot="app-shell-sidebar-host"]',
+    )
+
+    expect(sidebarHost?.className).toContain('max-[680px]:h-0')
+    expect(sidebarHost?.className).toContain('max-[680px]:w-0')
+  })
+
   test('locks the document viewport so tall chat content can never scroll the page', () => {
     // Backstop for the session-load regression: html/body/#root are pinned to
     // 100% with overflow hidden, so only designated regions (transcript,

@@ -193,8 +193,8 @@ export function AppShell({
         className={cn(
           'h-full min-h-0 shrink-0 overflow-hidden',
           'w-[var(--left-sidebar-width)] motion-safe:transition-[width] motion-safe:duration-200 motion-safe:ease-out',
-          // Mobile: sidebar is fixed overlay; host takes no flow width.
-          'max-[680px]:w-0',
+          // Mobile: sidebar is fixed overlay; host takes no flow space.
+          'max-[680px]:h-0 max-[680px]:w-0',
         )}
         data-slot="app-shell-sidebar-host"
         {...(isBackgroundInert ? { inert: true } : {})}

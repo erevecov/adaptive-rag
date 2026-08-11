@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import signal
 import socket
 import time
 from dataclasses import asdict
@@ -207,11 +208,36 @@ def worker(
             if once or report.status == "idle" or processed >= (max_jobs or 1):
                 return
     asyncio.run(
-        active_worker.run(
+        _run_worker_with_signal_handlers(
+            active_worker,
             poll_interval_seconds=poll_interval_seconds,
             drain_timeout_seconds=drain_timeout_seconds,
         )
     )
+
+
+async def _run_worker_with_signal_handlers(
+    active_worker: JobWorker,
+    *,
+    poll_interval_seconds: float,
+    drain_timeout_seconds: float,
+) -> None:
+    loop = asyncio.get_running_loop()
+    registered_signals: list[signal.Signals] = []
+    for signum in (signal.SIGTERM, signal.SIGINT):
+        try:
+            loop.add_signal_handler(signum, active_worker.request_shutdown)
+        except (NotImplementedError, RuntimeError, ValueError):
+            continue
+        registered_signals.append(signum)
+    try:
+        await active_worker.run(
+            poll_interval_seconds=poll_interval_seconds,
+            drain_timeout_seconds=drain_timeout_seconds,
+        )
+    finally:
+        for signum in registered_signals:
+            loop.remove_signal_handler(signum)
 
 
 @app.command("scheduler")

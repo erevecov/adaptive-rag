@@ -665,10 +665,10 @@ function SchedulesView({
         {schedules.length === 0 ? <EmptyState>{state === 'loading' ? 'Loading schedules…' : 'No schedules configured.'}</EmptyState> : (
         <TableScroll><Table><TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Cron</TableHead><TableHead>Policy</TableHead><TableHead>Next</TableHead><TableHead>Last</TableHead><TableHead>Actions</TableHead></TableRow></TableHeader>
           <TableBody>{schedules.map((schedule) => <TableRow key={schedule.id}>
-            <TableCell><strong>{schedule.name}</strong><div className="text-xs text-muted-foreground">{schedule.job_type}</div></TableCell>
+            <TableCell><strong>{schedule.name}</strong>{schedule.archived_at ? <Badge tone="neutral">Archived</Badge> : null}<div className="text-xs text-muted-foreground">{schedule.job_type}</div></TableCell>
             <TableCell><code>{schedule.cron_expression}</code> · {schedule.timezone}</TableCell>
             <TableCell>{schedule.misfire_policy}</TableCell><TableCell>{formatTimestamp(schedule.next_run_at)}</TableCell><TableCell>{formatTimestamp(schedule.last_scheduled_for)}</TableCell>
-            <TableCell>{canAdmin ? <div className="flex flex-wrap gap-1">
+            <TableCell>{canAdmin && !schedule.archived_at ? <div className="flex flex-wrap gap-1">
               <Button onClick={() => setEditing(schedule)} size="sm" variant="secondary">Edit Schedule</Button>
               {schedule.paused_at ? <Button onClick={() => onResume(schedule)} size="sm" variant="secondary">Resume Schedule</Button> : <Button onClick={() => onPause(schedule)} size="sm" variant="secondary">Pause Schedule</Button>}
               <Button onClick={() => onRunNow(schedule)} size="sm" variant="secondary">Run Now</Button>
