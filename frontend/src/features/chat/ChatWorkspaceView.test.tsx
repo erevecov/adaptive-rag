@@ -224,6 +224,11 @@ describe('ChatWorkspacePanel', () => {
         'data-slot',
       ),
     ).toBe('tool-activity')
+    expect(
+      within(screen.getByRole('region', { name: 'Tool Calls Detail' }))
+        .getByText('completed')
+        .getAttribute('data-tone'),
+    ).toBe('success')
     await user.click(screen.getByRole('button', { name: /retrieve/ }))
     expect(screen.getByText('Limit 3 / 1 Results')).toBeTruthy()
     expect(

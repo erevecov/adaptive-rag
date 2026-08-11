@@ -158,6 +158,29 @@ describe('ReasoningTrace', () => {
     expect(details?.hasAttribute('open')).toBe(false)
     expect(screen.getByText('Provider usage')).toBeTruthy()
   })
+
+  test('uses phrasing content inside a collapsible step summary', () => {
+    const { container } = render(
+      <ReasoningTrace
+        defaultExpanded
+        label="Execution trace"
+        steps={[
+          {
+            collapsibleDetail: true,
+            detail: 'Provider usage',
+            id: 'answer',
+            label: 'Answer',
+            status: 'completed',
+          },
+        ]}
+      />,
+    )
+
+    const summary = container.querySelector('summary')
+    expect(summary).not.toBeNull()
+    expect(summary?.querySelector('div')).toBeNull()
+    expect(summary?.querySelector(':scope > span')).not.toBeNull()
+  })
 })
 
 describe('ToolActivity', () => {
@@ -195,6 +218,34 @@ describe('ToolActivity', () => {
     expect(searchToggle.getAttribute('aria-expanded')).toBe('true')
     expect(fetchToggle.getAttribute('aria-expanded')).toBe('false')
     expect(screen.queryByText('Request is pending')).toBeNull()
+  })
+
+  test('wraps long tool identifiers and query metadata without losing accessible content', () => {
+    const label = 'tool-with-an-extremely-long-unbroken-identifier-that-must-wrap'
+    const query = 'query-with-an-extremely-long-unbroken-value-that-must-remain-visible'
+    render(
+      <ToolActivity
+        label="Tool activity"
+        items={[
+          {
+            detail: 'Stored detail',
+            id: 'long-tool',
+            label,
+            meta: query,
+            status: 'completed',
+          },
+        ]}
+      />,
+    )
+
+    const toggle = screen.getByRole('button', {
+      name: `${label}, ${query}, completed`,
+    })
+    expect(toggle.className).toContain('min-w-0')
+    expect(toggle.className).toContain('whitespace-normal')
+    expect(screen.getByText(label).className).toContain('break-words')
+    expect(screen.getByText(query).className).toContain('break-words')
+    expect(toggle.className).toContain('max-[680px]:min-h-11')
   })
 })
 

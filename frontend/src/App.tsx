@@ -3568,7 +3568,9 @@ function chatToolCallFromHistory(
   const toolCall: ChatToolCall = {
     name: call.tool_name,
     arguments: call.arguments ?? undefined,
+    error_message: call.error_message,
     result_summary: call.result_summary ?? undefined,
+    status: call.status,
   }
   if (query !== undefined) {
     toolCall.query = query

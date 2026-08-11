@@ -46,6 +46,7 @@ import {
   PromptComposer,
   StreamingAnswer,
   ToolActivity,
+  type ToolActivityItem,
 } from '@/components/beautiful-ui'
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -1793,15 +1794,22 @@ function ResponseDetailsContent({
         <ToolActivity
           items={response.tool_calls.map((call, index) => ({
             detail: (
-              <small>
-                Limit {call.limit ?? 'Unknown'} /{' '}
-                {call.result_count ?? 'Unknown'} Results
+              <small className="grid min-w-0 gap-1 whitespace-normal break-words">
+                <span>
+                  Limit {call.limit ?? 'Unknown'} /{' '}
+                  {call.result_count ?? 'Unknown'} Results
+                </span>
+                {call.error_message?.trim() ? (
+                  <span data-slot="tool-activity-error">
+                    {call.error_message}
+                  </span>
+                ) : null}
               </small>
             ),
             id: `${call.name}-${call.query ?? 'no-query'}-${index}`,
             label: call.name,
             meta: call.query ?? 'No Query Stored.',
-            status: 'completed',
+            status: toolActivityStatus(call.status),
           }))}
           label="Tool Calls Detail"
         />
@@ -1849,6 +1857,22 @@ function ResponseDetailsContent({
       ) : null}
     </div>
   )
+}
+
+function toolActivityStatus(
+  status: string | undefined,
+): ToolActivityItem['status'] {
+  if (status === undefined || status.trim().length === 0) {
+    return 'completed'
+  }
+  const normalized = status.trim().toLowerCase()
+  if (normalized === 'succeeded') {
+    return 'completed'
+  }
+  if (normalized === 'running') {
+    return 'running'
+  }
+  return 'failed'
 }
 
 function ResponseUsageStrip({ usage }: { usage: ResponseUsageSummary }) {

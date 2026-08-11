@@ -3931,6 +3931,65 @@ describe('App chat workspace', () => {
     expect(within(transcript).getByText('$0.0042')).toBeTruthy()
   })
 
+  test('preserves persisted failed and running tool status with the failure detail', async () => {
+    const user = userEvent.setup()
+    const persistedToolStates: ChatSessionDetailResponse = {
+      ...sessionDetailResponse,
+      tool_calls: [
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'connector authentication check' },
+          error_message: 'Connector authentication expired.',
+          result_summary: null,
+          status: 'failed',
+          tool_name: 'web_lookup',
+        },
+        {
+          ...sessionDetailResponse.tool_calls[0],
+          arguments: { query: 'still indexing evidence' },
+          created_at: '2026-06-21T00:00:01.500Z',
+          error_message: null,
+          result_summary: null,
+          status: 'running',
+          tool_call_id: 'tool-call-running',
+          tool_name: 'index_lookup',
+          updated_at: '2026-06-21T00:00:01.500Z',
+        },
+      ],
+    }
+    const client = createClientStub({
+      getChatSession: vi.fn(async () => persistedToolStates),
+      listChatSessions: vi.fn(async () => sessionListResponse),
+    })
+
+    render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
+
+    await user.click(
+      await screen.findByRole('button', {
+        name: /Abrir sesión Deployment question/,
+      }),
+    )
+    const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
+    await user.click(
+      within(transcript).getByRole('button', { name: 'Expand Response Details' }),
+    )
+
+    const tools = within(transcript).getByRole('region', {
+      name: 'Tool Calls Detail',
+    })
+    expect(within(tools).getByText('failed').getAttribute('data-tone')).toBe(
+      'danger',
+    )
+    expect(within(tools).getByText('running').getAttribute('data-tone')).toBe(
+      'primary',
+    )
+    const failedTool = within(tools).getByRole('button', {
+      name: /web_lookup.*connector authentication check.*failed/i,
+    })
+    await user.click(failedTool)
+    expect(within(tools).getByText('Connector authentication expired.')).toBeTruthy()
+  })
+
   test('keeps missing selected session usage values visible as unknown', async () => {
     const user = userEvent.setup()
     const client = createClientStub({

@@ -137,7 +137,7 @@ export function ReasoningTrace({
 
 function TraceStepHeader({ step }: { step: TraceStep }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <span className="flex min-w-0 items-center gap-2">
       <TraceStatusIcon status={step.status} />
       <span className="min-w-0 flex-1 truncate">{step.label}</span>
       {step.elapsedLabel || typeof step.elapsedMs === 'number' ? (
@@ -146,7 +146,7 @@ function TraceStepHeader({ step }: { step: TraceStep }) {
         </span>
       ) : null}
       <StatusBadge tone={statusTone[step.status]}>{step.status}</StatusBadge>
-    </div>
+    </span>
   )
 }
 

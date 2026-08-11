@@ -204,6 +204,36 @@ describe('ContextChunkList', () => {
 
     expect(screen.getByRole('status').textContent).toContain('No context')
   })
+
+  test('wraps a long source identifier while keeping source and score discoverable', () => {
+    const source = 'source-with-an-extremely-long-unbroken-identifier-that-must-wrap.md'
+    render(
+      <ContextChunkList
+        chunks={[
+          {
+            content: 'Evidence',
+            id: 'chunk-long',
+            meta: 'Score 0.88',
+            openLabel: `View Source ${source}`,
+            sourceLabel: source,
+          },
+        ]}
+        emptyLabel="No context"
+        label="Retrieved context"
+        onOpenChunk={() => undefined}
+      />,
+    )
+
+    const sourceButton = screen.getByRole('button', {
+      name: `View Source ${source}`,
+    })
+    expect(sourceButton.className).toContain('min-w-0')
+    expect(sourceButton.className).toContain('whitespace-normal')
+    expect(sourceButton.className).toContain('break-words')
+    expect(sourceButton.textContent).toBe(source)
+    expect(screen.getByText('Score 0.88').textContent).toBe('Score 0.88')
+    expect(sourceButton.className).toContain('max-[680px]:min-h-11')
+  })
 })
 
 test('bordered conversation containers retain square chrome', () => {

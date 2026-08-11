@@ -42,8 +42,12 @@ function ToolActivityRow({ item }: { item: ToolActivityItem }) {
   const row = (
     <>
       <ToolStatusIcon status={item.status} />
-      <span className="min-w-0 flex-1 truncate">{item.label}</span>
-      {item.meta ? <span className="text-xs tabular-nums text-muted-foreground">{item.meta}</span> : null}
+      <span className="min-w-0 flex-[1_1_12rem] whitespace-normal break-words">{item.label}</span>
+      {item.meta ? (
+        <span className="min-w-0 max-w-full flex-[1_1_12rem] whitespace-normal break-words text-xs tabular-nums text-muted-foreground">
+          {item.meta}
+        </span>
+      ) : null}
       <StatusBadge tone={statusTone[item.status]}>{item.status}</StatusBadge>
       {canExpand ? (
         <ChevronDown
@@ -60,17 +64,18 @@ function ToolActivityRow({ item }: { item: ToolActivityItem }) {
         <Button
           aria-controls={detailId}
           aria-expanded={expanded}
-          className="h-auto min-h-9 w-full justify-start bg-transparent px-3 py-2 text-left text-sm hover:bg-muted/35 max-[680px]:min-h-11"
+          aria-label={`${item.label}${item.meta ? `, ${item.meta}` : ''}, ${item.status}`}
+          className="h-auto min-h-9 w-full min-w-0 flex-wrap justify-start whitespace-normal bg-transparent px-3 py-2 text-left text-sm hover:bg-muted/35 max-[680px]:min-h-11"
           onClick={() => setExpanded((value) => !value)}
           variant="ghost"
         >
           {row}
         </Button>
       ) : (
-        <div className="flex min-h-9 items-center gap-2 px-3 py-2 text-sm max-[680px]:min-h-11">{row}</div>
+        <div className="flex min-h-9 min-w-0 flex-wrap items-center gap-2 whitespace-normal px-3 py-2 text-sm max-[680px]:min-h-11">{row}</div>
       )}
       {canExpand && expanded ? (
-        <div className="border-t border-border bg-muted/15 px-3 py-2 text-sm text-muted-foreground" id={detailId}>
+        <div className="min-w-0 whitespace-normal break-words border-t border-border bg-muted/15 px-3 py-2 text-sm text-muted-foreground" id={detailId}>
           {item.detail}
         </div>
       ) : null}

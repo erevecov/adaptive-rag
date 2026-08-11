@@ -53,6 +53,9 @@ describe('MarkdownAnswer', () => {
 
     const code = screen.getByLabelText('Code')
     expect(code.closest('[data-slot="code-stream"]')).toBeTruthy()
+    expect(
+      code.closest('[data-slot="markdown-code-block"]')?.className,
+    ).toContain('mb-2')
     expect(screen.getByText('Before')).toBeTruthy()
     expect(screen.getByText('After')).toBeTruthy()
 
@@ -62,6 +65,34 @@ describe('MarkdownAnswer', () => {
       }),
     )
     expect(writeText).toHaveBeenCalledWith('const answer = 42\nreturn answer')
+  })
+
+  test.each([
+    { markdown: '```ts', name: 'an open language fence', language: 'ts' },
+    { markdown: '```\n```', name: 'an empty closed fence', language: null },
+  ])('copies empty code for $name without rendering undefined', async ({
+    language,
+    markdown,
+  }) => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    })
+
+    render(<MarkdownAnswer>{markdown}</MarkdownAnswer>)
+
+    const code = screen.getByLabelText('Code')
+    expect(code.closest('[data-slot="code-stream"]')).toBeTruthy()
+    expect(screen.queryByText('undefined')).toBeNull()
+    if (language !== null) {
+      expect(screen.getByText(language)).toBeTruthy()
+    }
+
+    await user.click(screen.getByRole('button', { name: 'Copy code' }))
+    expect(writeText).toHaveBeenCalledTimes(1)
+    expect(writeText).toHaveBeenCalledWith('')
   })
 
   test('renders [doc-N] and [N] as beflow-style doc-N chips', async () => {

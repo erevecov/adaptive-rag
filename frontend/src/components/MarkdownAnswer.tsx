@@ -84,21 +84,40 @@ export function MarkdownAnswer({
       code: ({
         className: codeClass,
         children: node,
+        node: sourceNode,
       }: {
         className?: string
         children?: ReactNode
+        node?: {
+          position?: {
+            end: { line: number }
+            start: { line: number }
+          }
+        }
       }) => {
-        const isBlock = Boolean(codeClass) || String(node).includes('\n')
+        const sourceSpansLines =
+          sourceNode?.position !== undefined &&
+          sourceNode.position.start.line !== sourceNode.position.end.line
+        const normalizedNode = node ?? ''
+        const isBlock =
+          Boolean(codeClass) ||
+          String(normalizedNode).includes('\n') ||
+          sourceSpansLines
         if (isBlock) {
-          const code = String(node).replace(/\n$/, '')
+          const code = String(normalizedNode).replace(/\n$/, '')
           const language = codeClass?.match(/(?:^|\s)language-([^\s]+)/)?.[1]
           return (
-            <CodeStream
-              code={code}
-              copyLabel="Copy code"
-              language={language}
-              onCopy={copyCode}
-            />
+            <div
+              className="mb-2 last:mb-0"
+              data-slot="markdown-code-block"
+            >
+              <CodeStream
+                code={code}
+                copyLabel="Copy code"
+                language={language}
+                onCopy={copyCode}
+              />
+            </div>
           )
         }
         return (

@@ -43,24 +43,24 @@ export function ContextChunkList({
               data-slot="context-chunk"
               key={chunk.id}
             >
-              <div className="flex min-w-0 items-center justify-between gap-2">
+              <div className="flex min-w-0 flex-wrap items-center justify-between gap-2">
                 {onOpenChunk ? (
                   <Button
                     aria-label={chunk.openLabel}
-                    className="h-auto min-h-9 max-w-full justify-start px-0 py-0 text-left underline-offset-2 hover:underline max-[680px]:min-h-11"
+                    className="h-auto min-h-9 min-w-0 max-w-full flex-1 justify-start whitespace-normal break-words px-0 py-0 text-left underline-offset-2 hover:underline max-[680px]:min-h-11"
                     onClick={() => onOpenChunk(chunk.id)}
                     variant="ghost"
                   >
                     {chunk.sourceLabel}
                   </Button>
                 ) : (
-                  <span className="min-w-0 truncate text-sm font-medium">{chunk.sourceLabel}</span>
+                  <span className="min-w-0 flex-1 whitespace-normal break-words text-sm font-medium">{chunk.sourceLabel}</span>
                 )}
                 {chunk.meta ? (
-                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{chunk.meta}</span>
+                  <span className="max-w-full shrink-0 whitespace-normal break-words text-xs tabular-nums text-muted-foreground">{chunk.meta}</span>
                 ) : null}
               </div>
-              <div className="text-sm leading-relaxed text-muted-foreground">{chunk.content}</div>
+              <div className="min-w-0 whitespace-normal break-words text-sm leading-relaxed text-muted-foreground">{chunk.content}</div>
             </li>
           ))}
         </ul>

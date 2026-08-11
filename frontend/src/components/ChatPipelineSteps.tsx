@@ -132,7 +132,6 @@ function toTraceStep(step: ChatStep, index: number): TraceStep {
     detailChips(step).length > 0 ||
     (step.usage !== undefined && usageDetailParts(step.usage).length > 0)
   return {
-    collapsibleDetail: step.usage !== undefined && hasDetail,
     detail: hasDetail ? <StepDetail step={step} /> : undefined,
     elapsedLabel:
       step.elapsed_ms === undefined
@@ -167,11 +166,16 @@ function StepDetail({ step }: { step: ChatStep }) {
         </span>
       ) : null}
       {usage.length > 0 ? (
-        <span className="flex flex-wrap items-center gap-1 text-[11px] leading-snug text-muted-foreground">
-          {usage.map((part) => (
-            <span key={part}>{part}</span>
-          ))}
-        </span>
+        <details data-slot="chat-pipeline-usage-detail">
+          <summary className="w-fit cursor-pointer text-[11px] font-medium text-muted-foreground underline-offset-2 hover:underline">
+            Usage
+          </summary>
+          <span className="mt-1 flex flex-wrap items-center gap-1 text-[11px] leading-snug text-muted-foreground">
+            {usage.map((part) => (
+              <span key={part}>{part}</span>
+            ))}
+          </span>
+        </details>
       ) : null}
     </div>
   )
@@ -182,11 +186,11 @@ function detailChips(step: ChatStep): string[] {
   const detail = step.detail ?? {}
   const preferred = [
     'result_count',
+    'query',
     'limit',
     'strategy',
     'tool_calls',
     'sources',
-    'query',
   ]
 
   for (const key of preferred) {
@@ -215,7 +219,7 @@ function detailChips(step: ChatStep): string[] {
     }
   }
   if (step.usage?.model && !chips.includes(step.usage.model)) {
-    chips.push(step.usage.model)
+    return [...chips.slice(0, 3), step.usage.model]
   }
   return chips.slice(0, 4)
 }
@@ -232,9 +236,6 @@ function traceStatus(status: ChatStep['status']): TraceStep['status'] {
 
 function usageDetailParts(usage: ChatStepUsage): string[] {
   const parts: string[] = []
-  if (usage.model) {
-    parts.push(usage.model)
-  }
   if (usage.provider) {
     parts.push(usage.provider)
   }
