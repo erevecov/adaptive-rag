@@ -43,6 +43,15 @@ const sessions: ChatSessionSummary[] = [
   },
 ]
 
+const searchableSessions: ChatSessionSummary[] = Array.from(
+  { length: 5 },
+  (_, index) => ({
+    ...sessions[0],
+    session_id: `session-${index + 1}`,
+    title: index === 0 ? 'Architecture review' : `Session ${index + 1}`,
+  }),
+)
+
 const source: Source = {
   created_at: '2026-06-20T00:00:00Z',
   external_id: 'architecture.md',
@@ -160,6 +169,62 @@ function expectNoLegacyHistoryClasses(container: HTMLElement) {
 }
 
 describe('SessionNavigationPanel', () => {
+  test('offers CommandSearch only for session lists with at least five items', async () => {
+    const user = userEvent.setup()
+    const onSelectSession = vi.fn()
+    const { rerender } = render(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={onSelectSession}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId="session-1"
+        sessions={searchableSessions}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+
+    const searchbox = screen.getByRole('searchbox', {
+      name: 'Search sessions',
+    })
+    expect(searchbox.closest('[data-slot="command-search"]')).toBeTruthy()
+    await user.type(searchbox, 'Architecture')
+    await user.click(
+      screen.getByRole('button', { name: /^Architecture review/ }),
+    )
+    expect(onSelectSession).toHaveBeenCalledWith('session-1')
+
+    rerender(
+      <SessionNavigationPanel
+        canLoadMore={false}
+        error={null}
+        onArchiveSession={vi.fn()}
+        onDeleteSession={vi.fn()}
+        onLoadMore={vi.fn()}
+        onRenameSession={vi.fn()}
+        onSelectSession={onSelectSession}
+        onStartNewSession={vi.fn()}
+        onStatusFilterChange={vi.fn()}
+        onUnarchiveSession={vi.fn()}
+        selectedSessionId="session-1"
+        sessions={searchableSessions.slice(0, 4)}
+        state="succeeded"
+        statusFilter="active"
+      />,
+    )
+
+    expect(
+      screen.queryByRole('searchbox', { name: 'Search sessions' }),
+    ).toBeNull()
+  })
+
   test('renders session filters and rows with tokenized primitives', async () => {
     const user = userEvent.setup()
     const onStatusFilterChange = vi.fn()
@@ -548,8 +613,12 @@ describe('WorkspaceInspectorPanel', () => {
         }}
       />,
     )
-    expect(screen.getByLabelText('Loading Session Context')).toBeTruthy()
-    expect(screen.getByLabelText('Loading Action Stepper')).toBeTruthy()
+    expect(
+      screen.getByLabelText('Loading Session Context').getAttribute('data-slot'),
+    ).toBe('loading-grid')
+    expect(
+      screen.getByLabelText('Loading Action Stepper').getAttribute('data-slot'),
+    ).toBe('loading-grid')
     // Messages panel only mounts in turn-focused mode (Ver detalles).
     expect(screen.queryByLabelText('Loading Session Detail')).toBeNull()
     expect(screen.queryByText('Select A Session To Inspect Model, Prompt And Usage Context.')).toBeNull()
@@ -798,6 +867,9 @@ describe('WorkspaceInspectorPanel', () => {
     )
 
     expect(screen.getByText('This thread')).toBeTruthy()
+    await user.click(
+      screen.getByRole('button', { name: /Pipeline activity/ }),
+    )
     expect(screen.getAllByText('retrieve_first_turn_only').length).toBeGreaterThan(0)
     expect(screen.getAllByText('retrieve_second_turn_only').length).toBeGreaterThan(0)
     expect(screen.queryByRole('region', { name: 'Detalles del turno' })).toBeNull()
@@ -892,7 +964,7 @@ describe('WorkspaceInspectorPanel', () => {
     // Full overview: no message dump (turn list lives under Ver detalles only).
     expect(screen.queryByRole('region', { name: 'Selected Session Detail' })).toBeNull()
     expect(screen.queryByLabelText('assistant message')).toBeNull()
-    expect(container.querySelector('[data-slot="data-list"]')).toBeTruthy()
+    expect(container.querySelector('[data-slot="reasoning-trace"]')).toBeTruthy()
 
     await user.click(screen.getByRole('button', { name: 'New thread' }))
     expect(onStartNewSession).toHaveBeenCalledTimes(1)
@@ -907,6 +979,55 @@ describe('WorkspaceInspectorPanel', () => {
     ).toBeNull()
     expect(onOpenSource).not.toHaveBeenCalled()
     expectNoLegacyHistoryClasses(container)
+  })
+
+  test('composes turn retrieval and pipeline records through inspector patterns', async () => {
+    const user = userEvent.setup()
+    const onOpenSource = vi.fn()
+    const { container } = render(
+      <WorkspaceInspectorPanel
+        activeTab="context"
+        detail={detail}
+        detailError={null}
+        detailState="succeeded"
+        focusedTurn={{
+          question: 'What changed?',
+          turnId: 'message-assistant',
+        }}
+        layout="inline"
+        onActiveTabChange={vi.fn()}
+        onClearFocusedTurn={vi.fn()}
+        onClose={vi.fn()}
+        onNavigateMessage={vi.fn()}
+        onOpenSource={onOpenSource}
+        sourceViewer={{
+          citationSnippet: null,
+          error: null,
+          source: null,
+          sourceId: null,
+          state: 'idle',
+        }}
+      />,
+    )
+
+    expect(
+      container.querySelector('[data-slot="reasoning-trace"]'),
+    ).toBeTruthy()
+    expect(container.querySelector('[data-slot="records-grid"]')).toBeTruthy()
+    const context = screen.getByRole('region', {
+      name: 'Retrieved context',
+    })
+    expect(context.getAttribute('data-slot')).toBe('context-chunk-list')
+
+    await user.click(
+      within(context).getByRole('button', {
+        name: 'View Source architecture.md',
+      }),
+    )
+    expect(onOpenSource).toHaveBeenCalledWith(
+      'source-1',
+      'The retrieval flow changed.',
+    )
   })
 
   test('context window expands and collapses the condensed summary', async () => {

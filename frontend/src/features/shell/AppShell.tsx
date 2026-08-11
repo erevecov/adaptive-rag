@@ -9,9 +9,9 @@ import {
 import { createPortal } from 'react-dom'
 import { ChevronDown, LockKeyhole, Menu } from 'lucide-react'
 
+import { WorkspaceNavigation } from '@/components/beautiful-ui'
 import { Button, IconButton } from '@/components/ui/button'
 import { Input } from '@/components/ui/control'
-import { SidebarItem as UiSidebarItem } from '@/components/ui/nav'
 import * as Popover from '@/components/ui/popover'
 import { SessionNavigationPanel } from '@/features/history/HistoryInspectorView'
 import { type RuntimeSubmodule } from '@/features/runtime/runtimeUi'
@@ -273,7 +273,6 @@ export function ChatWorkspaceGrid({
         isRightDockInline &&
           'chat-workspace-grid-docked max-[900px]:flex-col',
       )}
-      data-chat-radius="square"
       data-slot="chat-workspace-grid"
     >
       {children}
@@ -579,24 +578,46 @@ export function AppSidebar({
 
         <nav
           aria-label="Primary Navigation"
-          className="grid min-w-0 grid-cols-2 gap-1 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:shadow-primary/95 max-[680px]:gap-0.5 max-[680px]:pb-0.5"
+          className={cn(
+            'min-w-0 border-b border-border pb-2.5 shadow-[0_1px_0_0] shadow-primary/15 max-[680px]:pb-0.5 max-[680px]:shadow-primary/95',
+            '[&_[data-slot=workspace-navigation]]:gap-0 [&_[data-slot=nav-section]]:gap-0',
+            '[&_[data-slot=nav-section-content]]:!grid [&_[data-slot=nav-section-content]]:grid-cols-2',
+            '[&_[data-slot=nav-section-content]]:gap-1 max-[680px]:[&_[data-slot=nav-section-content]]:gap-0.5',
+            '[&_[data-slot=sidebar-item]]:h-auto [&_[data-slot=sidebar-item]]:min-h-8 [&_[data-slot=sidebar-item]]:justify-center',
+            '[&_[data-slot=sidebar-item]]:overflow-hidden [&_[data-slot=sidebar-item]]:whitespace-nowrap [&_[data-slot=sidebar-item]]:px-2',
+            '[&_[data-slot=sidebar-item]]:text-center [&_[data-slot=sidebar-item]]:text-xs [&_[data-slot=sidebar-item]]:leading-tight',
+            '[&_[data-slot=sidebar-item]:last-child]:col-span-2 max-[680px]:[&_[data-slot=sidebar-item]]:min-h-11',
+            'max-[680px]:[&_[data-slot=sidebar-item]]:px-0.5 max-[680px]:[&_[data-slot=sidebar-item]]:text-[0.5625rem]',
+            'max-[680px]:[&_[data-slot=sidebar-item]]:hover:bg-primary/65 max-[680px]:[&_[data-slot=sidebar-item][data-active]]:bg-primary/45',
+          )}
           data-slot="sidebar-primary-navigation"
         >
-          <SidebarNavButton
-            active={primaryView === 'chat'}
-            label="Chat"
-            onClick={() => onPrimaryViewChange('chat')}
-          />
-          <SidebarNavButton
-            active={primaryView === 'account'}
-            label="My Account"
-            onClick={() => onPrimaryViewChange('account')}
-          />
-          <SidebarNavButton
-            active={primaryView === 'settings'}
-            className="col-span-2"
-            label="Settings"
-            onClick={() => onPrimaryViewChange('settings')}
+          <WorkspaceNavigation
+            label="Primary navigation destinations"
+            onNavigate={(id) => {
+              if (id === 'chat' || id === 'account' || id === 'settings') {
+                onPrimaryViewChange(id)
+              }
+            }}
+            sections={[
+              {
+                id: 'primary',
+                items: [
+                  { active: primaryView === 'chat', id: 'chat', label: 'Chat' },
+                  {
+                    active: primaryView === 'account',
+                    id: 'account',
+                    label: 'My Account',
+                  },
+                  {
+                    active: primaryView === 'settings',
+                    id: 'settings',
+                    label: 'Settings',
+                  },
+                ],
+                label: '',
+              },
+            ]}
           />
         </nav>
         </div>
@@ -635,35 +656,6 @@ export function AppSidebar({
         )}
       </div>
     </aside>
-  )
-}
-
-function SidebarNavButton({
-  active,
-  className,
-  label,
-  onClick,
-}: {
-  active: boolean
-  className?: string
-  label: string
-  onClick(): void
-}) {
-  return (
-    <UiSidebarItem
-      active={active}
-      className={cn(
-        // min-w-0 so 1fr/2-col tracks shrink below label min-content (was clipping Settings).
-        'h-auto min-h-8 min-w-0 w-full justify-center overflow-hidden whitespace-nowrap rounded-md px-2 py-1.5 text-center text-xs font-medium leading-tight tracking-tight max-[680px]:min-h-11 max-[680px]:px-0.5 max-[680px]:text-[0.5625rem]',
-        'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 hover:text-foreground active:bg-primary/20 max-[680px]:active:bg-primary/95',
-        active && 'bg-primary/15 max-[680px]:bg-primary/45 font-semibold text-foreground',
-        className,
-      )}
-      onClick={onClick}
-      title={label}
-    >
-      {label}
-    </UiSidebarItem>
   )
 }
 
