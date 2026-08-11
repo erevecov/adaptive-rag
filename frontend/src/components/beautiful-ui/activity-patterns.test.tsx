@@ -134,6 +134,9 @@ describe('AgentTaskList', () => {
 
     expect(screen.getByText('completed').getAttribute('data-tone')).toBe('success')
     expect(screen.getByText('failed').getAttribute('data-tone')).toBe('danger')
+    expect(screen.getByText('failed').className).toContain('rounded-[2px]')
+    expect(screen.getByText('failed').className).not.toContain('rounded-md')
+    expect(screen.getByText('failed').className).not.toContain('max-[680px]:rounded-sm')
   })
 })
 
