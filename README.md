@@ -8,7 +8,8 @@ portafolio.
 El repositorio ya tiene un flujo local-first demostrable: authoring de
 workspaces/sources, ingestion jobs visibles, indexing local, dense retrieval con
 pgvector, chat con citations, rerank opt-in, evals offline, observability local
-y un paquete Docker Compose para API, worker workspace-scoped y Postgres/pgvector.
+y un paquete Docker Compose para API, plataforma general de jobs/schedules,
+workers globales y Postgres/pgvector.
 
 La definicion de v1 cambio: v1 significa producto local-first single-user
 terminado, no solo release de portafolio del core. Antes de cortar v1.0 queda
@@ -83,34 +84,47 @@ citado se ejecuta con runtime settings persistidos.
 El paquete local usa Postgres con pgvector y la API FastAPI:
 
 ```bash
-docker compose up --build postgres api
-docker compose run --rm api alembic upgrade head
+docker compose up --build postgres migrate api
 curl http://localhost:8000/health
 ```
 
-El worker procesa jobs `ingest_source` por workspace:
+La cola completa usa PostgreSQL para jobs de workspace y sistema. El worker
+global atiende handlers registrados de varias colas con concurrencia local
+acotada; no requiere fijar un workspace:
 
 ```bash
+uv run adaptive-rag jobs worker --queues ingestion,default,system --concurrency 8
+# smoke de un ciclo
+uv run adaptive-rag jobs worker --once
+```
+
+En Docker Compose:
+
+```bash
+docker compose --profile worker up worker
+docker compose up migrate scheduler
+```
+
+El scheduler materializa cron durable para jobs registrados, incluido el sync
+diario de `pricing_json` del model catalog. Jobs, schedules, queues y workers se
+operan por CLI, API y la consola `Settings > Background Jobs`:
+
+```bash
+uv run adaptive-rag jobs scheduler --once
+uv run adaptive-rag jobs queues list
+uv run adaptive-rag jobs workers list
+uv run adaptive-rag jobs retention          # dry-run
+uv run adaptive-rag jobs retention --apply  # borrado terminal acotado
+
+# adaptadores de compatibilidad
 uv run adaptive-rag jobs run-worker --workspace-id <workspace-id> --once
-```
-
-En Docker Compose el worker usa profile porque requiere `workspace_id`:
-
-```bash
-ADAPTIVE_RAG_WORKER_WORKSPACE_ID=<workspace-id> docker compose --profile worker up worker
-```
-
-El servicio `scheduler` (siempre en el stack, sin profile) corre maintenance
-global in-app — hoy el sync diario de `pricing_json` del model catalog Qwen:
-
-```bash
-docker compose up scheduler
-# smoke once:
 uv run adaptive-rag system run-scheduler --once --force
 uv run adaptive-rag providers sync-pricing
 ```
 
-Detalles y runbook del core M21: `docs/architecture/v1-release-package.md`.
+Despliegue, permisos mínimos, recuperación, métricas y retención:
+`docs/architecture/job-platform-runbook.md`. El paquete general de release está
+en `docs/architecture/v1-release-package.md`.
 
 ## Demo core reproducible
 

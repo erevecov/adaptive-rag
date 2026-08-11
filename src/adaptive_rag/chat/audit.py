@@ -725,7 +725,7 @@ class SqlAlchemyChatAuditWriter:
             query=query,
             strategy=strategy,
             top_k=limit,
-            used_rerank=any("rerank_metadata" in result for result in results),
+            used_rerank=_used_rerank(results),
             filters_json=filters_json,
             latency_ms=latency_ms,
         )
@@ -931,6 +931,9 @@ def _retrieval_result_summary(
     fallback_reason = _fallback_reason(results)
     if fallback_reason is not None:
         summary["fallback_reason"] = fallback_reason
+    rerank_fallback_reason = _rerank_fallback_reason(results)
+    if rerank_fallback_reason is not None:
+        summary["rerank_fallback_reason"] = rerank_fallback_reason
     return summary
 
 
@@ -938,6 +941,23 @@ def _fallback_reason(results: Sequence[RetrievalResultPayload]) -> str | None:
     for result in results:
         fallback_reason = result.get("fallback_reason")
         if fallback_reason is not None:
+            return fallback_reason
+    return None
+
+
+def _used_rerank(results: Sequence[RetrievalResultPayload]) -> bool:
+    return any(
+        result.get("rerank_metadata", {}).get("used_rerank") is True
+        for result in results
+    )
+
+
+def _rerank_fallback_reason(
+    results: Sequence[RetrievalResultPayload],
+) -> str | None:
+    for result in results:
+        fallback_reason = result.get("rerank_metadata", {}).get("fallback_reason")
+        if isinstance(fallback_reason, str):
             return fallback_reason
     return None
 

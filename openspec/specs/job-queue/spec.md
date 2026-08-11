@@ -2,143 +2,154 @@
 
 ## Purpose
 
-Definir el contrato de cola persistente de jobs para Adaptive RAG: trabajo
-asincronico aislado por workspace, eventos auditables, retries y leasing de
-workers.
+Definir la plataforma PostgreSQL general para cualquier trabajo en segundo
+plano: handlers tipados/versionados, jobs de workspace o sistema, ejecución
+at-least-once con fencing, schedules durables y control operativo completo.
+
 ## Requirements
-### Requirement: Jobs persisten trabajo asincronico por workspace
 
-El sistema MUST persistir jobs aislados por `workspace_id` con tipo, payload, prioridad, estado, intentos, limites de retry y lease opcional.
+### Requirement: Registered handlers define the executable contract
 
-#### Scenario: Job nuevo queda queued
+The system MUST enqueue and execute only statically registered handler name and
+version pairs. The registry MUST define typed payload validation, queue, scope,
+retry/lease policy, concurrency policy and redaction.
 
-- **WHEN** se crea un job para un workspace
-- **THEN** el job queda con `status = queued`
-- **AND** `attempts = 0`
-- **AND** `max_attempts` es positivo
+#### Scenario: Unknown or invalid work is rejected before persistence
 
-#### Scenario: Estados invalidos son rechazados
+- **WHEN** a caller enqueues an unknown handler/version or invalid payload
+- **THEN** no job is inserted
+- **AND** payload/result sizes and secret-like material are rejected or redacted
 
-- **WHEN** se intenta persistir un job con estado fuera de `queued`, `running`, `succeeded`, `blocked` o `dead_letter`
-- **THEN** la base de datos rechaza la fila
+### Requirement: Jobs support workspace and system scopes
 
-### Requirement: Job events registran auditoria append-only
+The system MUST persist jobs with exactly one valid scope: workspace jobs have
+`workspace_id`; system jobs do not. Jobs MUST include queue, immutable handler
+version, priority, run time, retry policy, idempotency/fingerprint, state,
+version and the current attempt fence.
 
-El sistema MUST persistir eventos por job con `workspace_id`, `event_type`, mensaje opcional, metadata opcional y timestamp.
+#### Scenario: Transactional enqueue is idempotent
 
-#### Scenario: Crear job registra evento created
+- **WHEN** equivalent work is enqueued twice with the same scope and
+  idempotency key
+- **THEN** both calls identify one durable job
+- **AND** reuse with a different canonical fingerprint is rejected
+- **AND** the insert and PostgreSQL notification become visible only on commit
 
-- **WHEN** el repository crea un job
-- **THEN** tambien agrega un evento `created` para ese job
+#### Scenario: State and scope invariants are database enforced
 
-#### Scenario: Eventos se listan por job y workspace
+- **WHEN** a row violates the allowed states, scope relation, bounded fields or
+  attempt fence relation
+- **THEN** PostgreSQL rejects the mutation
 
-- **WHEN** un job tiene multiples eventos
-- **THEN** el repository los devuelve ordenados por creacion
-- **AND** no devuelve eventos si el `workspace_id` no corresponde
+### Requirement: Claims are fair and capacity constrained
 
-### Requirement: Leasing asigna jobs disponibles a workers
+Workers MUST claim eligible jobs through short PostgreSQL transactions using
+row locks with `SKIP LOCKED`. Selection MUST honor queue pause, priority,
+`run_after`, fair workspace rotation and limits at queue, workspace, handler and
+concurrency-key levels.
 
-El sistema MUST permitir que un worker leasee el siguiente job disponible sin hacer `commit()` implicito.
+#### Scenario: Replicated workers claim without duplication or starvation
 
-#### Scenario: Lease toma el job queued mas prioritario y vencido
+- **WHEN** concurrent compatible workers drain jobs from multiple workspaces
+- **THEN** one current attempt owns each running job
+- **AND** configured shared limits are never exceeded
+- **AND** every non-empty eligible workspace receives claims
 
-- **WHEN** existen jobs `queued` con `run_after <= now`
-- **THEN** `lease_next` devuelve el job con mayor prioridad y mayor antiguedad
-- **AND** lo cambia a `running`
-- **AND** incrementa `attempts`
-- **AND** guarda `locked_by` y `locked_until`
+### Requirement: Attempts use leases, heartbeats and fencing
 
-#### Scenario: Jobs futuros o de otro workspace no se leasean
+The system MUST persist every attempt separately. Heartbeat, progress and final
+state writes MUST require the job's current `attempt_id`.
 
-- **WHEN** un job tiene `run_after > now` o pertenece a otro workspace
-- **THEN** `lease_next` no lo devuelve
+#### Scenario: A crashed worker is recovered safely
 
-### Requirement: Retry, blocked y dead-letter son transiciones explicitas
+- **WHEN** a current lease expires after worker loss
+- **THEN** a replicated reaper expires that attempt exactly once
+- **AND** requeues or dead-letters according to retry budget
+- **AND** a later attempt may finish the job
+- **AND** any write from the old attempt is rejected and audited as
+  `fenced_write_rejected`
 
-El sistema MUST proveer transiciones de repository para completar, reintentar, bloquear y enviar jobs a `dead_letter`.
+### Requirement: Lifecycle operations are explicit and audited
 
-#### Scenario: Falla con intentos disponibles vuelve a queued
+The system MUST support succeeded, retryable failure with full-jitter backoff,
+blocked, dead-letter, cooperative cancellation, retry and unblock transitions.
+Every control and execution transition MUST append a redacted event.
 
-- **WHEN** un job `running` falla y `attempts < max_attempts`
-- **THEN** el job vuelve a `queued`
-- **AND** `run_after` refleja el proximo intento
-- **AND** el lease queda limpio
+#### Scenario: Running cancellation is cooperative
 
-#### Scenario: Falla sin intentos disponibles queda dead_letter
+- **WHEN** an operator cancels a running job
+- **THEN** the cancellation request is persisted and visible to its handler
+- **AND** handler confirmation ends it as cancelled
+- **AND** a completion that wins the race remains succeeded and is audited
 
-- **WHEN** un job `running` falla y `attempts >= max_attempts`
-- **THEN** el job queda con `status = dead_letter`
-- **AND** el lease queda limpio
+#### Scenario: Optimistic control mutation conflicts
 
-#### Scenario: Leases vencidos se liberan
+- **WHEN** an API, CLI or console mutation uses a stale job/queue/schedule
+  version
+- **THEN** it fails without overwriting the newer state
 
-- **WHEN** un job `running` tiene `locked_until <= now`
-- **THEN** el repository puede devolverlo a `queued` y limpiar el lease
+### Requirement: Worker wake-up is durable without notifications
 
-### Requirement: Jobs can be listed and manually requeued
+Workers MUST combine PostgreSQL `LISTEN/NOTIFY` with bounded polling. Local
+concurrency MUST be configurable and advertised; shutdown MUST advertise
+draining and use a bounded drain timeout.
 
-The job repository MUST support public ingestion operations without forcing
-callers to write SQL.
+#### Scenario: Notifications are unavailable
 
-#### Scenario: Jobs are listed deterministically
+- **WHEN** an insert notification is lost or its trigger is disabled
+- **THEN** an eligible job is still claimed through polling
 
-- **WHEN** API or CLI lists jobs for a workspace
-- **THEN** `JobRepository` returns workspace-scoped jobs ordered by creation time
-  and id
-- **AND** optional filters can narrow by status and job type
+### Requirement: Cron schedules are durable and replica safe
 
-#### Scenario: Blocked or dead-letter jobs are requeued manually
+The system MUST persist schedules with registered handler/version, scope,
+payload, cron expression, IANA timezone, misfire policy, occurrence cursor and
+optimistic version. Replicated schedulers MUST materialize each occurrence at
+most once.
 
-- **WHEN** API or CLI retries a `blocked` or `dead_letter` job
-- **THEN** `JobRepository` moves it to `queued`
-- **AND** clears `locked_by`, `locked_until` and `last_error`
-- **AND** appends a `retried` event
+#### Scenario: DST and misfires are deterministic
 
-### Requirement: Worker can lease ingestion-family job types
+- **WHEN** a timezone crosses an ambiguous/non-existent local time or the
+  scheduler resumes late
+- **THEN** the next occurrence is computed deterministically
+- **AND** `skip`, `run_once` or bounded `catch_up` is applied as configured
 
-The job repository/worker MUST support leasing the next ready job among a
-declared set of job types so ingestion and indexing share one public worker loop.
+### Requirement: API, CLI and console expose scoped operations
 
-#### Scenario: Lease prefers highest priority ready family job
+Workspace readers MUST list/detail jobs and schedules only in their workspace;
+workspace admins MUST perform allowed mutations/manual enqueue. Superadmins
+MUST exclusively control system jobs, queues, workers and global metrics.
 
-- **WHEN** a workspace has queued `ingest_source` and `index_document_version` jobs
-  ready to run
-- **AND** the worker leases the next job for the ingestion family
-- **THEN** selection uses existing priority / run_after / created_at ordering
-- **AND** jobs of unrelated types (for example graph jobs) are not leased by
-  that family worker
+#### Scenario: Direct unauthorized console navigation
 
-### Requirement: Worker recovers expired leases before leasing
+- **WHEN** a non-superadmin navigates directly to Queues or Workers
+- **THEN** the UI returns to an allowed Background Jobs view
+- **AND** makes no global admin request
 
-The public ingestion-family worker MUST release expired running leases for the
-workspace before selecting the next job.
+### Requirement: Operational metrics and retention are bounded
 
-#### Scenario: Expired running job becomes leaseable again
+Metrics MUST expose queue depth/age/capacity, running work, timing samples,
+outcomes, expired leases/fencing, worker states, unroutable work and scheduler
+lag/misfires through bounded result sets. Retention MUST preview or delete only
+bounded batches of old terminal jobs not protected by provider-usage/audit
+references.
 
-- **WHEN** a job is `running` with `locked_until <= now`
-- **AND** a worker runs the next ingestion-family cycle for that workspace
-- **THEN** the system releases the expired lease back to `queued`
-- **AND** appends a `released` event
-- **AND** the job may be leased again by a subsequent worker cycle
+#### Scenario: Retention dry-run and apply
 
-### Requirement: Unexpected job failures use fail with backoff
+- **WHEN** retention runs without `--apply`
+- **THEN** it returns candidate IDs/counts without mutation
+- **WHEN** the same eligible batch runs with `--apply`
+- **THEN** jobs and cascading attempts/events delete in one transaction
+- **AND** non-terminal, recent and protected jobs remain
 
-The worker MUST route unexpected exceptions through `JobRepository.fail()` so
-retries and dead-letter are real, not stuck `running` rows.
+### Requirement: Ingestion compatibility uses the general platform
 
-#### Scenario: Unexpected error requeues with backoff while attempts remain
+`ingest_source`, `index_document_version` and provider pricing sync MUST be
+registered handlers executed by the general worker/scheduler. Legacy public
+commands and ingestion operations MUST remain compatibility adapters.
 
-- **WHEN** a leased job raises an unexpected exception and `attempts < max_attempts`
-- **THEN** the job returns to `queued` via `fail()`
-- **AND** `run_after` is set in the future according to backoff
-- **AND** `last_error` stores the error message
-- **AND** a `failed_attempt` event is recorded
+#### Scenario: Ingestion enqueues indexing
 
-#### Scenario: Unexpected error dead-letters when attempts are exhausted
-
-- **WHEN** a leased job raises an unexpected exception and `attempts >= max_attempts`
-- **THEN** the job status becomes `dead_letter`
-- **AND** a `dead_lettered` event is recorded
-- **AND** the job is not left in `running`
-
+- **WHEN** `ingest_source` succeeds for a valid source
+- **THEN** it creates/reuses its document version
+- **AND** transactionally enqueues `index_document_version`
+- **AND** both jobs are visible through the general job detail/events contract

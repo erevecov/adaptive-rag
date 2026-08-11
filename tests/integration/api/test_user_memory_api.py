@@ -404,3 +404,138 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
     )
     assert reinjected.user_memory is not None
     assert "Edited preference" in reinjected.user_memory
+
+
+def test_list_filter_by_status_and_invalid_status() -> None:
+    session = _make_session()
+    _create_user(session, login="filter@example.com", token="filter-token")
+    session.commit()
+    client = _client(session=session)
+
+    first = client.post(
+        "/users/me/memories",
+        headers=_bearer("filter-token"),
+        json={"content": "First preference"},
+    )
+    assert first.status_code == 201
+    second = client.post(
+        "/users/me/memories",
+        headers=_bearer("filter-token"),
+        json={"content": "Second preference"},
+    )
+    assert second.status_code == 201
+    approved = client.post(
+        f"/users/me/memories/{first.json()['id']}/approve",
+        headers=_bearer("filter-token"),
+    )
+    assert approved.status_code == 200
+
+    only_approved = client.get(
+        "/users/me/memories?status=approved",
+        headers=_bearer("filter-token"),
+    )
+    assert only_approved.status_code == 200
+    approved_items = only_approved.json()["items"]
+    assert [item["content"] for item in approved_items] == ["First preference"]
+
+    only_proposed = client.get(
+        "/users/me/memories?status=proposed",
+        headers=_bearer("filter-token"),
+    )
+    assert only_proposed.status_code == 200
+    proposed_items = only_proposed.json()["items"]
+    assert [item["content"] for item in proposed_items] == ["Second preference"]
+
+    invalid = client.get(
+        "/users/me/memories?status=archived",
+        headers=_bearer("filter-token"),
+    )
+    assert invalid.status_code == 422
+
+
+def test_patch_rejected_memory_conflicts() -> None:
+    session = _make_session()
+    _create_user(session, login="patchrej@example.com", token="patchrej-token")
+    session.commit()
+    client = _client(session=session)
+
+    created = client.post(
+        "/users/me/memories",
+        headers=_bearer("patchrej-token"),
+        json={"content": "Draft to reject"},
+    )
+    assert created.status_code == 201
+    memory_id = created.json()["id"]
+
+    rejected = client.post(
+        f"/users/me/memories/{memory_id}/reject",
+        headers=_bearer("patchrej-token"),
+    )
+    assert rejected.status_code == 200
+
+    conflict = client.patch(
+        f"/users/me/memories/{memory_id}",
+        headers=_bearer("patchrej-token"),
+        json={"content": "Too late"},
+    )
+    assert conflict.status_code == 409
+
+
+def test_foreign_memory_patch_and_reject_hidden() -> None:
+    session = _make_session()
+    _create_user(session, login="idor-owner@example.com", token="idor-owner-token")
+    _create_user(session, login="idor-other@example.com", token="idor-other-token")
+    session.commit()
+    client = _client(session=session)
+
+    created = client.post(
+        "/users/me/memories",
+        headers=_bearer("idor-owner-token"),
+        json={"content": "Owner draft"},
+    )
+    assert created.status_code == 201
+    memory_id = created.json()["id"]
+
+    foreign_patch = client.patch(
+        f"/users/me/memories/{memory_id}",
+        headers=_bearer("idor-other-token"),
+        json={"content": "Hijacked"},
+    )
+    assert foreign_patch.status_code == 404
+
+    foreign_reject = client.post(
+        f"/users/me/memories/{memory_id}/reject",
+        headers=_bearer("idor-other-token"),
+    )
+    assert foreign_reject.status_code == 404
+
+    owner_view = client.get(
+        "/users/me/memories",
+        headers=_bearer("idor-owner-token"),
+    )
+    assert owner_view.status_code == 200
+    items = owner_view.json()["items"]
+    assert len(items) == 1
+    assert items[0]["content"] == "Owner draft"
+    assert items[0]["status"] == "proposed"
+
+
+def test_content_length_boundary() -> None:
+    session = _make_session()
+    _create_user(session, login="length@example.com", token="length-token")
+    session.commit()
+    client = _client(session=session)
+
+    at_limit = client.post(
+        "/users/me/memories",
+        headers=_bearer("length-token"),
+        json={"content": "x" * 4000},
+    )
+    assert at_limit.status_code == 201
+
+    over_limit = client.post(
+        "/users/me/memories",
+        headers=_bearer("length-token"),
+        json={"content": "x" * 4001},
+    )
+    assert over_limit.status_code == 422

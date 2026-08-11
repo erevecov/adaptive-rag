@@ -22,9 +22,9 @@ class Settings(BaseSettings):
     env: str = "local"
     log_level: str = "INFO"
     database_url: str = (
-        "postgresql+psycopg://adaptive_rag:adaptive_rag"
-        "@localhost:5432/adaptive_rag"
+        "postgresql+psycopg://adaptive_rag:adaptive_rag@localhost:5432/adaptive_rag"
     )
+    job_database_url: str | None = None
     cors_allowed_origins: tuple[str, ...] = (
         "http://localhost:3000",
         "http://localhost:3001",

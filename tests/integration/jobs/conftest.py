@@ -1,0 +1,77 @@
+"""PostgreSQL fixtures for the job-platform integration suite."""
+
+from __future__ import annotations
+
+import os
+import subprocess
+from collections.abc import Iterator
+from pathlib import Path
+
+import pytest
+from sqlalchemy import Engine, create_engine, text
+from sqlalchemy.orm import Session, sessionmaker
+from testcontainers.postgres import PostgresContainer
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+PGVECTOR_IMAGE = "pgvector/pgvector:pg16"
+
+
+@pytest.fixture(scope="module")
+def job_database_url() -> Iterator[str]:
+    with PostgresContainer(PGVECTOR_IMAGE, driver="psycopg") as postgres:
+        database_url = postgres.get_connection_url()
+        result = subprocess.run(
+            ["uv", "run", "alembic", "upgrade", "head"],
+            cwd=REPO_ROOT,
+            env={**os.environ, "ADAPTIVE_RAG_DATABASE_URL": database_url},
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise AssertionError(
+                "alembic upgrade head failed\n"
+                f"STDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            )
+        yield database_url
+
+
+@pytest.fixture(scope="module")
+def job_engine(job_database_url: str) -> Iterator[Engine]:
+    engine = create_engine(job_database_url, pool_pre_ping=True)
+    yield engine
+    engine.dispose()
+
+
+@pytest.fixture(scope="module")
+def job_session_factory(job_engine: Engine) -> sessionmaker[Session]:
+    return sessionmaker(
+        bind=job_engine,
+        autoflush=False,
+        expire_on_commit=False,
+    )
+
+
+@pytest.fixture(autouse=True)
+def isolate_job_platform_test(job_engine: Engine) -> Iterator[None]:
+    yield
+    with job_engine.begin() as connection:
+        connection.execute(text("UPDATE jobs SET current_attempt_id = NULL"))
+        connection.execute(text("DELETE FROM job_events"))
+        connection.execute(text("DELETE FROM job_attempts"))
+        connection.execute(text("DELETE FROM jobs"))
+        connection.execute(
+            text(
+                "DELETE FROM job_schedules WHERE id != "
+                "'00000000-0000-0000-0000-000000000701'"
+            )
+        )
+        connection.execute(text("DELETE FROM job_queue_workspace_state"))
+        connection.execute(text("DELETE FROM workspaces"))
+        connection.execute(
+            text(
+                "UPDATE job_queues SET paused_at = NULL, "
+                "global_concurrency_limit = NULL, "
+                "workspace_concurrency_limit = NULL, "
+                "default_lease_seconds = 300"
+            )
+        )

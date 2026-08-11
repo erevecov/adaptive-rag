@@ -50,6 +50,19 @@ class IndexingRunResult:
 
 
 @dataclass(frozen=True, slots=True)
+class IndexingDomainResult:
+    document_version: DocumentVersion
+    source_id: UUID | None
+    chunk_count: int
+    contextualized_chunk_count: int
+    reused_contextualized_chunk_count: int
+    embedded_chunk_count: int
+    reused_chunk_count: int
+    sparse_embedded_chunk_count: int
+    sparse_reused_chunk_count: int
+
+
+@dataclass(frozen=True, slots=True)
 class IndexingBlockedResult:
     job: Job
     error_message: str
@@ -136,6 +149,34 @@ class IndexingPipeline:
     def _process_job(self, *, workspace_id: UUID, job: Job) -> IndexingRunResult:
         document_version_id = _document_version_id_from_payload(job.payload_json)
         source_id = _optional_source_id_from_payload(job.payload_json)
+        result = self.index_document_version(
+            workspace_id=workspace_id,
+            document_version_id=document_version_id,
+            source_id=source_id,
+        )
+        return IndexingRunResult(
+            job=job,
+            document_version=result.document_version,
+            source_id=result.source_id,
+            chunk_count=result.chunk_count,
+            contextualized_chunk_count=result.contextualized_chunk_count,
+            reused_contextualized_chunk_count=(
+                result.reused_contextualized_chunk_count
+            ),
+            embedded_chunk_count=result.embedded_chunk_count,
+            reused_chunk_count=result.reused_chunk_count,
+            sparse_embedded_chunk_count=result.sparse_embedded_chunk_count,
+            sparse_reused_chunk_count=result.sparse_reused_chunk_count,
+        )
+
+    def index_document_version(
+        self,
+        *,
+        workspace_id: UUID,
+        document_version_id: UUID,
+        source_id: UUID | None = None,
+    ) -> IndexingDomainResult:
+        """Run indexing domain work without mutating queue lifecycle state."""
 
         dense_provider = self._resolve_dense_provider(workspace_id=workspace_id)
         sparse_provider = self._resolve_sparse_provider(workspace_id=workspace_id)
@@ -167,8 +208,7 @@ class IndexingPipeline:
             document_version_id=document_version_id,
         )
 
-        return IndexingRunResult(
-            job=job,
+        return IndexingDomainResult(
             document_version=chunk_result.document_version,
             source_id=source_id,
             chunk_count=len(chunk_result.chunks),

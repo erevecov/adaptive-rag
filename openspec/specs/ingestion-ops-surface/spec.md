@@ -152,8 +152,29 @@ by the hardened worker path.
 
 #### Scenario: User inspects a recovered or failed job
 
-- **WHEN** a job was released after lease expiry or failed via `fail()`
-- **THEN** job detail includes the corresponding `released`, `failed_attempt`
+- **WHEN** a job was reaped after lease expiry or a registered handler failed
+- **THEN** job detail includes the corresponding `expired`, `retry_scheduled`
   or `dead_lettered` events in deterministic order
 - **AND** `last_error` is visible when present
 
+### Requirement: Ingestion runs on the general job platform
+
+`ingest_source` and `index_document_version` MUST be typed versioned handlers in
+the general registry. Public ingestion enqueue/run-next/retry contracts MUST be
+compatibility adapters over the same jobs, attempts and events used by the
+global worker.
+
+#### Scenario: Global worker drains ingestion across workspaces
+
+- **WHEN** the general worker consumes the `ingestion` queue without a fixed
+  workspace
+- **THEN** fair dispatch and configured shared/workspace limits apply
+- **AND** each handler reads and writes only the job's workspace data
+- **AND** a successful ingest transactionally enqueues indexing
+
+#### Scenario: Compatibility commands remain usable
+
+- **WHEN** a local operator uses `jobs run-worker`, `run-next` or the authoring
+  ingestion controls
+- **THEN** they execute through the registered general handlers
+- **AND** job detail in Background Jobs reflects the same durable lifecycle

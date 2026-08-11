@@ -72,9 +72,11 @@ describe('AppSidebar pattern adoption', () => {
       <AppSidebar
         accountModule="appearance"
         authoringSubmodule="workspaces"
+        canManageJobPlatform={false}
         canLoadMoreSessions={false}
         error={null}
         isOpen
+        jobsSubmodule="jobs"
         observabilitySubmodule="summary"
         onAccountModuleChange={vi.fn()}
         onArchiveSession={vi.fn()}
@@ -123,9 +125,11 @@ describe('AppSidebar pattern adoption', () => {
       <AppSidebar
         accountModule="appearance"
         authoringSubmodule="workspaces"
+        canManageJobPlatform={false}
         canLoadMoreSessions={false}
         error={null}
         isOpen
+        jobsSubmodule="jobs"
         observabilitySubmodule="summary"
         onAccountModuleChange={vi.fn()}
         onArchiveSession={vi.fn()}

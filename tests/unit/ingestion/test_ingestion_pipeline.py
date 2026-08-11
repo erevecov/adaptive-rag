@@ -145,6 +145,26 @@ def test_run_next_ingests_markdown_source_into_document_version() -> None:
     assert _chunk_count(session) == 0
 
 
+def test_process_source_performs_domain_work_without_job_transition() -> None:
+    session = _make_session()
+    workspace = WorkspaceRepository(session).create(name="domain-only")
+    source = SourceRepository(session).create(
+        workspace_id=workspace.id,
+        source_type="markdown",
+        external_id="domain.md",
+        extra_metadata={"content": "# Domain only"},
+    )
+
+    result = IngestionPipeline(session).process_source(
+        workspace_id=workspace.id,
+        source_id=source.id,
+    )
+
+    assert result.source.id == source.id
+    assert result.document_version.normalized_text == "# Domain only"
+    assert JobRepository(session).list(workspace_id=workspace.id) == []
+
+
 def test_run_next_is_idempotent_for_same_content_and_fingerprint() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="demo")

@@ -16,8 +16,12 @@ from adaptive_rag.db.models.graph_projection import (
     GRAPH_projection_STATUS_VALUES,
     Graphprojection,
 )
-from adaptive_rag.db.models.job import JOB_STATUS_VALUES, Job
+from adaptive_rag.db.models.job import JOB_SCOPE_VALUES, JOB_STATUS_VALUES, Job
+from adaptive_rag.db.models.job_attempt import JOB_ATTEMPT_STATUS_VALUES, JobAttempt
 from adaptive_rag.db.models.job_event import JOB_EVENT_TYPE_VALUES, JobEvent
+from adaptive_rag.db.models.job_queue import JobQueue, JobQueueWorkspaceState
+from adaptive_rag.db.models.job_schedule import JOB_MISFIRE_POLICY_VALUES, JobSchedule
+from adaptive_rag.db.models.job_worker import JobWorker
 from adaptive_rag.db.models.knowledge_proposal import (
     KNOWLEDGE_PROPOSAL_STATUS_VALUES,
     KnowledgeProposal,
@@ -94,9 +98,17 @@ __all__ = [
     "GlobalChatModel",
     "Graphprojection",
     "JOB_EVENT_TYPE_VALUES",
+    "JOB_ATTEMPT_STATUS_VALUES",
+    "JOB_MISFIRE_POLICY_VALUES",
+    "JOB_SCOPE_VALUES",
     "JOB_STATUS_VALUES",
     "Job",
+    "JobAttempt",
     "JobEvent",
+    "JobQueue",
+    "JobQueueWorkspaceState",
+    "JobSchedule",
+    "JobWorker",
     "JSONWithJSONB",
     "KNOWLEDGE_PROPOSAL_STATUS_VALUES",
     "KnowledgeProposal",

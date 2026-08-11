@@ -383,3 +383,49 @@ def test_approve_rejected_restores_injection() -> None:
     assert "Keep this preference" in user_memory.approved_injection_text(
         session, user_id=user.id
     )
+
+
+def test_injection_text_caps_at_max_items() -> None:
+    session = _session()
+    user = UserRepository(session).create_user(
+        login="cap-user",
+        display_name="Cap",
+        system_role="user",
+    )
+    for index in range(10):
+        memory = user_memory.propose_memory(
+            session, user_id=user.id, content=f"Preference {index}"
+        )
+        user_memory.approve_memory(
+            session,
+            memory_id=memory.id,
+            reviewer_user_id=user.id,
+            owner_user_id=user.id,
+        )
+
+    text = user_memory.approved_injection_text(session, user_id=user.id)
+    assert text.startswith("User memory (approved):\n")
+    injected_lines = text.splitlines()[1:]
+    assert len(injected_lines) == 8
+
+
+def test_special_characters_roundtrip_and_injection() -> None:
+    session = _session()
+    user = UserRepository(session).create_user(
+        login="unicode-user",
+        display_name="Unicode",
+        system_role="user",
+    )
+    content = 'Prefers "español" 🌍\nSecond line <script>alert(1)</script> & símbolos'
+    memory = user_memory.propose_memory(session, user_id=user.id, content=content)
+    assert memory.content == content
+
+    user_memory.approve_memory(
+        session,
+        memory_id=memory.id,
+        reviewer_user_id=user.id,
+        owner_user_id=user.id,
+    )
+    text = user_memory.approved_injection_text(session, user_id=user.id)
+    assert '"español" 🌍' in text
+    assert "<script>alert(1)</script>" in text

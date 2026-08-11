@@ -25,6 +25,7 @@ def test_compose_includes_frontend_and_migration_docs() -> None:
     compose = (ROOT / "compose.yaml").read_text(encoding="utf-8")
     assert "frontend:" in compose
     assert "alembic upgrade head" in compose
+    assert compose.count("ADAPTIVE_RAG_JOB_DATABASE_URL") >= 3
     assert (ROOT / "frontend" / "Dockerfile").is_file()
     assert (ROOT / "frontend" / "nginx.conf").is_file()
 
@@ -39,6 +40,17 @@ def test_compose_frontend_uses_build_time_api_base_var() -> None:
     assert "environment:" not in compose.split("frontend:", 1)[1].split("worker:", 1)[0]
     dockerfile = (ROOT / "frontend" / "Dockerfile").read_text(encoding="utf-8")
     assert "ARG VITE_ADAPTIVE_RAG_API_BASE_URL" in dockerfile
+
+
+def test_frontend_docker_context_excludes_local_build_artifacts() -> None:
+    dockerignore = (ROOT / "frontend" / ".dockerignore").read_text(
+        encoding="utf-8"
+    )
+    ignored = {line.strip() for line in dockerignore.splitlines() if line.strip()}
+
+    assert "node_modules" in ignored
+    assert "dist" in ignored
+    assert "coverage" in ignored
 
 
 def test_deferred_defaults_no_longer_list_auth_multi_user() -> None:
