@@ -8,12 +8,12 @@
 
 ## 2. Retrieval service
 
-- [ ] 2.1 Add failing tests for missing, unavailable, budget-blocked, and
+- [x] 2.1 Add failing tests for missing, unavailable, budget-blocked, and
   invalid rerank providers.
-- [ ] 2.2 Add failing tests for bounded order, prior fallback preservation, and
+- [x] 2.2 Add failing tests for bounded order, prior fallback preservation, and
   unexpected exception propagation.
-- [ ] 2.3 Implement the canonical service fallback and stable metadata.
-- [ ] 2.4 Run the full retrieval unit suite.
+- [x] 2.3 Implement the canonical service fallback and stable metadata.
+- [x] 2.4 Run the full retrieval unit suite.
 
 ## 3. Product adapters
 
