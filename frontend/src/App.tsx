@@ -11,7 +11,7 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
-import { AuthBoundary } from '@/features/auth/AuthBoundary'
+import { AuthBoundary, type AuthSessionActions } from '@/features/auth/AuthBoundary'
 import {
   GlobalUsersPanel,
   WorkspaceMembersPanel,
@@ -162,9 +162,10 @@ function App({
   )
   return (
     <AuthBoundary client={client} initialCurrentUser={initialCurrentUser}>
-      {(currentUser) => (
+      {(currentUser, authSession) => (
         <AuthenticatedApp
           apiClient={client}
+          authSession={authSession}
           initialCurrentUser={currentUser}
           initialWorkspaceId={
             initialWorkspaceId.trim() || currentUser.last_workspace_id || ''
@@ -177,10 +178,12 @@ function App({
 
 function AuthenticatedApp({
   apiClient: client,
+  authSession,
   initialCurrentUser,
   initialWorkspaceId = '',
 }: {
   apiClient: ApiClient
+  authSession: AuthSessionActions
   initialCurrentUser: CurrentUser
   initialWorkspaceId?: string
 }) {
@@ -2647,14 +2650,21 @@ function AuthenticatedApp({
           canManageJobPlatform={canManageJobPlatform}
           canManageWorkspaceMembers={canAdminWorkspace}
           canLoadMoreSessions={hasMoreSessions}
+          currentUserEmail={currentUser.email}
           error={historyError}
           isOpen={isLeftSidebarOpen}
           jobsSubmodule={jobsSubmodule}
+          logoutBusy={authSession.logoutBusy}
+          logoutError={authSession.logoutError}
           observabilitySubmodule={observabilitySubmodule}
           onArchiveSession={(sessionId) => void handleArchiveSession(sessionId)}
           onAccountModuleChange={setAccountModule}
           onDeleteSession={(sessionId) => void handleDeleteSession(sessionId)}
+          onFeedback={() => {
+            // Placeholder until product feedback lands.
+          }}
           onLoadMoreSessions={handleLoadMoreSessions}
+          onLogout={authSession.onLogout}
           onPrimaryViewChange={handlePrimaryViewChange}
           onWorkspaceIdChange={handleChangeWorkspaceId}
           onRenameSession={(sessionId, title) =>

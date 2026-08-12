@@ -94,7 +94,15 @@ describe('AuthBoundary', () => {
 
     render(
       <AuthBoundary client={client}>
-        {(current) => <div>Welcome {current.email}</div>}
+        {(current, actions) => (
+          <div>
+            <div>Welcome {current.email}</div>
+            <button onClick={actions.onLogout} type="button">
+              Sign out
+            </button>
+            {actions.logoutError ? <p>{actions.logoutError}</p> : null}
+          </div>
+        )}
       </AuthBoundary>,
     )
 

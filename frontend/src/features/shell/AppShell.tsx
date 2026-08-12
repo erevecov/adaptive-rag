@@ -395,6 +395,7 @@ export function AppSidebar({
   accountModule,
   authoringSubmodule,
   canLoadMoreSessions,
+  currentUserEmail,
   error,
   isOpen,
   jobsSubmodule,
@@ -403,11 +404,15 @@ export function AppSidebar({
   canManageJobPlatform,
   canManageGlobalUsers,
   canManageWorkspaceMembers,
+  logoutBusy = false,
+  logoutError = null,
   observabilitySubmodule,
   onArchiveSession,
   onAccountModuleChange,
   onDeleteSession,
+  onFeedback,
   onLoadMoreSessions,
+  onLogout,
   onPrimaryViewChange,
   onWorkspaceIdChange,
   onRenameSession,
@@ -437,14 +442,19 @@ export function AppSidebar({
   canManageJobPlatform: boolean
   canManageWorkspaceMembers: boolean
   canLoadMoreSessions: boolean
+  currentUserEmail: string
   error: string | null
   isOpen: boolean
   jobsSubmodule: JobsSubmodule
+  logoutBusy?: boolean
+  logoutError?: string | null
   observabilitySubmodule: ObservabilitySubmodule
   onArchiveSession(sessionId: string): void
   onAccountModuleChange(module: AccountModule): void
   onDeleteSession(sessionId: string): void
+  onFeedback?(): void
   onLoadMoreSessions(): void
+  onLogout(): void
   onPrimaryViewChange(view: PrimaryView): void
   onWorkspaceIdChange(workspaceId: string): void
   onRenameSession(sessionId: string, title: string): void
@@ -466,6 +476,7 @@ export function AppSidebar({
   settingsModule: SettingsModule
   statusFilter: SessionNavigationFilter
 }) {
+  const { t } = useLocale()
   const isMobileShell = useIsShellMobileViewport()
   const sidebarRef = useRef<HTMLElement>(null)
   const trapMobileSidebar = isOpen && isMobileShell
@@ -524,7 +535,7 @@ export function AppSidebar({
       aria-label="Primary Sidebar"
       className={cn(
         [
-          'relative z-40 grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden',
+          'relative z-40 grid h-full min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden',
           // Solid card (not /90) keeps the rail opaque on purple/dark backgrounds.
           'border-r border-border bg-card shadow-[1px_0_0_0] shadow-primary/15 motion-safe:transition-[background,border-color,box-shadow,opacity,width] motion-safe:duration-200',
           'max-[680px]:fixed max-[680px]:left-0 max-[680px]:top-0 max-[680px]:h-svh',
@@ -596,7 +607,7 @@ export function AppSidebar({
           // overflow-hidden: only the session list (or contextual nav) scrolls —
           // not workspace selector / primary nav — so the thumb starts at row 1.
           // pr-0: session list scrollbar flush to the rail edge.
-          'grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 overflow-hidden pl-2.5 pr-0 pb-3 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:pl-1 max-[680px]:pb-1 max-[680px]:pt-0.5',
+          'grid min-h-0 min-w-0 grid-rows-[auto_minmax(0,1fr)] gap-2.5 overflow-hidden pl-2.5 pr-0 pb-0 pt-2.5 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:gap-0.5 max-[680px]:pl-1 max-[680px]:pb-0 max-[680px]:pt-0.5',
           !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
         )}
         data-slot="app-sidebar-content"
@@ -695,6 +706,46 @@ export function AppSidebar({
             onSubmoduleChange={onSettingsSubmoduleChange}
           />
         )}
+      </div>
+
+      <div
+        className={cn(
+          'shrink-0 border-t border-border px-4 py-3 motion-safe:transition-[opacity,transform] motion-safe:duration-150 max-[680px]:px-2 max-[680px]:py-2',
+          !isOpen && 'pointer-events-none -translate-x-2.5 opacity-0',
+        )}
+        data-slot="app-sidebar-account-footer"
+        {...(!isOpen ? { inert: true } : {})}
+      >
+        <p className="truncate text-xs text-foreground max-[680px]:text-[0.5625rem]">
+          {currentUserEmail}
+        </p>
+        <div className="mt-1 flex items-center gap-3">
+          <Button
+            className="h-auto px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground disabled:opacity-50 max-[680px]:text-[0.5625rem]"
+            disabled={logoutBusy}
+            onClick={onLogout}
+            slotName="sidebar-sign-out"
+            type="button"
+            variant="ghost"
+          >
+            {t('auth.signOut')}
+          </Button>
+          <Button
+            className="ml-auto h-auto px-0 py-0 text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-foreground max-[680px]:text-[0.5625rem]"
+            onClick={onFeedback}
+            slotName="sidebar-feedback"
+            title={t('auth.feedbackSoon')}
+            type="button"
+            variant="ghost"
+          >
+            {t('auth.feedback')}
+          </Button>
+        </div>
+        {logoutError ? (
+          <p className="mt-1 text-xs text-destructive" role="alert">
+            {logoutError}
+          </p>
+        ) : null}
       </div>
     </aside>
   )
