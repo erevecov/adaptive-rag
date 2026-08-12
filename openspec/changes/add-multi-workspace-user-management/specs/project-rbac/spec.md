@@ -28,6 +28,28 @@ through a human session cookie or a hash-only technical bearer token.
 - **AND** only setup with the configured bootstrap secret can create the first
   superadmin
 
+#### Scenario: Request without actor is rejected
+
+- **WHEN** a protected endpoint is called without a valid human session cookie
+  or technical bearer token
+- **THEN** the request fails with a stable authentication error
+- **AND** no workspace, chat or knowledge data is returned
+
+#### Scenario: Inactive user cannot act
+
+- **GIVEN** a global user exists with `is_active = false`
+- **WHEN** that user's session cookie or technical bearer is used
+- **THEN** protected endpoints reject the request with a stable inactive-user
+  authentication error
+
+#### Scenario: Token storage does not persist plaintext
+
+- **WHEN** a technical access token is issued
+- **THEN** the stored row contains a non-reversible token hash
+- **AND** API responses never include the token value after issuance
+- **AND** human session cookies store only opaque server-side session
+  identifiers whose secrets are hash-only
+
 ### Requirement: Workspace memberships define independent workspace roles
 
 The system MUST use one membership per user/workspace to grant `admin`,
