@@ -16,8 +16,14 @@ import {
 } from '@/components/ui/panel'
 import type { ApiClient, CurrentUser } from '@/lib/apiClient'
 
+export type AuthSessionActions = {
+  logoutBusy: boolean
+  logoutError: string | null
+  onLogout(): void
+}
+
 type AuthBoundaryProps = {
-  children(currentUser: CurrentUser): ReactNode
+  children(currentUser: CurrentUser, actions: AuthSessionActions): ReactNode
   client: ApiClient
   initialCurrentUser?: CurrentUser
 }
@@ -215,20 +221,17 @@ export function AuthBoundary({
     )
   }
 
+  // h-full keeps the app-shell viewport lock (#root → shell) intact. Do not use
+  // min-h-screen here: it breaks h-full descendants and clips the chat layout.
   return (
-    <div className="relative min-h-screen">
-      <div className="fixed right-3 top-3 z-50 flex max-w-sm flex-col items-end gap-2">
-        <Button
-          disabled={submitting}
-          onClick={() => void handleLogout()}
-          type="button"
-          variant="secondary"
-        >
-          Sign out
-        </Button>
-        <AuthError error={error} />
-      </div>
-      {children(currentUser)}
+    <div className="h-full min-h-0">
+      {children(currentUser, {
+        logoutBusy: submitting,
+        logoutError: error,
+        onLogout: () => {
+          void handleLogout()
+        },
+      })}
     </div>
   )
 }

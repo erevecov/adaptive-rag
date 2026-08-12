@@ -78,6 +78,7 @@ describe('AppSidebar pattern adoption', () => {
         canManageJobPlatform={false}
         canManageWorkspaceMembers
         canLoadMoreSessions={false}
+        currentUserEmail="viewer@example.com"
         error={null}
         isOpen
         jobsSubmodule="jobs"
@@ -86,6 +87,7 @@ describe('AppSidebar pattern adoption', () => {
         onArchiveSession={vi.fn()}
         onDeleteSession={vi.fn()}
         onLoadMoreSessions={vi.fn()}
+        onLogout={vi.fn()}
         onPrimaryViewChange={onPrimaryViewChange}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
@@ -122,6 +124,10 @@ describe('AppSidebar pattern adoption', () => {
 
     await user.click(screen.getByRole('button', { name: 'Settings' }))
     expect(onPrimaryViewChange).toHaveBeenCalledWith('settings')
+
+    expect(screen.getByText('viewer@example.com')).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Sign out' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Feedback' })).toBeTruthy()
   })
 
   test('keeps the open mobile sidebar within a usable 86vw and 280px bound', () => {
@@ -135,6 +141,7 @@ describe('AppSidebar pattern adoption', () => {
         canManageJobPlatform={false}
         canManageWorkspaceMembers
         canLoadMoreSessions={false}
+        currentUserEmail="viewer@example.com"
         error={null}
         isOpen
         jobsSubmodule="jobs"
@@ -143,6 +150,7 @@ describe('AppSidebar pattern adoption', () => {
         onArchiveSession={vi.fn()}
         onDeleteSession={vi.fn()}
         onLoadMoreSessions={vi.fn()}
+        onLogout={vi.fn()}
         onPrimaryViewChange={vi.fn()}
         onRenameSession={vi.fn()}
         onSelectSession={vi.fn()}
