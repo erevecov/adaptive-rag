@@ -1023,21 +1023,21 @@ describe('App chat workspace', () => {
         .getAllByRole('button')
         .map((button) => button.textContent),
     ).toEqual(['Chat', 'My Account', 'Settings'])
-    expect(within(sidebar).getByRole('heading', { name: 'Sesiones' })).toBeTruthy()
+    expect(within(sidebar).getByRole('heading', { name: 'Sessions' })).toBeTruthy()
 
     await user.click(within(navigation).getByRole('button', { name: 'My Account' }))
 
     expect(
       within(sidebar).getByRole('navigation', { name: 'My Account Navigation' }),
     ).toBeTruthy()
-    expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
+    expect(within(sidebar).queryByRole('heading', { name: 'Sessions' })).toBeNull()
 
     await user.click(within(navigation).getByRole('button', { name: 'Settings' }))
 
     expect(
       within(sidebar).getByRole('navigation', { name: 'Settings Navigation' }),
     ).toBeTruthy()
-    expect(within(sidebar).queryByRole('heading', { name: 'Sesiones' })).toBeNull()
+    expect(within(sidebar).queryByRole('heading', { name: 'Sessions' })).toBeNull()
   })
 
   test('marks the current primary sidebar page with aria-current', async () => {
@@ -1845,8 +1845,8 @@ describe('App chat workspace', () => {
     ).toEqual([
       'Select Workspace Beta Enabled',
       'Select Workspace Zulu Enabled',
-      'Workspace Alpha Restricted. No tienes acceso a ese workspace',
-      'Workspace Omega Restricted. No tienes acceso a ese workspace',
+      'Workspace Alpha Restricted. You do not have access to that workspace',
+      'Workspace Omega Restricted. You do not have access to that workspace',
     ])
 
     const betaOption = screen.getByRole('option', {
@@ -1857,14 +1857,14 @@ describe('App chat workspace', () => {
     expect(betaOption.textContent).not.toContain('admin')
 
     const restrictedOption = screen.getByRole('option', {
-      name: /Workspace Alpha Restricted\. No tienes acceso a ese workspace/,
+      name: /Workspace Alpha Restricted\. You do not have access to that workspace/,
     }) as HTMLButtonElement
     expect(restrictedOption.disabled).toBe(true)
     expect(restrictedOption.textContent).toBe('Alpha Restricted')
     expect(restrictedOption.textContent).not.toContain(inaccessibleAlpha.id)
     expect(
       within(restrictedOption).getByLabelText(
-        'No tienes acceso a ese workspace',
+        'You do not have access to that workspace',
       ),
     ).toBeTruthy()
 
@@ -2918,10 +2918,12 @@ describe('App chat workspace', () => {
 
     render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
 
-    expect(screen.getByRole('heading', { name: 'Nuevo chat' })).toBeTruthy()
-    expect(
-      document.querySelector('[data-slot="workspace-chip"]')?.textContent,
-    ).toBeTruthy()
+    expect(screen.getByRole('heading', { name: 'New chat' })).toBeTruthy()
+    await waitFor(() => {
+      expect(document.querySelector('[data-slot="workspace-chip"]')?.textContent).toBe(
+        'Demo',
+      )
+    })
     expect(screen.queryByText('Selected workspace')).toBeNull()
     expect(screen.queryByText('dense default')).toBeNull()
 
@@ -2930,7 +2932,7 @@ describe('App chat workspace', () => {
 
     // Outside chat with the left sidebar open: no session title and no floating
     // workspace chip (workspace lives in the sidebar selector).
-    expect(screen.queryByRole('heading', { name: 'Nuevo chat' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'New chat' })).toBeNull()
     expect(
       document.querySelector('[data-slot="workspace-chip"]'),
     ).toBeNull()
@@ -2940,7 +2942,7 @@ describe('App chat workspace', () => {
     expect((screen.getByLabelText('Workspace ID') as HTMLInputElement).value).toBe(
       workspaceId,
     )
-    expect(screen.queryByRole('heading', { name: 'Nuevo chat' })).toBeNull()
+    expect(screen.queryByRole('heading', { name: 'New chat' })).toBeNull()
     expect(
       document.querySelector('[data-slot="workspace-chip"]'),
     ).toBeNull()
@@ -3050,7 +3052,7 @@ describe('App chat workspace', () => {
     ).toBeTruthy()
     expect(
       screen
-        .getByRole('button', { name: /Abrir sesión Deployment question/ })
+        .getByRole('button', { name: /Open session Deployment question/ })
         .closest('[data-slot="data-list-item"]')
         ?.getAttribute('data-selected'),
     ).toBe('')
@@ -3100,7 +3102,7 @@ describe('App chat workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Ask' }))
 
     const sessionButton = await screen.findByRole('button', {
-      name: 'Abrir sesión Start a fresh session',
+      name: 'Open session Start a fresh session',
     })
     expect(
       sessionButton
@@ -3573,11 +3575,11 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
 
     const navigation = screen.getByRole('complementary', {
-      name: 'Sesiones',
+      name: 'Sessions',
     })
     expect(
       await within(navigation).findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     ).toBeTruthy()
     expect(within(navigation).getByTitle('Training')).toBeTruthy()
@@ -3587,16 +3589,16 @@ describe('App chat workspace', () => {
     })
 
     await user.click(
-      within(navigation).getByRole('button', { name: 'Sesiones con entrenamiento' }),
+      within(navigation).getByRole('button', { name: 'Training sessions' }),
     )
     expect(
       await within(navigation).findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     ).toBeTruthy()
 
     await user.click(
-      within(navigation).getByRole('button', { name: 'Sesiones archivadas' }),
+      within(navigation).getByRole('button', { name: 'Archived sessions' }),
     )
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(workspaceId, {
@@ -3606,12 +3608,12 @@ describe('App chat workspace', () => {
     )
     expect(
       await within(navigation).findByRole('button', {
-        name: 'Abrir sesión Archived question',
+        name: 'Open session Archived question',
       }),
     ).toBeTruthy()
     expect(
       within(navigation).queryByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     ).toBeNull()
   })
@@ -3628,9 +3630,9 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
 
     await screen.findByRole('button', {
-      name: /Abrir sesión Deployment question/,
+      name: /Open session Deployment question/,
     })
-    await user.click(screen.getByRole('button', { name: 'Ver más' }))
+    await user.click(screen.getByRole('button', { name: 'Show more' }))
 
     await waitFor(() =>
       expect(client.listChatSessions).toHaveBeenLastCalledWith(workspaceId, {
@@ -3657,13 +3659,13 @@ describe('App chat workspace', () => {
     render(<App apiClient={client} initialWorkspaceId={workspaceId} />)
 
     await screen.findByRole('button', {
-      name: /Abrir sesión Deployment question/,
+      name: /Open session Deployment question/,
     })
     await user.click(
-      screen.getByRole('button', { name: 'Opciones de Deployment question' }),
+      screen.getByRole('button', { name: 'Options for Deployment question' }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
-    const input = await screen.findByLabelText('Nuevo nombre de sesión')
+    await user.click(screen.getByRole('menuitem', { name: 'Rename' }))
+    const input = await screen.findByLabelText('New session name')
     await user.clear(input)
     await user.type(input, 'Renamed session{Enter}')
 
@@ -3674,9 +3676,9 @@ describe('App chat workspace', () => {
     )
 
     await user.click(
-      screen.getByRole('button', { name: 'Opciones de Deployment question' }),
+      screen.getByRole('button', { name: 'Options for Deployment question' }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'Archivar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Archive' }))
 
     expect(archiveChatSession).toHaveBeenCalledWith(workspaceId, 'session-123')
   })
@@ -3692,7 +3694,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -3730,16 +3732,16 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await screen.findByText('The import failed because the worker was not running.')
 
-    await user.click(screen.getByRole('button', { name: 'Nuevo chat' }))
+    await user.click(screen.getByRole('button', { name: 'New chat' }))
 
     expect(
       screen
-        .getByRole('button', { name: /Abrir sesión Deployment question/ })
+        .getByRole('button', { name: /Open session Deployment question/ })
         .closest('[data-slot="data-list-item"]')
         ?.hasAttribute('data-selected'),
     ).toBe(false)
@@ -3762,7 +3764,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -3870,7 +3872,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -3959,7 +3961,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -4092,7 +4094,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -4119,7 +4121,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -4157,7 +4159,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -4200,7 +4202,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -4226,7 +4228,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
 
@@ -4291,7 +4293,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     const transcript = screen.getByRole('region', { name: 'Chat Transcript' })
@@ -4336,7 +4338,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -4360,7 +4362,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Minimap Sidebar' }))
@@ -4401,7 +4403,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -4442,7 +4444,7 @@ describe('App chat workspace', () => {
 
     await user.click(
       await screen.findByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     )
     await user.click(screen.getByRole('button', { name: 'Open Context Sidebar' }))
@@ -4450,7 +4452,7 @@ describe('App chat workspace', () => {
     expect(await screen.findByText('chat session not found')).toBeTruthy()
     expect(
       screen.getByRole('button', {
-        name: /Abrir sesión Deployment question/,
+        name: /Open session Deployment question/,
       }),
     ).toBeTruthy()
   })

@@ -100,6 +100,7 @@ import {
 } from './lib/chatSteps'
 import { cn } from '@/lib/utils'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
+import { type Locale, useLocale } from './lib/i18n'
 
 const DEFAULT_API_BASE_URL = 'http://localhost:8000'
 const DEFAULT_RETRIEVAL_LIMIT = 5
@@ -183,6 +184,7 @@ function AuthenticatedApp({
   initialCurrentUser: CurrentUser
   initialWorkspaceId?: string
 }) {
+  const { locale, setLocale } = useLocale()
   const [workspaceId, setWorkspaceId] = useState(() =>
     initialWorkspaceId.trim() || readPersistedWorkspaceId(),
   )
@@ -1411,6 +1413,11 @@ function AuthenticatedApp({
         return
       }
       setAuthoringSubmodule(selection.submodule)
+      const trimmedWorkspaceId = workspaceId.trim()
+      if (selection.submodule === 'sources' && trimmedWorkspaceId.length > 0) {
+        void handleRefreshSources(trimmedWorkspaceId)
+        void handleRefreshIngestionJobs(trimmedWorkspaceId)
+      }
     } else if (selection.module === 'observability') {
       setObservabilitySubmodule(selection.submodule)
     } else if (selection.module === 'runtime') {
@@ -2802,7 +2809,12 @@ function AuthenticatedApp({
           </ChatWorkspaceGrid>
         ) : primaryView === 'account' ? (
           accountModule === 'appearance' ? (
-            <AppearanceSettingsPanel onThemeChange={setTheme} theme={theme} />
+            <AppearanceSettingsPanel
+              locale={locale}
+              onLocaleChange={setLocale}
+              onThemeChange={setTheme}
+              theme={theme}
+            />
           ) : (
             <UserMemoryPanel apiClient={client} workspaceId={workspaceId} />
           )
@@ -3078,99 +3090,186 @@ function AccessRestrictedPanel() {
   )
 }
 
+const LOCALES: {
+  descriptionKey: 'locale.enDescription' | 'locale.esDescription'
+  id: Locale
+  labelKey: 'locale.en' | 'locale.es'
+}[] = [
+  {
+    descriptionKey: 'locale.enDescription',
+    id: 'en',
+    labelKey: 'locale.en',
+  },
+  {
+    descriptionKey: 'locale.esDescription',
+    id: 'es',
+    labelKey: 'locale.es',
+  },
+]
+
 function AppearanceSettingsPanel({
+  locale,
+  onLocaleChange,
   onThemeChange,
   theme,
 }: {
+  locale: Locale
+  onLocaleChange(locale: Locale): void
   onThemeChange(theme: Theme): void
   theme: Theme
 }) {
+  const { t } = useLocale()
+
   return (
-    <Panel
-      role="region"
-      aria-labelledby="appearance-settings-title"
-      className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
-    >
-      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
-        <div className="grid gap-1 max-[680px]:gap-0.5">
-          <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
-            My Account
-          </p>
-          <h2
-            className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
-            id="appearance-settings-title"
-          >
-            Appearance
-          </h2>
-        </div>
-        <StatusBadge className="w-fit">
-          {THEMES.find((option) => option.id === theme)?.label ?? theme}
-        </StatusBadge>
-      </header>
-
-      <PanelDescription>Choose the interface palette.</PanelDescription>
-
-      <div className="grid gap-3 sm:grid-cols-3 max-[680px]:gap-0.5">
-        {THEMES.map((option) => {
-          const active = option.id === theme
-          return (
-            <Button
-              aria-pressed={active}
-              className={cn(
-                // whitespace-normal: Button base is whitespace-nowrap; theme cards need wrapping copy.
-                'grid h-auto w-full min-w-0 items-start justify-stretch gap-3 whitespace-normal rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-0.5',
-                'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
-                active &&
-                  'border-primary bg-primary/25 max-[680px]:bg-primary/45 focus-visible:ring-primary',
-              )}
-              data-state={active ? 'active' : 'inactive'}
-              key={option.id}
-              onClick={() => onThemeChange(option.id)}
-              slotName="theme-option"
-              type="button"
-              variant="ghost"
+    <div className="grid gap-4 lg:grid-cols-2 max-[680px]:gap-0.5">
+      <Panel
+        aria-labelledby="appearance-settings-title"
+        className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+        role="region"
+      >
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
+          <div className="grid gap-1 max-[680px]:gap-0.5">
+            <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+              {t('account.myAccount')}
+            </p>
+            <h2
+              className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+              id="appearance-settings-title"
             >
-              <span
-                aria-hidden="true"
-                className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-12 max-[680px]:gap-0.5 max-[680px]:p-0.5"
-                data-slot="theme-swatch"
-                style={{ background: option.swatch.bg }}
+              {t('account.appearance')}
+            </h2>
+          </div>
+          <StatusBadge className="w-fit">
+            {THEMES.find((option) => option.id === theme)?.label ?? theme}
+          </StatusBadge>
+        </header>
+
+        <PanelDescription>{t('account.themeDescription')}</PanelDescription>
+
+        <div className="grid gap-3 sm:grid-cols-3 max-[680px]:gap-0.5">
+          {THEMES.map((option) => {
+            const active = option.id === theme
+            return (
+              <Button
+                aria-pressed={active}
+                className={cn(
+                  'grid h-auto w-full min-w-0 items-start justify-stretch gap-3 whitespace-normal rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-0.5',
+                  'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
+                  active &&
+                    'border-primary bg-primary/25 max-[680px]:bg-primary/45 focus-visible:ring-primary',
+                )}
+                data-state={active ? 'active' : 'inactive'}
+                key={option.id}
+                onClick={() => onThemeChange(option.id)}
+                slotName="theme-option"
+                type="button"
+                variant="ghost"
               >
                 <span
-                  className="block h-2 rounded-full max-[680px]:h-1"
-                  data-slot="theme-swatch-line-strong"
-                  style={{ background: option.swatch.fg }}
-                />
-                <span
-                  className="block h-2 w-3/4 rounded-full max-[680px]:h-1"
-                  data-slot="theme-swatch-line-muted"
-                  style={{ background: option.swatch.muted }}
-                />
-                <span
-                  className="absolute bottom-3 right-3 block h-3 w-12 rounded-full max-[680px]:bottom-1 max-[680px]:right-1 max-[680px]:h-2 max-[680px]:w-8"
-                  data-slot="theme-swatch-accent"
-                  style={{ background: option.swatch.accent }}
-                />
-              </span>
-              <span className="grid gap-1 max-[680px]:gap-0.5">
-                <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {option.label}
-                  {active ? (
-                    <span
-                      className="inline-block size-2.5 rounded-full bg-primary max-[680px]:size-2"
-                      aria-hidden="true"
-                    />
-                  ) : null}
+                  aria-hidden="true"
+                  className="relative grid min-h-20 gap-2 rounded-md border border-border p-3 max-[680px]:min-h-12 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+                  data-slot="theme-swatch"
+                  style={{ background: option.swatch.bg }}
+                >
+                  <span
+                    className="block h-2 rounded-full max-[680px]:h-1"
+                    data-slot="theme-swatch-line-strong"
+                    style={{ background: option.swatch.fg }}
+                  />
+                  <span
+                    className="block h-2 w-3/4 rounded-full max-[680px]:h-1"
+                    data-slot="theme-swatch-line-muted"
+                    style={{ background: option.swatch.muted }}
+                  />
+                  <span
+                    className="absolute bottom-3 right-3 block h-3 w-12 rounded-full max-[680px]:bottom-1 max-[680px]:right-1 max-[680px]:h-2 max-[680px]:w-8"
+                    data-slot="theme-swatch-accent"
+                    style={{ background: option.swatch.accent }}
+                  />
                 </span>
-                <span className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                  {option.description}
+                <span className="grid gap-1 max-[680px]:gap-0.5">
+                  <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                    {option.label}
+                    {active ? (
+                      <span
+                        aria-hidden="true"
+                        className="inline-block size-2.5 rounded-full bg-primary max-[680px]:size-2"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                    {option.description}
+                  </span>
                 </span>
-              </span>
-            </Button>
-          )
-        })}
-      </div>
-    </Panel>
+              </Button>
+            )
+          })}
+        </div>
+      </Panel>
+
+      <Panel
+        aria-labelledby="language-settings-title"
+        className="grid gap-4 p-4 max-[680px]:gap-0.5 max-[680px]:p-0.5"
+        role="region"
+      >
+        <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between max-[680px]:gap-0.5">
+          <div className="grid gap-1 max-[680px]:gap-0.5">
+            <p className="text-xs font-bold uppercase leading-none text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:tracking-wider">
+              {t('account.myAccount')}
+            </p>
+            <h2
+              className="text-lg font-semibold leading-tight text-foreground max-[680px]:text-[0.625rem] max-[680px]:leading-snug"
+              id="language-settings-title"
+            >
+              {t('account.language')}
+            </h2>
+          </div>
+          <StatusBadge className="w-fit">
+            {t(LOCALES.find((option) => option.id === locale)?.labelKey ?? 'locale.en')}
+          </StatusBadge>
+        </header>
+
+        <PanelDescription>{t('account.languageDescription')}</PanelDescription>
+
+        <div className="grid gap-3 sm:grid-cols-2 max-[680px]:gap-0.5">
+          {LOCALES.map((option) => {
+            const active = option.id === locale
+            return (
+              <Button
+                aria-pressed={active}
+                className={cn(
+                  'grid h-auto w-full min-w-0 items-start justify-stretch gap-3 whitespace-normal rounded-md border border-border bg-card p-3 text-left text-foreground max-[680px]:gap-0.5 max-[680px]:p-0.5',
+                  'hover:bg-primary/15 max-[680px]:hover:bg-primary/65 active:bg-primary/20 max-[680px]:active:bg-primary/95',
+                  active &&
+                    'border-primary bg-primary/25 max-[680px]:bg-primary/45 focus-visible:ring-primary',
+                )}
+                data-state={active ? 'active' : 'inactive'}
+                key={option.id}
+                onClick={() => onLocaleChange(option.id)}
+                slotName="locale-option"
+                type="button"
+                variant="ghost"
+              >
+                <span className="grid gap-1 max-[680px]:gap-0.5">
+                  <span className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 text-sm font-semibold leading-tight text-foreground max-[680px]:gap-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                    {t(option.labelKey)}
+                    {active ? (
+                      <span
+                        aria-hidden="true"
+                        className="inline-block size-2.5 rounded-full bg-primary max-[680px]:size-2"
+                      />
+                    ) : null}
+                  </span>
+                  <span className="text-xs leading-relaxed text-muted-foreground max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
+                    {t(option.descriptionKey)}
+                  </span>
+                </span>
+              </Button>
+            )
+          })}
+        </div>
+      </Panel>
+    </div>
   )
 }
 

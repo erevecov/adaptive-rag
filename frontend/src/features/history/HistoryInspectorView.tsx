@@ -47,6 +47,7 @@ import {
   summarizeContextWindow,
   type ChatStep,
 } from '@/lib/chatSteps'
+import { useLocale, type TranslateFn } from '@/lib/i18n'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 import { cn } from '@/lib/utils'
 
@@ -213,31 +214,33 @@ function resolveTurnBounds(
   }
 }
 
-const SESSION_FILTERS: {
+function sessionFilters(t: TranslateFn): {
   label: string
   name: string
   title: string
   value: SessionNavigationFilter
-}[] = [
-  {
-    label: 'Activos',
-    name: 'ACTIVOS',
-    title: 'Sesiones activas',
-    value: 'active',
-  },
-  {
-    label: 'Train',
-    name: 'TRAIN',
-    title: 'Sesiones con entrenamiento',
-    value: 'training',
-  },
-  {
-    label: 'Archivados',
-    name: 'ARCHIVADOS',
-    title: 'Sesiones archivadas',
-    value: 'archived',
-  },
-]
+}[] {
+  return [
+    {
+      label: t('session.active'),
+      name: 'ACTIVOS',
+      title: t('session.activeTitle'),
+      value: 'active',
+    },
+    {
+      label: t('session.train'),
+      name: 'TRAIN',
+      title: t('session.trainTitle'),
+      value: 'training',
+    },
+    {
+      label: t('session.archived'),
+      name: 'ARCHIVADOS',
+      title: t('session.archivedTitle'),
+      value: 'archived',
+    },
+  ]
+}
 const NUMBER_FORMATTER = new Intl.NumberFormat('en-US')
 
 /** Fades the title into the age/⋮ column on row hover (beflow session-row mask). */
@@ -275,6 +278,7 @@ export function SessionNavigationPanel({
   sessions: ChatSessionSummary[]
   state: RequestState
 }) {
+  const { t } = useLocale()
   const [renamingSessionId, setRenamingSessionId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null)
@@ -315,7 +319,7 @@ export function SessionNavigationPanel({
   async function handleCopySessionId(sessionId: string) {
     const ok = await copyTextToClipboard(sessionId)
     setCopyFeedback(
-      ok ? 'ID de sesión copiado.' : 'No se pudo copiar el ID de sesión.',
+      ok ? t('session.copyIdOk') : t('session.copyIdFailed'),
     )
   }
 
@@ -326,7 +330,7 @@ export function SessionNavigationPanel({
       role="complementary"
     >
       <h2 className="sr-only" id="history-title">
-        Sesiones
+        {t('session.sessions')}
       </h2>
 
       {/* Fixed chrome above the list — scrollbar starts at the first session. */}
@@ -345,14 +349,14 @@ export function SessionNavigationPanel({
           variant="ghost"
         >
           <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-          Nuevo chat
+          {t('session.newChat')}
         </Button>
 
         <SegmentedControl
           aria-label="Session Filters"
           className="grid w-full min-w-0 max-w-full grid-cols-[repeat(3,minmax(0,1fr))] gap-0.5 rounded-lg border-0 bg-muted/40 p-0.5 max-[680px]:rounded-md max-[680px]:border max-[680px]:border-primary/70"
         >
-          {SESSION_FILTERS.map((filter) => (
+          {sessionFilters(t).map((filter) => (
             <SegmentedControlItem
               active={statusFilter === filter.value}
               aria-label={filter.title}
@@ -377,7 +381,7 @@ export function SessionNavigationPanel({
             items={sessions.map((session) => ({
               id: session.session_id,
               label: sessionDisplayTitle(session),
-              meta: formatRelativeSessionAge(sessionLastActivityAt(session)),
+              meta: formatRelativeSessionAge(sessionLastActivityAt(session), t),
             }))}
             label="Search sessions"
             onSelect={onSelectSession}
@@ -410,7 +414,7 @@ export function SessionNavigationPanel({
         {isLoading && sessions.length === 0 ? (
           <DataListItem className="border-0 bg-transparent p-2 shadow-none">
             <div data-slot="session-list-loading">
-              <LoadingGrid label="Cargando sesiones" />
+              <LoadingGrid label={t('session.loadingSessions')} />
             </div>
           </DataListItem>
         ) : sessions.length === 0 ? (
@@ -420,7 +424,7 @@ export function SessionNavigationPanel({
               data-status-filter={statusFilter}
             >
               <EmptyState className="border-dashed bg-transparent p-3 text-left text-xs tracking-tight max-[680px]:p-0.5 max-[680px]:text-[0.5625rem] max-[680px]:leading-snug">
-                {sessionEmptyCopy(statusFilter)}
+                {sessionEmptyCopy(statusFilter, t)}
               </EmptyState>
             </div>
           </DataListItem>
@@ -433,13 +437,16 @@ export function SessionNavigationPanel({
             const isRenaming = renamingSessionId === session.session_id
             const trainingStatusLabel = hasTraining
               ? session.has_approved_training
-                ? 'entrenamiento aprobado'
-                : 'entrenamiento pendiente'
+                ? t('session.trainingApproved')
+                : t('session.trainingPending')
               : null
             const openSessionLabel =
               trainingStatusLabel === null
-                ? `Abrir sesión ${title}`
-                : `Abrir sesión ${title} (${trainingStatusLabel})`
+                ? t('session.open', { title })
+                : t('session.openWithStatus', {
+                    title,
+                    status: trainingStatusLabel,
+                  })
             return (
               <DataListItem
                 className={cn(
@@ -486,7 +493,7 @@ export function SessionNavigationPanel({
                       }}
                     >
                       <Input
-                        aria-label="Nuevo nombre de sesión"
+                        aria-label={t('session.renameLabel')}
                         className="h-7 text-xs max-[680px]:min-h-11 max-[680px]:text-[0.5625rem]"
                         maxLength={60}
                         onBlur={(event) => {
@@ -554,9 +561,9 @@ export function SessionNavigationPanel({
                       'group-has-[[data-state=open]]:opacity-0',
                     )}
                     data-slot="session-row-age"
-                    title={sessionAgeTooltip(session)}
+                    title={sessionAgeTooltip(session, t)}
                   >
-                    {formatRelativeSessionAge(sessionLastActivityAt(session))}
+                    {formatRelativeSessionAge(sessionLastActivityAt(session), t)}
                   </span>
                   <div
                     className="flex items-center justify-end"
@@ -565,7 +572,7 @@ export function SessionNavigationPanel({
                     <DropdownMenu.Root>
                       <DropdownMenu.Trigger asChild>
                         <Button
-                          aria-label={`Opciones de ${title}`}
+                          aria-label={t('session.actions', { title })}
                           className="size-7 shrink-0 rounded-md p-0 text-muted-foreground/60 hover:bg-primary/15 hover:text-foreground group-hover:text-foreground group-focus-within:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background max-[680px]:size-11"
                           type="button"
                           variant="ghost"
@@ -588,7 +595,7 @@ export function SessionNavigationPanel({
                               void handleCopySessionId(session.session_id)
                             }}
                           >
-                            <span>Copiar ID de sesión</span>
+                            <span>{t('session.copyId')}</span>
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
                             className="px-3 py-1.5 text-left max-[680px]:px-0.5 max-[680px]:py-0.5"
@@ -598,7 +605,7 @@ export function SessionNavigationPanel({
                               setRenameDraft(title)
                             }}
                           >
-                            Renombrar
+                            {t('session.rename')}
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
                             className="px-3 py-1.5 text-left max-[680px]:px-0.5 max-[680px]:py-0.5"
@@ -611,22 +618,20 @@ export function SessionNavigationPanel({
                               }
                             }}
                           >
-                            {isArchived ? 'Desarchivar' : 'Archivar'}
+                            {isArchived ? t('session.unarchive') : t('session.archive')}
                           </DropdownMenu.Item>
                           <DropdownMenu.Item
                             className="px-3 py-1.5 text-left text-destructive max-[680px]:px-1 max-[680px]:py-0.5"
                             data-testid={`delete-${session.session_id}`}
                             onClick={() => {
                               if (
-                                window.confirm(
-                                  '¿Eliminar esta sesión de forma permanente? No se puede deshacer.',
-                                )
+                                window.confirm(t('session.deleteConfirm'))
                               ) {
                                 onDeleteSession(session.session_id)
                               }
                             }}
                           >
-                            Eliminar
+                            {t('session.delete')}
                           </DropdownMenu.Item>
                         </DropdownMenu.Content>
                       </DropdownMenu.Portal>
@@ -646,7 +651,7 @@ export function SessionNavigationPanel({
           type="button"
           variant="ghost"
         >
-          {isLoading ? 'Cargando…' : 'Ver más'}
+          {isLoading ? t('session.loading') : t('session.loadMore')}
         </Button>
       ) : null}
       </div>
@@ -1776,14 +1781,17 @@ function sessionDisplayTitle(session: ChatSessionSummary): string {
   return shortSessionId(session.session_id)
 }
 
-function sessionEmptyCopy(filter: SessionNavigationFilter): string {
+function sessionEmptyCopy(
+  filter: SessionNavigationFilter,
+  t: TranslateFn,
+): string {
   if (filter === 'training') {
-    return 'Aún no hay entrenamiento.'
+    return t('session.emptyTraining')
   }
   if (filter === 'archived') {
-    return 'Aún no hay conversaciones archivadas.'
+    return t('session.emptyArchived')
   }
-  return 'Aún no hay conversaciones.'
+  return t('session.emptyActive')
 }
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
@@ -1829,13 +1837,13 @@ function sessionLastActivityAt(session: ChatSessionSummary): string {
   return session.created_at
 }
 
-function sessionAgeTooltip(session: ChatSessionSummary): string {
+function sessionAgeTooltip(session: ChatSessionSummary, t: TranslateFn): string {
   const iso = sessionLastActivityAt(session)
   const parsed = new Date(iso)
   if (!Number.isFinite(parsed.getTime())) {
-    return 'Última actividad desconocida'
+    return t('session.lastActivityUnknown')
   }
-  return `Última actividad: ${parsed.toLocaleString()}`
+  return t('session.lastActivity', { value: parsed.toLocaleString() })
 }
 
 function formatSourceTimestamp(iso: string): string {
@@ -1846,7 +1854,7 @@ function formatSourceTimestamp(iso: string): string {
   return parsed.toLocaleString()
 }
 
-function formatRelativeSessionAge(iso: string): string {
+function formatRelativeSessionAge(iso: string, t: TranslateFn): string {
   const at = new Date(iso).getTime()
   if (!Number.isFinite(at)) {
     return ''
@@ -1856,7 +1864,7 @@ function formatRelativeSessionAge(iso: string): string {
   const hour = 60 * minute
   const day = 24 * hour
   if (diffMs < minute) {
-    return 'ahora'
+    return t('time.now')
   }
   if (diffMs < hour) {
     return `${Math.max(1, Math.floor(diffMs / minute))}m`
