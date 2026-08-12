@@ -15,7 +15,6 @@ import {
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, ButtonLabel } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
-import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
@@ -972,16 +971,18 @@ function SourceList({
             >
               Queue
             </Button>
-            <Button
-              aria-label={`Delete source ${source.external_id}`}
-              disabled={isBusy || isDeleted}
-              onClick={() => onDeleteSource(source)}
-              size="sm"
-              type="button"
-              variant="danger"
-            >
-              Delete
-            </Button>
+            {canDeleteSource ? (
+              <Button
+                aria-label={`Delete source ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onDeleteSource(source)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            ) : null}
           </div>
         )
       },

@@ -76,8 +76,9 @@ def client(session: Session, monkeypatch: pytest.MonkeyPatch) -> Iterator[TestCl
         yield session
 
     app.dependency_overrides[get_session] = override_session
-    with TestClient(app) as test_client:
-        yield test_client
+    # Match other integration API tests: do not enter the app lifespan, which
+    # would require a live PostgreSQL revision check during unit-style suite.
+    yield TestClient(app)
     get_settings.cache_clear()
 
 

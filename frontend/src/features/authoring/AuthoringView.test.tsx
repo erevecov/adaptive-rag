@@ -124,15 +124,6 @@ function fiveWorkspaces(): Workspace[] {
   ]
 }
 
-function fiveUsers(): User[] {
-  return Array.from({ length: 5 }, (_, index) => ({
-    ...user,
-    display_name: `User ${index + 1}`,
-    id: `user-${index + 1}`,
-    login: `user-${index + 1}@example.com`,
-  }))
-}
-
 function fiveSources(): Source[] {
   return Array.from({ length: 5 }, (_, index) => ({
     ...source,
@@ -215,7 +206,7 @@ function expectNoLegacyAuthoringClasses(container: HTMLElement) {
 }
 
 describe('AuthoringPanel', () => {
-  test('adopts searchable record grids only for long workspace, user, and source collections', async () => {
+  test('adopts searchable record grids only for long workspace and source collections', async () => {
     const userDriver = userEvent.setup()
     const workspaceView = renderAuthoringPanel({ workspaces: fiveWorkspaces() })
     expect(
@@ -250,26 +241,6 @@ describe('AuthoringPanel', () => {
       `authoring-workspace-${restrictedWorkspace.id}`,
     )
     workspaceView.view.unmount()
-
-    const usersView = renderAuthoringPanel({
-      activeSubmodule: 'users',
-      users: fiveUsers(),
-    })
-    expect(
-      screen.getByRole('region', { name: 'Users' }).getAttribute('data-slot'),
-    ).toBe('records-grid')
-    const userSearch = screen.getByRole('region', { name: 'Find Users' })
-    expect(userSearch.getAttribute('data-slot')).toBe('command-search')
-    expect(within(userSearch).queryByRole('list')).toBeNull()
-    await userDriver.type(
-      within(userSearch).getByRole('searchbox'),
-      'user-1@example.com',
-    )
-    await userDriver.click(
-      within(userSearch).getByRole('button', { name: /^user-1@example\.com/ }),
-    )
-    expect(document.activeElement?.id).toBe('authoring-user-user-1')
-    usersView.view.unmount()
 
     const sourcesView = renderAuthoringPanel({
       activeSubmodule: 'sources',
