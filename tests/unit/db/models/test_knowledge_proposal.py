@@ -37,8 +37,8 @@ def _make_session():
 def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="demo")
-    user = User(login="viewer@example.com", display_name="Viewer")
-    reviewer = User(login="reviewer@example.com", display_name="Reviewer")
+    user = User(email="viewer@example.com", display_name="Viewer")
+    reviewer = User(email="reviewer@example.com", display_name="Reviewer")
     session.add_all([user, reviewer])
     session.flush()
     chat_session = ChatSession(workspace_id=workspace.id, user_id=user.id)
@@ -89,7 +89,7 @@ def test_knowledge_proposal_persists_chat_origin_and_defaults_to_pending() -> No
 def test_knowledge_proposal_rejects_unsupported_status() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="demo")
-    user = User(login="viewer@example.com", display_name="Viewer")
+    user = User(email="viewer@example.com", display_name="Viewer")
     session.add(user)
     session.flush()
     session.add(

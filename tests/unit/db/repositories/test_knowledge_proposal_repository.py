@@ -38,8 +38,8 @@ def _make_session():
     return create_session_factory(engine)()
 
 
-def _make_user(session, login: str = "viewer@example.com") -> User:
-    return UserRepository(session).create_user(login=login, display_name=login)
+def _make_user(session, email: str = "viewer@example.com") -> User:
+    return UserRepository(session).create_user(email=email, display_name=email)
 
 
 def _make_origin(session, *, workspace: Workspace, user: User) -> ChatMessage:

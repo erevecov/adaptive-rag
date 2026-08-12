@@ -65,8 +65,11 @@ from adaptive_rag.db.models.tool_call import TOOL_CALL_STATUS_VALUES, ToolCall
 from adaptive_rag.db.models.user import (
     SYSTEM_ROLE_VALUES,
     WORKSPACE_ROLE_VALUES,
+    LoginAttempt,
     User,
     UserAccessToken,
+    UserPasswordCredential,
+    UserSession,
     WorkspaceMembership,
 )
 from adaptive_rag.db.models.user_memory import (
@@ -139,8 +142,11 @@ __all__ = [
     "TOOL_CALL_STATUS_VALUES",
     "ToolCall",
     "SYSTEM_ROLE_VALUES",
+    "LoginAttempt",
     "User",
     "UserMemory",
     "USER_MEMORY_STATUS_VALUES",
     "UserAccessToken",
+    "UserPasswordCredential",
+    "UserSession",
 ]

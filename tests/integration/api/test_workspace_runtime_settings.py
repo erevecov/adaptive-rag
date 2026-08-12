@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from uuid import uuid4
 
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -71,6 +72,7 @@ def _client(*, session: Session) -> TestClient:
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     return TestClient(app)
 
 
@@ -100,15 +102,15 @@ def _bearer(raw_token: str) -> dict[str, str]:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
 ) -> User:
     repo = UserRepository(session)
-    user = repo.create_user(login=login, display_name=login, system_role="user")
+    user = repo.create_user(email=email, display_name=email, system_role="user")
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -140,8 +142,8 @@ def test_workspace_runtime_settings_override_requires_workspace_admin() -> None:
             metadata_json=None,
         )
     )
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
-    admin = _create_user(session, login="admin@example.com", token="admin-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
+    admin = _create_user(session, email="admin@example.com", token="admin-token")
     _grant_workspace_role(session, workspace=workspace, user=viewer, role="viewer")
     _grant_workspace_role(session, workspace=workspace, user=admin, role="admin")
     session.commit()

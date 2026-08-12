@@ -35,6 +35,31 @@ uv run alembic upgrade head
 # docker compose exec api uv run alembic upgrade head
 ```
 
+### Primer usuario para la UI
+
+El smoke CLI de la siguiente seccion no necesita login. Para usar la UI, copia
+`.env.example` a `.env`, configura un valor aleatorio y temporal para
+`ADAPTIVE_RAG_BOOTSTRAP_SECRET`, levanta `postgres migrate api frontend` y crea
+el primer superadmin:
+
+```bash
+export ADAPTIVE_RAG_BOOTSTRAP_SECRET='pega-aqui-el-mismo-valor-de-dotenv'
+curl --fail-with-body http://localhost:8000/auth/setup \
+  -H 'Content-Type: application/json' \
+  -H "X-Setup-Secret: $ADAPTIVE_RAG_BOOTSTRAP_SECRET" \
+  -d '{"email":"admin@example.com","display_name":"Local Admin","password":"change-this-strong-password"}'
+```
+
+El header debe coincidir con el secreto cargado por la API. El setup es de un
+solo uso y falla cerrado si ya existe cualquier usuario. Borra el secreto y
+reinicia la API despues; inicia sesion en `http://localhost:5173` con el email y
+password anteriores.
+
+Desde `Settings > Authoring`, un superadmin puede crear identidades globales y
+copiar la password temporal mostrada una sola vez. Un admin de workspace puede
+agregar una identidad ya existente por email y asignarle un rol solo en ese
+workspace.
+
 ## Smoke de producto
 
 Ejecuta el camino completo authoring -> ingestion -> indexing -> cited chat:

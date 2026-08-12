@@ -31,7 +31,7 @@ def test_propose_approve_and_injection_text() -> None:
     session = _session()
     workspace = WorkspaceRepository(session).create(name="MemProj")
     user = UserRepository(session).create_user(
-        login="mem-user",
+        email="mem-user@example.com",
         display_name="Mem User",
         system_role="user",
     )
@@ -76,7 +76,7 @@ def test_propose_approve_and_injection_text() -> None:
 def test_reject_blocks_injection_until_restored() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="mem-user-2",
+        email="mem-user-2@example.com",
         display_name="Mem 2",
         system_role="user",
     )
@@ -118,7 +118,7 @@ def test_reject_blocks_injection_until_restored() -> None:
 def test_empty_content_rejected() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="mem-user-3",
+        email="mem-user-3@example.com",
         display_name="Mem 3",
         system_role="user",
     )
@@ -132,8 +132,8 @@ def test_empty_content_rejected() -> None:
 def test_cross_user_cannot_approve_foreign_memory() -> None:
     session = _session()
     users = UserRepository(session)
-    owner = users.create_user(login="owner", display_name="Owner")
-    other = users.create_user(login="other", display_name="Other")
+    owner = users.create_user(email="owner@example.com", display_name="Owner")
+    other = users.create_user(email="other@example.com", display_name="Other")
     memory = user_memory.propose_memory(
         session, user_id=owner.id, content="Secret preference"
     )
@@ -156,7 +156,10 @@ def test_cross_user_cannot_approve_foreign_memory() -> None:
 def test_global_and_workspace_scope_injection() -> None:
     session = _session()
     workspace = WorkspaceRepository(session).create(name="Scoped")
-    user = UserRepository(session).create_user(login="scoped", display_name="Scoped")
+    user = UserRepository(session).create_user(
+        email="scoped@example.com",
+        display_name="Scoped",
+    )
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=user.id,
@@ -196,7 +199,7 @@ def test_propose_workspace_scoped_requires_membership() -> None:
     session = _session()
     workspace = WorkspaceRepository(session).create(name="Foreign")
     user = UserRepository(session).create_user(
-        login="outsider",
+        email="outsider@example.com",
         display_name="Outsider",
         system_role="user",
     )
@@ -217,7 +220,7 @@ def test_approve_workspace_scoped_requires_membership() -> None:
     session = _session()
     workspace = WorkspaceRepository(session).create(name="Was Member")
     user = UserRepository(session).create_user(
-        login="ex-member",
+        email="ex-member@example.com",
         display_name="Ex Member",
         system_role="user",
     )
@@ -261,7 +264,7 @@ def test_superadmin_can_propose_and_approve_without_membership() -> None:
     session = _session()
     workspace = WorkspaceRepository(session).create(name="Admin Scope")
     admin = UserRepository(session).create_user(
-        login="super",
+        email="super@example.com",
         display_name="Super",
         system_role="superadmin",
     )
@@ -285,7 +288,7 @@ def test_superadmin_can_propose_and_approve_without_membership() -> None:
 def test_update_proposed_memory_content() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="edit-user",
+        email="edit-user@example.com",
         display_name="Edit",
         system_role="user",
     )
@@ -322,7 +325,7 @@ def test_update_proposed_memory_content() -> None:
 def test_reject_approved_removes_injection() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="soft-remove",
+        email="soft-remove@example.com",
         display_name="Soft",
         system_role="user",
     )
@@ -352,7 +355,7 @@ def test_reject_approved_removes_injection() -> None:
 def test_approve_rejected_restores_injection() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="soft-restore",
+        email="soft-restore@example.com",
         display_name="Restore",
         system_role="user",
     )
@@ -388,7 +391,7 @@ def test_approve_rejected_restores_injection() -> None:
 def test_injection_text_caps_at_max_items() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="cap-user",
+        email="cap-user@example.com",
         display_name="Cap",
         system_role="user",
     )
@@ -412,7 +415,7 @@ def test_injection_text_caps_at_max_items() -> None:
 def test_special_characters_roundtrip_and_injection() -> None:
     session = _session()
     user = UserRepository(session).create_user(
-        login="unicode-user",
+        email="unicode-user@example.com",
         display_name="Unicode",
         system_role="user",
     )

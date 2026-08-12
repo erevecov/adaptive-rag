@@ -68,13 +68,13 @@ def _client(*, session: Session) -> TestClient:
     return TestClient(app)
 
 
-def _create_user(session: Session, *, login: str, token: str) -> User:
+def _create_user(session: Session, *, email: str, token: str) -> User:
     repo = UserRepository(session)
-    user = repo.create_user(login=login, display_name=login)
+    user = repo.create_user(email=email, display_name=email)
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -94,7 +94,7 @@ def _bearer(token: str) -> dict[str, str]:
 def test_viewer_submit_creates_pending_knowledge_proposal() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     _grant(session, workspace=workspace, user=viewer, role="viewer")
     session.commit()
     client = _client(session=session)
@@ -120,7 +120,7 @@ def test_contributor_submit_enters_knowledge_directly_as_approved_source() -> No
     workspace = WorkspaceRepository(session).create(name="Demo")
     contributor = _create_user(
         session,
-        login="contributor@example.com",
+        email="contributor@example.com",
         token="contributor-token",
     )
     _grant(session, workspace=workspace, user=contributor, role="contributor")
@@ -150,10 +150,10 @@ def test_contributor_submit_enters_knowledge_directly_as_approved_source() -> No
 def test_contributor_can_list_refine_and_approve_pending_proposal() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
-        login="contributor@example.com",
+        email="contributor@example.com",
         token="contributor-token",
     )
     _grant(session, workspace=workspace, user=viewer, role="viewer")
@@ -201,10 +201,10 @@ def test_contributor_can_list_refine_and_approve_pending_proposal() -> None:
 def test_contributor_can_reject_pending_proposal_with_reason() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     contributor = _create_user(
         session,
-        login="contributor@example.com",
+        email="contributor@example.com",
         token="contributor-token",
     )
     _grant(session, workspace=workspace, user=viewer, role="viewer")
@@ -239,7 +239,7 @@ def test_contributor_can_reject_pending_proposal_with_reason() -> None:
 def test_viewer_cannot_review_workspace_knowledge_proposals() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Demo")
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     _grant(session, workspace=workspace, user=viewer, role="viewer")
     session.commit()
     client = _client(session=session)
@@ -250,4 +250,4 @@ def test_viewer_cannot_review_workspace_knowledge_proposals() -> None:
     )
 
     assert response.status_code == 403
-    assert response.json()["detail"] == "workspace contributor role required"
+    assert response.json()["detail"]["code"] == "workspace_contributor_required"

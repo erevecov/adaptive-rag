@@ -140,7 +140,7 @@ def test_chat_session_persists_model_config_and_prompt_version() -> None:
 def test_chat_session_can_store_owner_user_id() -> None:
     session = _make_session()
     workspace = _make_workspace(session)
-    user = User(login="owner@example.com", display_name="Owner")
+    user = User(email="owner@example.com", display_name="Owner")
     session.add(user)
     session.flush()
     chat_session = ChatSession(workspace_id=workspace.id, user_id=user.id)

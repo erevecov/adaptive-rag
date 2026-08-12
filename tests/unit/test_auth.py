@@ -36,11 +36,11 @@ def _make_session():
 
 def _user(
     *,
-    login: str = "alice",
+    email: str = "alice",
     display_name: str = "Alice",
     system_role: str = "user",
 ) -> User:
-    user = User(login=login, display_name=display_name, system_role=system_role)
+    user = User(email=email, display_name=display_name, system_role=system_role)
     user.id = uuid4()
     return user
 
@@ -66,18 +66,18 @@ def test_bootstrap_principal_reports_superadmin_identity() -> None:
     principal = CurrentPrincipal(user=None, is_bootstrap=True)
 
     assert principal.user_id is None
-    assert principal.login == "bootstrap"
+    assert principal.email == "bootstrap"
     assert principal.display_name == "Bootstrap Superadmin"
     assert principal.system_role == "superadmin"
     assert principal.is_superadmin is True
 
 
 def test_user_principal_delegates_to_user_fields() -> None:
-    user = _user(login="bob", display_name="Bob", system_role="user")
+    user = _user(email="bob", display_name="Bob", system_role="user")
     principal = CurrentPrincipal(user=user)
 
     assert principal.user_id == user.id
-    assert principal.login == "bob"
+    assert principal.email == "bob"
     assert principal.display_name == "Bob"
     assert principal.system_role == "user"
     assert principal.is_superadmin is False

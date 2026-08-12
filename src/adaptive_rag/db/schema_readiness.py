@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from sqlalchemy import Engine, inspect, text
 
-REQUIRED_DATABASE_REVISION = "p5q6r7s8t9u0"
+REQUIRED_DATABASE_REVISION = "q6r7s8t9u0v1"
 REQUIRED_DATABASE_CAPABILITIES: dict[str, tuple[str, ...]] = {
     "jobs": (
         "id",

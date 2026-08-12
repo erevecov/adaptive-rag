@@ -34,6 +34,17 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
     )
     api_key: SecretStr | None = Field(default=None)
+    bootstrap_secret: SecretStr | None = Field(default=None)
+    auth_cookie_secure: bool | None = None
+    auth_session_idle_hours: int = 12
+    auth_session_absolute_days: int = 7
+    auth_login_window_minutes: int = 15
+    # Failures for the same (email, client IP) pair within the window.
+    # Bucketed by pair (not email alone) so remote callers cannot lock out an
+    # account from unrelated networks while still throttling local guessing.
+    auth_login_max_attempts_per_email: int = 10
+    auth_login_max_attempts_per_ip: int = 30
+    auth_login_attempt_retention_days: int = 7
     vector_store: VectorStoreName = "pgvector"
     graph_store: GraphStoreName = "disabled"
     provider_runtime_mode: ProviderRuntimeMode = "fake"

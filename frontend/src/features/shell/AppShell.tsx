@@ -55,11 +55,16 @@ const SETTINGS_NAVIGATION = [
     id: 'authoring',
     label: 'Authoring',
     submodules: [
-      { id: 'workspaces', label: 'Workspaces' },
-      { id: 'users', label: 'Users' },
-      { id: 'knowledge', label: 'Knowledge' },
-      { id: 'sources', label: 'Sources' },
-      { id: 'retrieval', label: 'Retrieval Playground' },
+      { id: 'workspaces', label: 'Workspaces', workspaceManagerOnly: true },
+      { id: 'users', label: 'Global users', superadminOnly: true },
+      { id: 'members', label: 'Workspace members', workspaceAdminOnly: true },
+      { id: 'knowledge', label: 'Knowledge', contributorOnly: true },
+      { id: 'sources', label: 'Sources', contributorOnly: true },
+      {
+        id: 'retrieval',
+        label: 'Retrieval Playground',
+        contributorOnly: true,
+      },
     ],
   },
   {
@@ -390,7 +395,11 @@ export function AppSidebar({
   error,
   isOpen,
   jobsSubmodule,
+  canAccessSettings,
+  canContributeWorkspace,
   canManageJobPlatform,
+  canManageGlobalUsers,
+  canManageWorkspaceMembers,
   observabilitySubmodule,
   onArchiveSession,
   onAccountModuleChange,
@@ -419,7 +428,11 @@ export function AppSidebar({
 }: {
   accountModule: AccountModule
   authoringSubmodule: AuthoringSubmodule
+  canAccessSettings: boolean
+  canContributeWorkspace: boolean
+  canManageGlobalUsers: boolean
   canManageJobPlatform: boolean
+  canManageWorkspaceMembers: boolean
   canLoadMoreSessions: boolean
   error: string | null
   isOpen: boolean
@@ -625,11 +638,15 @@ export function AppSidebar({
                     id: 'account',
                     label: 'My Account',
                   },
-                  {
-                    active: primaryView === 'settings',
-                    id: 'settings',
-                    label: 'Settings',
-                  },
+                  ...(canAccessSettings
+                    ? [
+                        {
+                          active: primaryView === 'settings',
+                          id: 'settings',
+                          label: 'Settings',
+                        },
+                      ]
+                    : []),
                 ],
                 label: '',
               },
@@ -667,7 +684,10 @@ export function AppSidebar({
             activeObservabilitySubmodule={observabilitySubmodule}
             activeRuntimeSubmodule={runtimeSubmodule}
             activeJobsSubmodule={jobsSubmodule}
+            canContributeWorkspace={canContributeWorkspace}
+            canManageGlobalUsers={canManageGlobalUsers}
             canManageJobPlatform={canManageJobPlatform}
+            canManageWorkspaceMembers={canManageWorkspaceMembers}
             onModuleChange={onSettingsModuleChange}
             onSubmoduleChange={onSettingsSubmoduleChange}
           />
@@ -721,7 +741,10 @@ function SettingsNavigationPanel({
   activeObservabilitySubmodule,
   activeRuntimeSubmodule,
   activeJobsSubmodule,
+  canContributeWorkspace,
+  canManageGlobalUsers,
   canManageJobPlatform,
+  canManageWorkspaceMembers,
   onModuleChange,
   onSubmoduleChange,
 }: {
@@ -730,7 +753,10 @@ function SettingsNavigationPanel({
   activeObservabilitySubmodule: ObservabilitySubmodule
   activeRuntimeSubmodule: RuntimeSubmodule
   activeJobsSubmodule: JobsSubmodule
+  canContributeWorkspace: boolean
+  canManageGlobalUsers: boolean
   canManageJobPlatform: boolean
+  canManageWorkspaceMembers: boolean
   onModuleChange(module: SettingsModule): void
   onSubmoduleChange(selection: SettingsNavigationSelection): void
 }) {
@@ -781,15 +807,28 @@ function SettingsNavigationPanel({
         </SidebarContextualButton>
 
         {activeModule === AUTHORING_NAVIGATION.id
-          ? AUTHORING_NAVIGATION.submodules.map((submodule) =>
-              renderSubmoduleButton(
-                { module: AUTHORING_NAVIGATION.id, submodule: submodule.id },
-                submodule.label,
-              ),
-            )
+          ? AUTHORING_NAVIGATION.submodules
+              .filter(
+                (submodule) =>
+                  (!("superadminOnly" in submodule) || canManageGlobalUsers) &&
+                  (!("workspaceAdminOnly" in submodule) ||
+                    canManageWorkspaceMembers) &&
+                  (!("workspaceManagerOnly" in submodule) ||
+                    canManageGlobalUsers ||
+                    canManageWorkspaceMembers) &&
+                  (!("contributorOnly" in submodule) ||
+                    canContributeWorkspace),
+              )
+              .map((submodule) =>
+                renderSubmoduleButton(
+                  { module: AUTHORING_NAVIGATION.id, submodule: submodule.id },
+                  submodule.label,
+                ),
+              )
           : null}
       </div>
-      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
+      {canManageJobPlatform || canManageWorkspaceMembers ? (
+        <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === OBSERVABILITY_NAVIGATION.id}
           onClick={() => onModuleChange(OBSERVABILITY_NAVIGATION.id)}
@@ -809,8 +848,10 @@ function SettingsNavigationPanel({
               ),
             )
           : null}
-      </div>
-      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
+        </div>
+      ) : null}
+      {canManageJobPlatform || canManageWorkspaceMembers ? (
+        <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === JOBS_NAVIGATION.id}
           onClick={() => onModuleChange(JOBS_NAVIGATION.id)}
@@ -832,8 +873,10 @@ function SettingsNavigationPanel({
                 ),
               )
           : null}
-      </div>
-      <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
+        </div>
+      ) : null}
+      {canManageJobPlatform || canManageWorkspaceMembers ? (
+        <div className="mt-2.5 grid gap-1 max-[680px]:gap-0.5 max-[680px]:mt-1" data-slot="sidebar-contextual-group">
         <SidebarContextualButton
           active={activeModule === RUNTIME_NAVIGATION.id}
           onClick={() => onModuleChange(RUNTIME_NAVIGATION.id)}
@@ -850,7 +893,8 @@ function SettingsNavigationPanel({
               ),
             )
           : null}
-      </div>
+        </div>
+      ) : null}
     </nav>
   )
 }

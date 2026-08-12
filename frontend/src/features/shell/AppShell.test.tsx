@@ -72,7 +72,11 @@ describe('AppSidebar pattern adoption', () => {
       <AppSidebar
         accountModule="appearance"
         authoringSubmodule="workspaces"
+        canAccessSettings
+        canContributeWorkspace
+        canManageGlobalUsers={false}
         canManageJobPlatform={false}
+        canManageWorkspaceMembers
         canLoadMoreSessions={false}
         error={null}
         isOpen
@@ -125,7 +129,11 @@ describe('AppSidebar pattern adoption', () => {
       <AppSidebar
         accountModule="appearance"
         authoringSubmodule="workspaces"
+        canAccessSettings
+        canContributeWorkspace
+        canManageGlobalUsers={false}
         canManageJobPlatform={false}
+        canManageWorkspaceMembers
         canLoadMoreSessions={false}
         error={null}
         isOpen

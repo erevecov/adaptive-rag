@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 from collections.abc import Iterator
 
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -107,6 +108,7 @@ def _client(
         yield session
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     app.dependency_overrides[get_provider_model_lister] = lambda: lister
     return TestClient(app)
 

@@ -11,6 +11,11 @@ import { StatusBadge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Panel, PanelDescription } from '@/components/ui/panel'
 import { AuthoringPanel } from '@/features/authoring/AuthoringView'
+import { AuthBoundary } from '@/features/auth/AuthBoundary'
+import {
+  GlobalUsersPanel,
+  WorkspaceMembersPanel,
+} from '@/features/auth/UserManagementPanel'
 import { useChatAttachments } from '@/features/chat/ChatAttachments'
 import {
   ChatWorkspacePanel,
@@ -70,7 +75,6 @@ import {
   type ChatModel,
   type KnowledgeProposal,
   type Workspace,
-  type WorkspaceMembership,
   type WorkspaceRuntimeSettings,
   type ProviderConnection,
   type ProviderConnectionCheckResponse,
@@ -79,7 +83,6 @@ import {
   type RetrievalResult,
   type Source,
   type SourceCreateBody,
-  type User,
 } from './lib/apiClient'
 import {
   THEMES,
@@ -139,19 +142,47 @@ type SpeechRecognitionResultEventLike = {
 
 type AppProps = {
   apiClient?: ApiClient
+  initialCurrentUser?: CurrentUser
   initialWorkspaceId?: string
 }
 
-function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
+function App({
+  apiClient,
+  initialCurrentUser,
+  initialWorkspaceId = '',
+}: AppProps) {
   const client = useMemo(
     () =>
       apiClient ??
       createApiClient({
-        authToken: getDefaultApiAuthToken(),
         baseUrl: getDefaultApiBaseUrl(),
       }),
     [apiClient],
   )
+  return (
+    <AuthBoundary client={client} initialCurrentUser={initialCurrentUser}>
+      {(currentUser) => (
+        <AuthenticatedApp
+          apiClient={client}
+          initialCurrentUser={currentUser}
+          initialWorkspaceId={
+            initialWorkspaceId.trim() || currentUser.last_workspace_id || ''
+          }
+        />
+      )}
+    </AuthBoundary>
+  )
+}
+
+function AuthenticatedApp({
+  apiClient: client,
+  initialCurrentUser,
+  initialWorkspaceId = '',
+}: {
+  apiClient: ApiClient
+  initialCurrentUser: CurrentUser
+  initialWorkspaceId?: string
+}) {
   const [workspaceId, setWorkspaceId] = useState(() =>
     initialWorkspaceId.trim() || readPersistedWorkspaceId(),
   )
@@ -238,9 +269,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const [jobsSubmodule, setJobsSubmodule] = useState<JobsSubmodule>(
     readJobsSubmoduleFromRoute,
   )
-  const [currentUser, setCurrentUser] = useState<
-    CurrentUser | null | undefined
-  >(undefined)
+  const [currentUser] = useState<CurrentUser>(initialCurrentUser)
   const [theme, setTheme] = useState<Theme>(() => readPersistedTheme())
   const [createdAtFrom, setCreatedAtFrom] = useState('')
   const [createdAtTo, setCreatedAtTo] = useState('')
@@ -254,10 +283,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   )
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [sources, setSources] = useState<Source[]>([])
-  const [users, setUsers] = useState<User[]>([])
-  const [workspaceMemberships, setWorkspaceMemberships] = useState<
-    WorkspaceMembership[]
-  >([])
   const [knowledgeProposals, setKnowledgeProposals] = useState<
     KnowledgeProposal[]
   >([])
@@ -268,12 +293,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const [sourceContentBase64, setSourceContentBase64] = useState('')
   const [sourceFileName, setSourceFileName] = useState('')
   const [sourceTags, setSourceTags] = useState('')
-  const [userLogin, setUserLogin] = useState('')
-  const [userDisplayName, setUserDisplayName] = useState('')
-  const [userSystemRole, setUserSystemRole] = useState('user')
-  const [userAccessToken, setUserAccessToken] = useState('')
-  const [memberUserId, setMemberUserId] = useState('')
-  const [memberRole, setMemberRole] = useState('viewer')
   const [proposalDrafts, setProposalDrafts] = useState<Record<string, string>>({})
   const [proposalRejectReasons, setProposalRejectReasons] = useState<
     Record<string, string>
@@ -281,8 +300,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const [workspaceAuthoringState, setWorkspaceAuthoringState] =
     useState<RequestState>('loading')
   const [sourceAuthoringState, setSourceAuthoringState] =
-    useState<RequestState>('idle')
-  const [accessManagementState, setAccessManagementState] =
     useState<RequestState>('idle')
   const [knowledgeReviewState, setKnowledgeReviewState] =
     useState<RequestState>('idle')
@@ -292,9 +309,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const [sourceAuthoringError, setSourceAuthoringError] = useState<string | null>(
     null,
   )
-  const [accessManagementError, setAccessManagementError] = useState<
-    string | null
-  >(null)
   const [knowledgeReviewError, setKnowledgeReviewError] = useState<
     string | null
   >(null)
@@ -371,12 +385,97 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   const primaryView: PrimaryView =
     activeView === 'chat' || activeView === 'account' ? activeView : 'settings'
   const canManageJobPlatform = currentUser?.system_role === 'superadmin'
-  const activeWorkspaceRole = workspaces.find(
+  const activeWorkspace = workspaces.find(
     (workspace) => workspace.id === workspaceId.trim(),
-  )?.access_role
+  )
+  const activeWorkspaceRole = activeWorkspace?.access_role
   const canAdminWorkspace =
     workspaceId.trim().length > 0 &&
     (canManageJobPlatform || activeWorkspaceRole === 'admin')
+  const canContributeWorkspace =
+    canManageJobPlatform ||
+    activeWorkspaceRole === 'admin' ||
+    activeWorkspaceRole === 'contributor'
+  const canAccessSettings = canManageJobPlatform || canContributeWorkspace
+
+  useEffect(() => {
+    const cannotOpenGlobalUsers =
+      authoringSubmodule === 'users' && !canManageJobPlatform
+    const cannotOpenWorkspaceMembers =
+      authoringSubmodule === 'members' && !canAdminWorkspace
+    if (cannotOpenGlobalUsers || cannotOpenWorkspaceMembers) {
+      // A role or workspace change can invalidate the currently open admin tab.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuthoringSubmodule('workspaces')
+    }
+  }, [authoringSubmodule, canAdminWorkspace, canManageJobPlatform])
+
+  useEffect(() => {
+    if (
+      !canManageJobPlatform &&
+      (jobsSubmodule === 'queues' || jobsSubmodule === 'workers')
+    ) {
+      // Session hydration can reveal that a deep-linked job tab is unauthorized.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setJobsSubmodule('jobs')
+      updateRouteForJobsSubmodule('jobs', 'replace')
+    }
+  }, [canManageJobPlatform, jobsSubmodule])
+
+  useEffect(() => {
+    if (workspaceAuthoringState === 'loading') return
+    if (!canAccessSettings && activeView !== 'chat' && activeView !== 'account') {
+      replaceRouteForActiveView('chat')
+      // Access is server-derived and can change after workspace hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveView('chat')
+      return
+    }
+    if (
+      canAccessSettings &&
+      !canManageJobPlatform &&
+      !canAdminWorkspace &&
+      settingsModule !== 'authoring'
+    ) {
+      replaceRouteForActiveView('authoring')
+      setActiveView('authoring')
+      setSettingsModule('authoring')
+      setAuthoringSubmodule('knowledge')
+    }
+  }, [
+    activeView,
+    canAccessSettings,
+    canAdminWorkspace,
+    canManageJobPlatform,
+    settingsModule,
+    workspaceAuthoringState,
+  ])
+
+  useEffect(() => {
+    if (
+      authoringSubmodule === 'workspaces' &&
+      !canManageJobPlatform &&
+      !canAdminWorkspace
+    ) {
+      // Normalize a deep link after the active workspace role becomes available.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if (canContributeWorkspace) setAuthoringSubmodule('knowledge')
+    }
+    if (
+      (authoringSubmodule === 'knowledge' ||
+        authoringSubmodule === 'sources' ||
+        authoringSubmodule === 'retrieval') &&
+      !canContributeWorkspace &&
+      canManageJobPlatform
+    ) {
+      setAuthoringSubmodule('workspaces')
+    }
+  }, [
+    authoringSubmodule,
+    canAdminWorkspace,
+    canContributeWorkspace,
+    canManageJobPlatform,
+  ])
 
   useEffect(() => {
     applyTheme(theme)
@@ -406,46 +505,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   useEffect(() => {
     persistWorkspaceId(workspaceId)
   }, [workspaceId])
-
-  useEffect(() => {
-    let ignore = false
-    void client
-      .getCurrentUser()
-      .then((currentUser) => {
-        if (ignore) return
-        setCurrentUser(currentUser)
-        const routedJobsSubmodule = readJobsSubmoduleFromRoute()
-        if (
-          currentUser.system_role !== 'superadmin' &&
-          readActiveViewFromRoute() === 'jobs' &&
-          (routedJobsSubmodule === 'queues' || routedJobsSubmodule === 'workers')
-        ) {
-          setJobsSubmodule('jobs')
-          replaceRouteForJobsSubmodule('jobs')
-        }
-        if (initialWorkspaceId.trim().length > 0) return
-        const lastWorkspaceId = currentUser.last_workspace_id?.trim() ?? ''
-        if (lastWorkspaceId.length > 0) {
-          setVisibleSessionCount(SESSION_PAGE_SIZE)
-          setSessions([])
-          setHasMoreSessions(false)
-          setSelectedSessionId(null)
-          setSessionDetail(null)
-          setHistoryError(null)
-          setHistoryState('loading')
-          workspaceIdRef.current = lastWorkspaceId
-          setWorkspaceId(lastWorkspaceId)
-        }
-      })
-      .catch(() => {
-        // Local/bootstrap sessions may not have an authenticated account yet.
-        if (!ignore) setCurrentUser(null)
-      })
-
-    return () => {
-      ignore = true
-    }
-  }, [client, initialWorkspaceId])
 
   useEffect(() => {
     let ignore = false
@@ -1308,10 +1367,15 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
   }
 
   function handlePrimaryViewChange(view: PrimaryView) {
+    if (view === 'settings' && !canAccessSettings) return
     handleChangeActiveView(view === 'settings' ? settingsModule : view)
   }
 
   function handleSettingsModuleChange(module: SettingsModule) {
+    if (!canAccessSettings) return
+    if (module !== 'authoring' && !canManageJobPlatform && !canAdminWorkspace) {
+      return
+    }
     handleChangeActiveView(module)
     setSettingsModule(module)
     if (module === 'authoring') {
@@ -1329,6 +1393,23 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     handleChangeActiveView(selection.module)
     setSettingsModule(selection.module)
     if (selection.module === 'authoring') {
+      if (selection.submodule === 'users' && !canManageJobPlatform) return
+      if (selection.submodule === 'members' && !canAdminWorkspace) return
+      if (
+        selection.submodule === 'workspaces' &&
+        !canManageJobPlatform &&
+        !canAdminWorkspace
+      ) {
+        return
+      }
+      if (
+        (selection.submodule === 'knowledge' ||
+          selection.submodule === 'sources' ||
+          selection.submodule === 'retrieval') &&
+        !canContributeWorkspace
+      ) {
+        return
+      }
       setAuthoringSubmodule(selection.submodule)
     } else if (selection.module === 'observability') {
       setObservabilitySubmodule(selection.submodule)
@@ -1631,7 +1712,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     setIngestionState('idle')
     setSourceAuthoringError(null)
     setSourceAuthoringState('idle')
-    setWorkspaceMemberships([])
     setKnowledgeProposals([])
     setKnowledgeReviewError(null)
     setKnowledgeReviewState('idle')
@@ -1765,102 +1845,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     }
   }
 
-  async function handleRefreshAccess() {
-    const trimmedWorkspaceId = workspaceId.trim()
-
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-
-    try {
-      const usersResponse = await client.listUsers()
-      setUsers(usersResponse.items)
-
-      if (trimmedWorkspaceId.length > 0) {
-        const membershipsResponse =
-          await client.listWorkspaceMemberships(trimmedWorkspaceId)
-        setWorkspaceMemberships(membershipsResponse.items)
-      }
-
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
-    }
-  }
-
-  async function handleCreateUser(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const trimmedLogin = userLogin.trim()
-    const trimmedDisplayName = userDisplayName.trim()
-    const trimmedAccessToken = userAccessToken.trim()
-
-    if (trimmedLogin.length === 0) {
-      setAccessManagementState('failed')
-      setAccessManagementError('User login is required.')
-      return
-    }
-    if (trimmedDisplayName.length === 0) {
-      setAccessManagementState('failed')
-      setAccessManagementError('Display name is required.')
-      return
-    }
-
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-
-    try {
-      const user = await client.createUser({
-        access_token: trimmedAccessToken.length > 0 ? trimmedAccessToken : null,
-        display_name: trimmedDisplayName,
-        login: trimmedLogin,
-        system_role: userSystemRole,
-      })
-      setUsers((current) => upsertUser(current, user))
-      setUserLogin('')
-      setUserDisplayName('')
-      setUserAccessToken('')
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
-    }
-  }
-
-  async function handleSaveWorkspaceMembership(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    const trimmedWorkspaceId = workspaceId.trim()
-    const trimmedUserId = memberUserId.trim()
-
-    if (trimmedWorkspaceId.length === 0) {
-      setAccessManagementState('failed')
-      setAccessManagementError('Workspace ID is required to save membership.')
-      return
-    }
-    if (trimmedUserId.length === 0) {
-      setAccessManagementState('failed')
-      setAccessManagementError('Member user ID is required.')
-      return
-    }
-
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-
-    try {
-      const membership = await client.upsertWorkspaceMembership(
-        trimmedWorkspaceId,
-        trimmedUserId,
-        { role: memberRole },
-      )
-      setWorkspaceMemberships((current) => upsertMembership(current, membership))
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
-    }
-  }
-
   async function handleDeleteWorkspace(workspace: Workspace) {
     const confirmed = window.confirm(
       `Soft-delete workspace "${workspace.name}"? This hides it from lists.`,
@@ -1902,74 +1886,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
     } catch (error) {
       setSourceAuthoringState('failed')
       setSourceAuthoringError(getErrorMessage(error))
-    }
-  }
-
-  async function handleDeleteMembership(membership: WorkspaceMembership) {
-    const confirmed = window.confirm(
-      `Remove membership for user ${membership.user_id}?`,
-    )
-    if (!confirmed) {
-      return
-    }
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-    try {
-      await client.deleteWorkspaceMembership(
-        membership.workspace_id,
-        membership.user_id,
-      )
-      setWorkspaceMemberships((current) =>
-        current.filter((item) => item.id !== membership.id),
-      )
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
-    }
-  }
-
-  async function handleDeactivateUser(user: User) {
-    const confirmed = window.confirm(
-      `Deactivate user "${user.login}"? They will not authenticate while inactive.`,
-    )
-    if (!confirmed) {
-      return
-    }
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-    try {
-      const updated = await client.deactivateUser(user.id)
-      setUsers((current) => upsertUser(current, updated))
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
-    }
-  }
-
-  async function handleRevokeAccessToken() {
-    const trimmedToken = userAccessToken.trim()
-    if (trimmedToken.length === 0) {
-      setAccessManagementState('failed')
-      setAccessManagementError('Access token is required to revoke.')
-      return
-    }
-    const confirmed = window.confirm(
-      'Revoke this access token? It will stop authenticating immediately.',
-    )
-    if (!confirmed) {
-      return
-    }
-    setAccessManagementState('loading')
-    setAccessManagementError(null)
-    try {
-      await client.revokeAccessToken({ access_token: trimmedToken })
-      setUserAccessToken('')
-      setAccessManagementState('succeeded')
-    } catch (error) {
-      setAccessManagementState('failed')
-      setAccessManagementError(getErrorMessage(error))
     }
   }
 
@@ -2718,7 +2634,11 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
         <AppSidebar
           accountModule={accountModule}
           authoringSubmodule={authoringSubmodule}
+          canAccessSettings={canAccessSettings}
+          canContributeWorkspace={canContributeWorkspace}
+          canManageGlobalUsers={canManageJobPlatform}
           canManageJobPlatform={canManageJobPlatform}
+          canManageWorkspaceMembers={canAdminWorkspace}
           canLoadMoreSessions={hasMoreSessions}
           error={historyError}
           isOpen={isLeftSidebarOpen}
@@ -3020,11 +2940,28 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
               />
             ) : authoringSubmodule === 'retrieval' ? (
               <RetrievalPlaygroundPanel client={client} workspaceId={workspaceId} />
+            ) : authoringSubmodule === 'users' ? (
+              canManageJobPlatform ? (
+                <GlobalUsersPanel client={client} workspaces={workspaces} />
+              ) : (
+                <AccessRestrictedPanel />
+              )
+            ) : authoringSubmodule === 'members' ? (
+              canAdminWorkspace && activeWorkspace !== undefined ? (
+                <WorkspaceMembersPanel
+                  client={client}
+                  key={activeWorkspace.id}
+                  workspace={activeWorkspace}
+                />
+              ) : (
+                <AccessRestrictedPanel />
+              )
             ) : (
               <AuthoringPanel
                 activeSubmodule={authoringSubmodule}
-                accessError={accessManagementError}
-                accessState={accessManagementState}
+                canCreateWorkspace={canManageJobPlatform}
+                canDeleteSource={canManageJobPlatform || canAdminWorkspace}
+                canDeleteWorkspace={canManageJobPlatform}
                 ingestionError={ingestionError}
                 ingestionJobs={ingestionJobs}
                 ingestionRun={ingestionRun}
@@ -3032,24 +2969,14 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                 knowledgeProposals={knowledgeProposals}
                 knowledgeReviewError={knowledgeReviewError}
                 knowledgeReviewState={knowledgeReviewState}
-                memberRole={memberRole}
-                memberUserId={memberUserId}
-                memberships={workspaceMemberships}
                 onCreateWorkspace={(event) => void handleCreateWorkspace(event)}
                 onCreateSource={(event) => void handleCreateSource(event)}
-                onCreateUser={(event) => void handleCreateUser(event)}
-                onDeactivateUser={(user) => void handleDeactivateUser(user)}
-                onDeleteMembership={(membership) =>
-                  void handleDeleteMembership(membership)
-                }
                 onDeleteWorkspace={(workspace) => void handleDeleteWorkspace(workspace)}
                 onDeleteSource={(source) => void handleDeleteSource(source)}
                 onEnqueueIngestion={(source) => void handleEnqueueIngestion(source)}
                 onApproveKnowledgeProposal={(proposal) =>
                   void handleApproveKnowledgeProposal(proposal)
                 }
-                onMemberRoleChange={setMemberRole}
-                onMemberUserIdChange={setMemberUserId}
                 onWorkspaceIdChange={handleChangeWorkspaceId}
                 onWorkspaceNameChange={setWorkspaceName}
                 onProposalDraftChange={(proposalId, value) =>
@@ -3064,7 +2991,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                     [proposalId]: value,
                   }))
                 }
-                onRefreshAccess={() => void handleRefreshAccess()}
                 onRefreshIngestionJobs={() => void handleRefreshIngestionJobs()}
                 onRefreshKnowledgeProposals={() =>
                   void handleRefreshKnowledgeProposals()
@@ -3077,11 +3003,7 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                   void handleRejectKnowledgeProposal(proposal)
                 }
                 onRetryIngestionJob={(job) => void handleRetryIngestionJob(job)}
-                onRevokeAccessToken={() => void handleRevokeAccessToken()}
                 onRunNextIngestion={() => void handleRunNextIngestion()}
-                onSaveWorkspaceMembership={(event) =>
-                  void handleSaveWorkspaceMembership(event)
-                }
                 onSelectWorkspace={handleSelectWorkspace}
                 onSourceContentChange={setSourceContent}
                 onSourceExternalIdChange={setSourceExternalId}
@@ -3097,10 +3019,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                     setSourceContent('')
                   }
                 }}
-                onUserAccessTokenChange={setUserAccessToken}
-                onUserDisplayNameChange={setUserDisplayName}
-                onUserLoginChange={setUserLogin}
-                onUserSystemRoleChange={setUserSystemRole}
                 workspaceError={workspaceAuthoringError}
                 workspaceId={workspaceId}
                 workspaceName={workspaceName}
@@ -3116,11 +3034,6 @@ function App({ apiClient, initialWorkspaceId = '' }: AppProps) {
                 sourceTags={sourceTags}
                 sourceType={sourceType}
                 sources={sources}
-                userAccessToken={userAccessToken}
-                userDisplayName={userDisplayName}
-                userLogin={userLogin}
-                userSystemRole={userSystemRole}
-                users={users}
               />
             )}
           </SettingsPanel>
@@ -3151,6 +3064,17 @@ function SettingsPanel({ children }: { children: ReactNode }) {
         {children}
       </div>
     </section>
+  )
+}
+
+function AccessRestrictedPanel() {
+  return (
+    <Panel className="p-4">
+      <h3 className="font-semibold">Access restricted</h3>
+      <PanelDescription>
+        Your current role cannot manage this resource.
+      </PanelDescription>
+    </Panel>
   )
 }
 
@@ -3294,11 +3218,6 @@ function getDefaultApiBaseUrl(): string {
   return configured.length > 0 ? configured : DEFAULT_API_BASE_URL
 }
 
-function getDefaultApiAuthToken(): string | null {
-  const configured = (import.meta.env.VITE_ADAPTIVE_RAG_AUTH_TOKEN ?? '').trim()
-  return configured.length > 0 ? configured : null
-}
-
 function readInitialLeftSidebarOpen(): boolean {
   if (typeof window === 'undefined') {
     return true
@@ -3386,10 +3305,6 @@ function replaceRouteForActiveView(view: ActiveView) {
 
 function pushRouteForActiveView(view: ActiveView) {
   updateRouteForActiveView(view, 'push')
-}
-
-function replaceRouteForJobsSubmodule(submodule: JobsSubmodule) {
-  updateRouteForJobsSubmodule(submodule, 'replace')
 }
 
 function pushRouteForJobsSubmodule(submodule: JobsSubmodule) {
@@ -3821,21 +3736,6 @@ function parseTags(value: string): string[] {
 function upsertWorkspace(workspaces: Workspace[], workspace: Workspace): Workspace[] {
   const nextWorkspaces = workspaces.filter((item) => item.id !== workspace.id)
   return [...nextWorkspaces, workspace]
-}
-
-function upsertUser(users: User[], user: User): User[] {
-  const nextUsers = users.filter((item) => item.id !== user.id)
-  return [...nextUsers, user]
-}
-
-function upsertMembership(
-  memberships: WorkspaceMembership[],
-  membership: WorkspaceMembership,
-): WorkspaceMembership[] {
-  const nextMemberships = memberships.filter(
-    (item) => item.id !== membership.id && item.user_id !== membership.user_id,
-  )
-  return [...nextMemberships, membership]
 }
 
 function upsertKnowledgeProposal(

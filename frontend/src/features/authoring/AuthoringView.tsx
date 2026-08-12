@@ -15,7 +15,6 @@ import {
 import { Badge, StatusBadge } from '@/components/ui/badge'
 import { Button, ButtonLabel } from '@/components/ui/button'
 import { Input, Textarea } from '@/components/ui/control'
-import { DataList, DataListItem, DataListItemActions } from '@/components/ui/data-list'
 import { EmptyState, InlineFeedback } from '@/components/ui/feedback'
 import { Field, FieldControl, FieldHelp, FieldLabel } from '@/components/ui/field'
 import {
@@ -31,19 +30,18 @@ import type {
   IngestionRunResponse,
   KnowledgeProposal,
   Workspace,
-  WorkspaceMembership,
   Source,
-  User,
 } from '@/lib/apiClient'
 import { operatorSafeMessage } from '@/lib/operatorSafeMessage'
 
 export type RequestState = 'idle' | 'loading' | 'succeeded' | 'failed' | 'canceled'
-export type AuthoringSubmodule = 'workspaces' | 'users' | 'knowledge' | 'sources'
+export type AuthoringSubmodule = 'workspaces' | 'knowledge' | 'sources'
 
 export type AuthoringPanelProps = {
   activeSubmodule: AuthoringSubmodule
-  accessError: string | null
-  accessState: RequestState
+  canCreateWorkspace: boolean
+  canDeleteSource: boolean
+  canDeleteWorkspace: boolean
   ingestionError: string | null
   ingestionJobs: IngestionJob[]
   ingestionRun: IngestionRunResponse | null
@@ -51,44 +49,29 @@ export type AuthoringPanelProps = {
   knowledgeProposals: KnowledgeProposal[]
   knowledgeReviewError: string | null
   knowledgeReviewState: RequestState
-  memberRole: string
-  memberUserId: string
-  memberships: WorkspaceMembership[]
   onCreateWorkspace(event: FormEvent<HTMLFormElement>): void
   onCreateSource(event: FormEvent<HTMLFormElement>): void
-  onCreateUser(event: FormEvent<HTMLFormElement>): void
-  onDeactivateUser(user: User): void
-  onDeleteMembership(membership: WorkspaceMembership): void
   onDeleteWorkspace(workspace: Workspace): void
   onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
   onApproveKnowledgeProposal(proposal: KnowledgeProposal): void
-  onMemberRoleChange(value: string): void
-  onMemberUserIdChange(value: string): void
   onWorkspaceIdChange(value: string): void
   onWorkspaceNameChange(value: string): void
   onProposalDraftChange(proposalId: string, value: string): void
   onProposalRejectReasonChange(proposalId: string, value: string): void
-  onRefreshAccess(): void
   onRefreshIngestionJobs(): void
   onRefreshKnowledgeProposals(): void
   onRefreshSources(): void
   onRefineKnowledgeProposal(proposal: KnowledgeProposal): void
   onRejectKnowledgeProposal(proposal: KnowledgeProposal): void
   onRetryIngestionJob(job: IngestionJob): void
-  onRevokeAccessToken(): void
   onRunNextIngestion(): void
-  onSaveWorkspaceMembership(event: FormEvent<HTMLFormElement>): void
   onSelectWorkspace(workspace: Workspace): void
   onSourceContentChange(value: string): void
   onSourceExternalIdChange(value: string): void
   onSourceFileChange(file: File | null): void
   onSourceTagsChange(value: string): void
   onSourceTypeChange(value: string): void
-  onUserAccessTokenChange(value: string): void
-  onUserDisplayNameChange(value: string): void
-  onUserLoginChange(value: string): void
-  onUserSystemRoleChange(value: string): void
   workspaceError: string | null
   workspaceId: string
   workspaceName: string
@@ -104,17 +87,13 @@ export type AuthoringPanelProps = {
   sourceTags: string
   sourceType: string
   sources: Source[]
-  userAccessToken: string
-  userDisplayName: string
-  userLogin: string
-  userSystemRole: string
-  users: User[]
 }
 
 export function AuthoringPanel({
   activeSubmodule,
-  accessError,
-  accessState,
+  canCreateWorkspace,
+  canDeleteSource,
+  canDeleteWorkspace,
   ingestionError,
   ingestionJobs,
   ingestionRun,
@@ -122,44 +101,29 @@ export function AuthoringPanel({
   knowledgeProposals,
   knowledgeReviewError,
   knowledgeReviewState,
-  memberRole,
-  memberUserId,
-  memberships,
   onCreateWorkspace,
   onCreateSource,
-  onCreateUser,
-  onDeactivateUser,
-  onDeleteMembership,
   onDeleteWorkspace,
   onDeleteSource,
   onEnqueueIngestion,
   onApproveKnowledgeProposal,
-  onMemberRoleChange,
-  onMemberUserIdChange,
   onWorkspaceIdChange,
   onWorkspaceNameChange,
   onProposalDraftChange,
   onProposalRejectReasonChange,
-  onRefreshAccess,
   onRefreshIngestionJobs,
   onRefreshKnowledgeProposals,
   onRefreshSources,
   onRefineKnowledgeProposal,
   onRejectKnowledgeProposal,
   onRetryIngestionJob,
-  onRevokeAccessToken,
   onRunNextIngestion,
-  onSaveWorkspaceMembership,
   onSelectWorkspace,
   onSourceContentChange,
   onSourceExternalIdChange,
   onSourceFileChange,
   onSourceTagsChange,
   onSourceTypeChange,
-  onUserAccessTokenChange,
-  onUserDisplayNameChange,
-  onUserLoginChange,
-  onUserSystemRoleChange,
   workspaceError,
   workspaceId,
   workspaceName,
@@ -175,22 +139,18 @@ export function AuthoringPanel({
   sourceTags,
   sourceType,
   sources,
-  userAccessToken,
-  userDisplayName,
-  userLogin,
-  userSystemRole,
-  users,
 }: AuthoringPanelProps) {
   const isWorkspaceBusy = workspaceState === 'loading'
   const isSourceBusy = sourceState === 'loading'
   const isIngestionBusy = ingestionState === 'loading'
-  const isAccessBusy = accessState === 'loading'
   const isKnowledgeReviewBusy = knowledgeReviewState === 'loading'
 
   return (
     <div className="min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0">
       {activeSubmodule === 'workspaces' ? (
         <WorkspacesPanel
+          canCreateWorkspace={canCreateWorkspace}
+          canDeleteWorkspace={canDeleteWorkspace}
           error={workspaceError}
           isBusy={isWorkspaceBusy}
           onCreateWorkspace={onCreateWorkspace}
@@ -204,37 +164,10 @@ export function AuthoringPanel({
         />
       ) : null}
 
-      {activeSubmodule === 'users' ? (
-        <WorkspaceAccessPanel
-          error={accessError}
-          isBusy={isAccessBusy}
-          memberRole={memberRole}
-          memberUserId={memberUserId}
-          memberships={memberships}
-          onCreateUser={onCreateUser}
-          onDeactivateUser={onDeactivateUser}
-          onDeleteMembership={onDeleteMembership}
-          onMemberRoleChange={onMemberRoleChange}
-          onMemberUserIdChange={onMemberUserIdChange}
-          onRefresh={onRefreshAccess}
-          onRevokeAccessToken={onRevokeAccessToken}
-          onSaveMembership={onSaveWorkspaceMembership}
-          onUserAccessTokenChange={onUserAccessTokenChange}
-          onUserDisplayNameChange={onUserDisplayNameChange}
-          onUserLoginChange={onUserLoginChange}
-          onUserSystemRoleChange={onUserSystemRoleChange}
-          state={accessState}
-          userAccessToken={userAccessToken}
-          userDisplayName={userDisplayName}
-          userLogin={userLogin}
-          userSystemRole={userSystemRole}
-          users={users}
-        />
-      ) : null}
-
       {activeSubmodule === 'sources' ? (
         <>
           <SourcesPanel
+            canDeleteSource={canDeleteSource}
             error={sourceError}
             isBusy={isSourceBusy}
             onCreateSource={onCreateSource}
@@ -417,6 +350,8 @@ function AuthoringField({
 }
 
 function WorkspacesPanel({
+  canCreateWorkspace,
+  canDeleteWorkspace,
   error,
   isBusy,
   onCreateWorkspace,
@@ -428,6 +363,8 @@ function WorkspacesPanel({
   workspaces,
   state,
 }: {
+  canCreateWorkspace: boolean
+  canDeleteWorkspace: boolean
   error: string | null
   isBusy: boolean
   onCreateWorkspace(event: FormEvent<HTMLFormElement>): void
@@ -449,7 +386,8 @@ function WorkspacesPanel({
       status={<RequestStatus state={state} />}
       title="Workspaces"
     >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateWorkspace}>
+      {canCreateWorkspace ? (
+        <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateWorkspace}>
         <AuthoringField id="authoring-workspace-name" label="Workspace Name">
           {(fieldId) => (
             <Input
@@ -472,12 +410,14 @@ function WorkspacesPanel({
             />
           </Button>
         </div>
-      </form>
+        </form>
+      ) : null}
 
       {error ? <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <WorkspaceList
         activeWorkspaceId={workspaceId}
+        canDeleteWorkspace={canDeleteWorkspace}
         isBusy={isBusy}
         onDeleteWorkspace={onDeleteWorkspace}
         onSelectWorkspace={onSelectWorkspace}
@@ -487,14 +427,22 @@ function WorkspacesPanel({
   )
 }
 
+function workspaceAccessLabel(workspace: Workspace): string {
+  if (workspace.deleted_at) return 'Deleted'
+  if (workspace.can_access === false) return 'No Access'
+  return titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
+}
+
 function WorkspaceList({
   activeWorkspaceId,
+  canDeleteWorkspace,
   isBusy,
   onDeleteWorkspace,
   onSelectWorkspace,
   workspaces,
 }: {
   activeWorkspaceId: string
+  canDeleteWorkspace: boolean
   isBusy: boolean
   onDeleteWorkspace(workspace: Workspace): void
   onSelectWorkspace(workspace: Workspace): void
@@ -582,17 +530,20 @@ function WorkspaceList({
             >
               Select
             </Button>
-            <Button
-              aria-label={`Delete workspace ${workspace.name}`}
-              disabled={isBusy || !canAccess || isDeleted}
-              onClick={() => onDeleteWorkspace(workspace)}
-              size="sm"
-              type="button"
-              variant="danger"
-            >
-              Delete
-            </Button>
+            {canDeleteWorkspace ? (
+              <Button
+                aria-label={`Delete workspace ${workspace.name}`}
+                disabled={isBusy || !canAccess || isDeleted}
+                onClick={() => onDeleteWorkspace(workspace)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            ) : null}
           </div>
+
         )
       },
     },
@@ -631,380 +582,6 @@ function WorkspaceList({
         label="Workspaces"
         rows={workspaces}
       />
-    </div>
-  )
-}
-
-function workspaceAccessLabel(workspace: Workspace): string {
-  if (workspace.deleted_at) return 'Deleted'
-  if (workspace.can_access === false) return 'No Access'
-  return titleCaseStatus(workspace.access_role ?? workspace.embedding_mode)
-}
-
-function WorkspaceAccessPanel({
-  error,
-  isBusy,
-  memberRole,
-  memberUserId,
-  memberships,
-  onCreateUser,
-  onDeactivateUser,
-  onDeleteMembership,
-  onMemberRoleChange,
-  onMemberUserIdChange,
-  onRefresh,
-  onRevokeAccessToken,
-  onSaveMembership,
-  onUserAccessTokenChange,
-  onUserDisplayNameChange,
-  onUserLoginChange,
-  onUserSystemRoleChange,
-  state,
-  userAccessToken,
-  userDisplayName,
-  userLogin,
-  userSystemRole,
-  users,
-}: {
-  error: string | null
-  isBusy: boolean
-  memberRole: string
-  memberUserId: string
-  memberships: WorkspaceMembership[]
-  onCreateUser(event: FormEvent<HTMLFormElement>): void
-  onDeactivateUser(user: User): void
-  onDeleteMembership(membership: WorkspaceMembership): void
-  onMemberRoleChange(value: string): void
-  onMemberUserIdChange(value: string): void
-  onRefresh(): void
-  onRevokeAccessToken(): void
-  onSaveMembership(event: FormEvent<HTMLFormElement>): void
-  onUserAccessTokenChange(value: string): void
-  onUserDisplayNameChange(value: string): void
-  onUserLoginChange(value: string): void
-  onUserSystemRoleChange(value: string): void
-  state: RequestState
-  userAccessToken: string
-  userDisplayName: string
-  userLogin: string
-  userSystemRole: string
-  users: User[]
-}) {
-  return (
-    <AuthoringSectionPanel
-      ariaBusy={isBusy}
-      ariaLabel="Authoring Users"
-      description="Create Users and Assign Workspace Membership."
-      eyebrow="Users"
-      id="workspace-access-title"
-      status={<RequestStatus state={state} />}
-      title="Users"
-    >
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onCreateUser}>
-        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
-          <AuthoringField id="authoring-user-login" label="User Login">
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                autoComplete="off"
-                id={fieldId}
-                name="user-login"
-                onChange={(event) => onUserLoginChange(event.currentTarget.value)}
-                placeholder="viewer@example.com"
-                value={userLogin}
-              />
-            )}
-          </AuthoringField>
-          <AuthoringField id="authoring-user-display-name" label="Display Name">
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                autoComplete="off"
-                id={fieldId}
-                name="user-display-name"
-                onChange={(event) =>
-                  onUserDisplayNameChange(event.currentTarget.value)
-                }
-                placeholder="Viewer User"
-                value={userDisplayName}
-              />
-            )}
-          </AuthoringField>
-        </div>
-        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
-          <AuthoringField id="authoring-user-system-role" label="System Role">
-            {(fieldId) => (
-              <Select
-                className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                name="user-system-role"
-                onValueChange={onUserSystemRoleChange}
-                options={[
-                  { label: 'User', value: 'user' },
-                  { label: 'Superadmin', value: 'superadmin' },
-                ]}
-                value={userSystemRole}
-              />
-            )}
-          </AuthoringField>
-          <AuthoringField
-            help="Paste Once; Never Shown After Save."
-            id="authoring-user-access-token"
-            label="Access Token"
-          >
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                aria-describedby={`${fieldId}-help`}
-                autoComplete="off"
-                id={fieldId}
-                name="user-access-token"
-                onChange={(event) =>
-                  onUserAccessTokenChange(event.currentTarget.value)
-                }
-                type="password"
-                value={userAccessToken}
-              />
-            )}
-          </AuthoringField>
-        </div>
-        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate min-h-9 max-[680px]:min-h-0 max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
-            <ButtonLabel
-              busy={isBusy}
-              busyLabel="Creating…"
-              idleLabel="Create User"
-            />
-          </Button>
-          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-            disabled={isBusy}
-            onClick={onRefresh}
-            type="button"
-            variant="secondary"
-          >
-            <ButtonLabel
-              busy={isBusy}
-              busyLabel="Refreshing…"
-              idleLabel="Refresh Access"
-            />
-          </Button>
-          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none"
-            disabled={isBusy || userAccessToken.trim() === ''}
-            onClick={onRevokeAccessToken}
-            type="button"
-            variant="secondary"
-          >
-            Revoke access token
-          </Button>
-        </div>
-      </form>
-
-      <div className="h-px bg-border" role="separator" />
-
-      <form className="grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0" onSubmit={onSaveMembership}>
-        <div className="max-[680px]:grid-cols-1 min-w-0 grid gap-4 tracking-tight max-[680px]:gap-0 max-[680px]:p-0 md:grid-cols-2">
-          <AuthoringField id="authoring-member-user-id" label="Member User ID">
-            {(fieldId) => (
-              <Input
-                className="max-[680px]:text-left max-[680px]:accent-primary max-[680px]:caret-primary max-[680px]:outline-offset-0 max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                autoComplete="off"
-                id={fieldId}
-                name="member-user-id"
-                onChange={(event) => onMemberUserIdChange(event.currentTarget.value)}
-                placeholder="User UUID"
-                value={memberUserId}
-              />
-            )}
-          </AuthoringField>
-          <AuthoringField id="authoring-member-role" label="Workspace Role">
-            {(fieldId) => (
-              <Select
-                className="max-[680px]:text-left max-[680px]:outline-offset-0 max-[680px]:appearance-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:rounded-sm max-[680px]:border-primary max-[680px]:shadow-[0_1px_0_0] max-[680px]:shadow-primary max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter"
-                id={fieldId}
-                name="member-role"
-                onValueChange={onMemberRoleChange}
-                options={[
-                  { label: 'Viewer', value: 'viewer' },
-                  { label: 'Contributor', value: 'contributor' },
-                  { label: 'Admin', value: 'admin' },
-                ]}
-                value={memberRole}
-              />
-            )}
-          </AuthoringField>
-        </div>
-        <div className="max-[680px]:items-start flex flex-wrap items-center gap-2 max-[680px]:gap-0">
-          <Button className="max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:justify-start max-[680px]:outline-offset-0 max-[680px]:antialiased max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:h-5 max-[680px]:w-full max-[680px]:basis-full max-[680px]:rounded-sm max-[680px]:px-0 max-[680px]:text-[0.5rem] max-[680px]:tracking-tighter max-[680px]:leading-none" disabled={isBusy} type="submit">
-            <ButtonLabel
-              busy={isBusy}
-              busyLabel="Saving…"
-              idleLabel="Save Membership"
-            />
-          </Button>
-        </div>
-      </form>
-
-      {error ? <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
-
-      <UserAccessLists
-        isBusy={isBusy}
-        memberships={memberships}
-        onDeactivateUser={onDeactivateUser}
-        onDeleteMembership={onDeleteMembership}
-        users={users}
-      />
-    </AuthoringSectionPanel>
-  )
-}
-
-function UserAccessLists({
-  isBusy,
-  memberships,
-  onDeactivateUser,
-  onDeleteMembership,
-  users,
-}: {
-  isBusy: boolean
-  memberships: WorkspaceMembership[]
-  onDeactivateUser(user: User): void
-  onDeleteMembership(membership: WorkspaceMembership): void
-  users: User[]
-}) {
-  if (isBusy && users.length === 0 && memberships.length === 0) {
-    return <LoadingListState label="Loading Users…" />
-  }
-
-  if (users.length === 0 && memberships.length === 0) {
-    return (
-      <EmptyState data-slot-state="empty" role="status">
-        No Users or Memberships Yet.
-      </EmptyState>
-    )
-  }
-
-  const userColumns: readonly RecordsGridColumn<User>[] = [
-    {
-      header: 'User',
-      id: 'user',
-      render: (user) => (
-        <div
-          data-inactive={!user.is_active ? '' : undefined}
-          id={`authoring-user-${user.id}`}
-          tabIndex={-1}
-        >
-          <strong
-            className={
-              user.is_active
-                ? 'break-words text-sm font-semibold'
-                : 'break-words text-sm font-semibold text-muted-foreground'
-            }
-          >
-            {user.login}
-          </strong>
-          <p className="break-words text-xs text-muted-foreground">
-            {user.display_name}
-          </p>
-          <p className="break-all font-mono text-[11px] text-muted-foreground">
-            {user.id}
-          </p>
-        </div>
-      ),
-      sortValue: (user) => user.login,
-    },
-    {
-      header: 'Role',
-      id: 'role',
-      render: (user) => (
-        <div className="flex flex-wrap gap-2">
-          <Badge>{titleCaseStatus(user.system_role)}</Badge>
-          {!user.is_active ? <StatusBadge tone="warning">Inactive</StatusBadge> : null}
-        </div>
-      ),
-      sortValue: (user) => user.system_role,
-    },
-    {
-      header: 'Actions',
-      id: 'actions',
-      render: (user) => (
-        <Button
-          aria-label={`Deactivate user ${user.login}`}
-          disabled={isBusy || !user.is_active}
-          onClick={() => onDeactivateUser(user)}
-          size="sm"
-          type="button"
-          variant="danger"
-        >
-          Deactivate
-        </Button>
-      ),
-    },
-  ]
-
-  return (
-    <div className="grid min-w-0 gap-3 lg:grid-cols-2">
-      <div className="grid min-w-0 content-start gap-3">
-        {users.length === 0 ? (
-          <EmptyState data-slot-state="empty" role="status">
-            No Users Yet.
-          </EmptyState>
-        ) : (
-          <>
-            {users.length >= 5 ? (
-              <CommandSearch
-                emptyLabel="No matching users."
-                items={users.map((user) => ({
-                  id: user.id,
-                  label: user.login,
-                  meta: user.display_name,
-                }))}
-                label="Find Users"
-                onSelect={(id) => focusAuthoringRecord('user', id)}
-                placeholder="Search users"
-              />
-            ) : null}
-            <RecordsGrid
-              columns={userColumns}
-              emptyLabel="No Users Yet."
-              label="Users"
-              rows={users}
-            />
-          </>
-        )}
-      </div>
-
-      {memberships.length === 0 ? (
-        <EmptyState data-slot-state="empty" role="status">
-          No Workspace Memberships Yet.
-        </EmptyState>
-      ) : (
-        <DataList aria-label="Workspace Memberships">
-          {memberships.map((membership) => (
-            <DataListItem className="grid gap-2" key={membership.id}>
-              <div className="grid min-w-0 gap-1">
-                <strong className="break-all text-sm font-semibold">
-                  {membership.user_id}
-                </strong>
-                <small className="break-all text-xs text-muted-foreground">
-                  {membership.workspace_id}
-                </small>
-              </div>
-              <DataListItemActions>
-                <Badge>{titleCaseStatus(membership.role)}</Badge>
-                <Button
-                  aria-label={`Remove membership ${membership.user_id}`}
-                  disabled={isBusy}
-                  onClick={() => onDeleteMembership(membership)}
-                  size="sm"
-                  type="button"
-                  variant="danger"
-                >
-                  Remove
-                </Button>
-              </DataListItemActions>
-            </DataListItem>
-          ))}
-        </DataList>
-      )}
     </div>
   )
 }
@@ -1109,6 +686,7 @@ function isTextSourceType(sourceType: string): boolean {
 }
 
 function SourcesPanel({
+  canDeleteSource,
   error,
   isBusy,
   onCreateSource,
@@ -1130,6 +708,7 @@ function SourcesPanel({
   sourceType,
   sources,
 }: {
+  canDeleteSource: boolean
   error: string | null
   isBusy: boolean
   onCreateSource(event: FormEvent<HTMLFormElement>): void
@@ -1283,6 +862,7 @@ function SourcesPanel({
       {error ? <InlineFeedback className="max-[680px]:hyphens-none max-[680px]:min-w-0 max-[680px]:max-w-full max-[680px]:text-left max-[680px]:items-start max-[680px]:antialiased max-[680px]:select-none max-[680px]:touch-manipulation max-[680px]:ring-offset-0 max-[680px]:overflow-hidden max-[680px]:truncate max-[680px]:rounded-sm max-[680px]:border max-[680px]:border-destructive max-[680px]:text-[0.5rem] max-[680px]:leading-none max-[680px]:tracking-tighter" tone="danger">{error}</InlineFeedback> : null}
 
       <SourceList
+        canDeleteSource={canDeleteSource}
         isBusy={isBusy}
         onDeleteSource={onDeleteSource}
         onEnqueueIngestion={onEnqueueIngestion}
@@ -1293,11 +873,13 @@ function SourcesPanel({
 }
 
 function SourceList({
+  canDeleteSource,
   isBusy,
   onDeleteSource,
   onEnqueueIngestion,
   sources,
 }: {
+  canDeleteSource: boolean
   isBusy: boolean
   onDeleteSource(source: Source): void
   onEnqueueIngestion(source: Source): void
@@ -1367,6 +949,7 @@ function SourceList({
           <span className="text-xs text-muted-foreground">
             {sourceTypeLabel(source.source_type)} · {tags}
           </span>
+
         )
       },
       sortValue: (source) => source.source_type,
@@ -1388,16 +971,18 @@ function SourceList({
             >
               Queue
             </Button>
-            <Button
-              aria-label={`Delete source ${source.external_id}`}
-              disabled={isBusy || isDeleted}
-              onClick={() => onDeleteSource(source)}
-              size="sm"
-              type="button"
-              variant="danger"
-            >
-              Delete
-            </Button>
+            {canDeleteSource ? (
+              <Button
+                aria-label={`Delete source ${source.external_id}`}
+                disabled={isBusy || isDeleted}
+                onClick={() => onDeleteSource(source)}
+                size="sm"
+                type="button"
+                variant="danger"
+              >
+                Delete
+              </Button>
+            ) : null}
           </div>
         )
       },

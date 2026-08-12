@@ -75,7 +75,7 @@ def make_job_api_setup() -> JobApiSetup:
     }
     for role, token in tokens.items():
         user = User(
-            login=f"{role}@example.test",
+            email=f"{role}@example.test",
             display_name=role,
             system_role="superadmin" if role == "superadmin" else "user",
         )

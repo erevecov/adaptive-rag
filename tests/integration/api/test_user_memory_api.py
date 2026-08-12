@@ -63,16 +63,16 @@ def _client(*, session: Session) -> TestClient:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
     system_role: str = "user",
 ) -> User:
     repo = UserRepository(session)
-    user = repo.create_user(login=login, display_name=login, system_role=system_role)
+    user = repo.create_user(email=email, display_name=email, system_role=system_role)
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -84,7 +84,7 @@ def _bearer(token: str) -> dict[str, str]:
 def test_propose_list_approve_and_chat_injection_path() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Mem API")
-    user = _create_user(session, login="mem@example.com", token="mem-token")
+    user = _create_user(session, email="mem@example.com", token="mem-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=user.id,
@@ -151,7 +151,7 @@ def test_propose_list_approve_and_chat_injection_path() -> None:
 
 def test_reject_and_restore_via_approve_api() -> None:
     session = _make_session()
-    _create_user(session, login="rej@example.com", token="rej-token")
+    _create_user(session, email="rej@example.com", token="rej-token")
     session.commit()
     client = _client(session=session)
 
@@ -186,8 +186,8 @@ def test_reject_and_restore_via_approve_api() -> None:
 
 def test_foreign_memory_hidden_and_not_approvable() -> None:
     session = _make_session()
-    _create_user(session, login="owner@example.com", token="owner-token")
-    _create_user(session, login="other@example.com", token="other-token")
+    _create_user(session, email="owner@example.com", token="owner-token")
+    _create_user(session, email="other@example.com", token="other-token")
     session.commit()
     client = _client(session=session)
 
@@ -218,7 +218,7 @@ def test_foreign_memory_hidden_and_not_approvable() -> None:
 
 def test_empty_content_validation() -> None:
     session = _make_session()
-    _create_user(session, login="empty@example.com", token="empty-token")
+    _create_user(session, email="empty@example.com", token="empty-token")
     session.commit()
     client = _client(session=session)
 
@@ -242,7 +242,7 @@ def test_empty_content_validation() -> None:
 def test_propose_workspace_scoped_without_membership_forbidden() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Secret Workspace")
-    _create_user(session, login="outsider@example.com", token="out-token")
+    _create_user(session, email="outsider@example.com", token="out-token")
     session.commit()
     client = _client(session=session)
 
@@ -265,7 +265,7 @@ def test_propose_workspace_scoped_without_membership_forbidden() -> None:
 def test_approve_workspace_scoped_without_membership_forbidden() -> None:
     session = _make_session()
     workspace = WorkspaceRepository(session).create(name="Revoked Access")
-    user = _create_user(session, login="member@example.com", token="mem-token")
+    user = _create_user(session, email="member@example.com", token="mem-token")
     memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
         workspace_id=workspace.id,
@@ -309,7 +309,7 @@ def test_superadmin_can_propose_workspace_scoped_without_membership() -> None:
     workspace = WorkspaceRepository(session).create(name="Any Workspace")
     _create_user(
         session,
-        login="admin@example.com",
+        email="admin@example.com",
         token="admin-token",
         system_role="superadmin",
     )
@@ -334,7 +334,7 @@ def test_superadmin_can_propose_workspace_scoped_without_membership() -> None:
 
 def test_patch_proposed_and_reject_approved_via_api() -> None:
     session = _make_session()
-    user = _create_user(session, login="patch@example.com", token="patch-token")
+    user = _create_user(session, email="patch@example.com", token="patch-token")
     session.commit()
     client = _client(session=session)
 
@@ -408,7 +408,7 @@ def test_patch_proposed_and_reject_approved_via_api() -> None:
 
 def test_list_filter_by_status_and_invalid_status() -> None:
     session = _make_session()
-    _create_user(session, login="filter@example.com", token="filter-token")
+    _create_user(session, email="filter@example.com", token="filter-token")
     session.commit()
     client = _client(session=session)
 
@@ -455,7 +455,7 @@ def test_list_filter_by_status_and_invalid_status() -> None:
 
 def test_patch_rejected_memory_conflicts() -> None:
     session = _make_session()
-    _create_user(session, login="patchrej@example.com", token="patchrej-token")
+    _create_user(session, email="patchrej@example.com", token="patchrej-token")
     session.commit()
     client = _client(session=session)
 
@@ -483,8 +483,8 @@ def test_patch_rejected_memory_conflicts() -> None:
 
 def test_foreign_memory_patch_and_reject_hidden() -> None:
     session = _make_session()
-    _create_user(session, login="idor-owner@example.com", token="idor-owner-token")
-    _create_user(session, login="idor-other@example.com", token="idor-other-token")
+    _create_user(session, email="idor-owner@example.com", token="idor-owner-token")
+    _create_user(session, email="idor-other@example.com", token="idor-other-token")
     session.commit()
     client = _client(session=session)
 
@@ -522,7 +522,7 @@ def test_foreign_memory_patch_and_reject_hidden() -> None:
 
 def test_content_length_boundary() -> None:
     session = _make_session()
-    _create_user(session, login="length@example.com", token="length-token")
+    _create_user(session, email="length@example.com", token="length-token")
     session.commit()
     client = _client(session=session)
 

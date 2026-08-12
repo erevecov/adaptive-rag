@@ -45,6 +45,15 @@ class WorkspaceRepository:
             return None
         return workspace
 
+    def get_for_update(self, workspace_id: UUID) -> Workspace | None:
+        statement = (
+            select(Workspace).where(Workspace.id == workspace_id).with_for_update()
+        )
+        workspace = self._session.scalars(statement).one_or_none()
+        if workspace is None or workspace.deleted_at is not None:
+            return None
+        return workspace
+
     def list(
         self,
         *,

@@ -21,6 +21,8 @@ from adaptive_rag.db.models import (
     Source,
     User,
     UserAccessToken,
+    UserPasswordCredential,
+    UserSession,
     Workspace,
     WorkspaceMembership,
 )
@@ -44,6 +46,8 @@ def _make_session() -> Session:
         tables=[
             User.__table__,
             UserAccessToken.__table__,
+            UserPasswordCredential.__table__,
+            UserSession.__table__,
             Workspace.__table__,
             WorkspaceMembership.__table__,
             Source.__table__,
@@ -59,16 +63,20 @@ def _make_session() -> Session:
 def _seed(session: Session) -> dict[str, object]:
     users = UserRepository(session)
     superadmin = users.create_user(
-        login="root",
+        email="root@example.com",
         display_name="Root",
         system_role="superadmin",
     )
-    admin = users.create_user(login="admin", display_name="Admin", system_role="user")
+    admin = users.create_user(
+        email="admin@example.com",
+        display_name="Admin",
+        system_role="user",
+    )
     contributor = users.create_user(
-        login="contrib", display_name="Contrib", system_role="user"
+        email="contrib@example.com", display_name="Contrib", system_role="user"
     )
     viewer = users.create_user(
-        login="viewer",
+        email="viewer@example.com",
         display_name="Viewer",
         system_role="user",
     )
@@ -196,7 +204,7 @@ def test_soft_deleted_workspace_is_not_gettable_or_listed() -> None:
         headers=_auth("admin-token"),
     )
     assert get_response.status_code == 404
-    assert get_response.json()["detail"] == "workspace not found"
+    assert get_response.json()["detail"]["code"] == "workspace_not_found"
 
     listed = client.get("/workspaces", headers=_auth("admin-token"))
     assert listed.status_code == 200
@@ -256,12 +264,12 @@ def test_deactivate_user_and_revoke_token() -> None:
     session = _make_session()
     users = UserRepository(session)
     superadmin = users.create_user(
-        login="root",
+        email="root@example.com",
         display_name="Root",
         system_role="superadmin",
     )
     target = users.create_user(
-        login="temp",
+        email="temp@example.com",
         display_name="Temp",
         system_role="user",
     )

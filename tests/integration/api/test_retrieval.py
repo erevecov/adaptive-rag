@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 
 import pytest
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -171,6 +172,7 @@ def _client(
         )
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
     app.dependency_overrides[get_sparse_embedding_provider_factory] = lambda: (
         override_sparse_provider
@@ -200,16 +202,16 @@ def _bearer(raw_token: str) -> dict[str, str]:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
     role: str = "user",
 ) -> User:
     repo = UserRepository(session)
-    user = repo.create_user(login=login, display_name=login, system_role=role)
+    user = repo.create_user(email=email, display_name=email, system_role=role)
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -300,10 +302,10 @@ def _create_sparse_embedding(
 def test_retrieval_search_endpoint_requires_workspace_membership() -> None:
     session = _make_session()
     workspace = _create_workspace(session)
-    viewer = _create_user(session, login="viewer@example.com", token="viewer-token")
+    viewer = _create_user(session, email="viewer@example.com", token="viewer-token")
     outsider = _create_user(
         session,
-        login="outsider@example.com",
+        email="outsider@example.com",
         token="outsider-token",
     )
     _grant_workspace_role(session, workspace=workspace, user=viewer, role="viewer")
@@ -324,7 +326,7 @@ def test_retrieval_search_endpoint_requires_workspace_membership() -> None:
 
     assert outsider.system_role == "user"
     assert denied.status_code == 403
-    assert denied.json()["detail"] == "workspace access required"
+    assert denied.json()["detail"]["code"] == "workspace_access_required"
     assert allowed.status_code == 200
 
 

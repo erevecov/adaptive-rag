@@ -28,8 +28,8 @@ def _make_workspace(session, name: str = "demo") -> Workspace:
     return WorkspaceRepository(session).create(name=name)
 
 
-def _make_user(session, login: str) -> User:
-    user = User(login=login, display_name=login)
+def _make_user(session, email: str) -> User:
+    user = User(email=email, display_name=email)
     session.add(user)
     session.flush()
     return user

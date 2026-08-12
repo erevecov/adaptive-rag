@@ -9,6 +9,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import pytest
+from _legacy_auth_support import install_legacy_auth_override
 from fastapi.testclient import TestClient
 from sqlalchemy import URL, create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -375,6 +376,7 @@ def _client(
         return usage_tracker
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
     app.dependency_overrides[get_sparse_embedding_provider_factory] = (
         override_sparse_provider_factory
@@ -406,20 +408,20 @@ def _create_workspace(session: Session, name: str = "demo") -> Workspace:
 def _create_user(
     session: Session,
     *,
-    login: str,
+    email: str,
     token: str,
     system_role: str = "user",
 ) -> User:
     repo = UserRepository(session)
     user = repo.create_user(
-        login=login,
-        display_name=login,
+        email=email,
+        display_name=email,
         system_role=system_role,
     )
     repo.upsert_access_token(
         user_id=user.id,
         token_hash=hash_access_token(token),
-        label=f"{login} token",
+        label=f"{email} token",
     )
     return user
 
@@ -762,7 +764,7 @@ def test_chat_endpoint_persists_current_user_as_session_owner(
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    user = _create_user(session, email="viewer@example.com", token="viewer-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=user.id,
@@ -793,7 +795,7 @@ def test_chat_endpoint_commit_knowledge_tool_persists_pending_proposal(
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    user = _create_user(session, login="viewer@example.com", token="viewer-token")
+    user = _create_user(session, email="viewer@example.com", token="viewer-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=user.id,
@@ -1076,6 +1078,7 @@ def test_chat_endpoint_persists_live_runner_usage_with_session_id(
         return lambda: sparse_provider
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
     app.dependency_overrides[get_sparse_embedding_provider_factory] = (
         override_sparse_provider_factory
@@ -1153,6 +1156,7 @@ def test_chat_endpoint_persists_retrieval_embedding_usage_with_session_id(
         return lambda: sparse_provider
 
     app.dependency_overrides[get_session] = override_session
+    install_legacy_auth_override(app, session)
     app.dependency_overrides[get_sparse_embedding_provider_factory] = (
         override_sparse_provider_factory
     )
@@ -1675,15 +1679,15 @@ def test_chat_sessions_endpoint_scopes_history_to_current_user(
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session, "demo")
-    first_user = _create_user(session, login="first@example.com", token="first-token")
+    first_user = _create_user(session, email="first@example.com", token="first-token")
     second_user = _create_user(
         session,
-        login="second@example.com",
+        email="second@example.com",
         token="second-token",
     )
     superadmin = _create_user(
         session,
-        login="root@example.com",
+        email="root@example.com",
         token="root-token",
         system_role="superadmin",
     )
@@ -1904,7 +1908,7 @@ def test_chat_endpoint_continues_session_and_readback_shows_all_turns(
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    user = _create_user(session, login="chatter@example.com", token="chatter-token")
+    user = _create_user(session, email="chatter@example.com", token="chatter-token")
     WorkspaceMembershipRepository(session).upsert_membership(
         workspace_id=workspace.id,
         user_id=user.id,
@@ -2013,8 +2017,8 @@ def test_chat_endpoint_scopes_session_continuation_to_owner(tmp_path: Path) -> N
     session_factory = _make_session_factory(tmp_path)
     session = session_factory()
     workspace = _create_workspace(session)
-    owner = _create_user(session, login="owner@example.com", token="owner-token")
-    other = _create_user(session, login="other@example.com", token="other-token")
+    owner = _create_user(session, email="owner@example.com", token="owner-token")
+    other = _create_user(session, email="other@example.com", token="other-token")
     memberships = WorkspaceMembershipRepository(session)
     memberships.upsert_membership(
         workspace_id=workspace.id,

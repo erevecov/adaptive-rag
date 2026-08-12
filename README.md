@@ -11,13 +11,14 @@ pgvector, chat con citations, rerank opt-in, evals offline, observability local
 y un paquete Docker Compose para API, plataforma general de jobs/schedules,
 workers globales y Postgres/pgvector.
 
-La definicion de v1 cambio: v1 significa producto local-first single-user
-terminado, no solo release de portafolio del core. Antes de cortar v1.0 queda
-el gate final con demo/documentacion/smokes de release sobre el flujo completo.
+La definicion de v1 cambio: v1 significa producto local-first terminado, con
+usuarios humanos y acceso independiente por workspace, no solo release de
+portafolio del core. Antes de cortar v1.0 queda el gate final con
+demo/documentacion/smokes de release sobre el flujo completo.
 
-No requiere Qwen hosted, Neo4j, voice, MCP server, auth multi-user ni
-observability hosted para el gate default. Qwen, rerank hosted y Neo4j quedan
-como smokes opt-in con presupuesto/configuracion explicita.
+No requiere Qwen hosted, Neo4j, voice, MCP server ni observability hosted para
+el gate default. Qwen, rerank hosted y Neo4j quedan como smokes opt-in con
+presupuesto/configuracion explicita.
 
 ## Desarrollo local
 
@@ -52,6 +53,41 @@ uv run adaptive-rag first-run smoke
 
 El comando imprime evidencia JSON con workspace/source/job ids, chunk count,
 embedding count, answer y `citation_count`.
+
+## Autenticacion y usuarios
+
+La UI usa email y password local. Cada identidad tiene email global unico y
+puede ser `viewer`, `contributor` o `admin` de distintos workspaces al mismo
+tiempo; `superadmin` es un rol global. Las passwords se almacenan con Argon2id y
+el navegador usa una cookie HttpOnly respaldada por una sesion revocable.
+
+Despues de aplicar migraciones, configura temporalmente un secreto de bootstrap
+en `.env` y levanta el stack:
+
+```bash
+cp .env.example .env
+# Edita .env y asigna un valor aleatorio a ADAPTIVE_RAG_BOOTSTRAP_SECRET.
+docker compose up --build postgres migrate api frontend
+```
+
+Crea el primer superadmin una sola vez (la password debe tener entre 15 y 128
+caracteres):
+
+```bash
+export ADAPTIVE_RAG_BOOTSTRAP_SECRET='pega-aqui-el-mismo-valor-de-dotenv'
+curl --fail-with-body http://localhost:8000/auth/setup \
+  -H 'Content-Type: application/json' \
+  -H "X-Setup-Secret: $ADAPTIVE_RAG_BOOTSTRAP_SECRET" \
+  -d '{"email":"admin@example.com","display_name":"Local Admin","password":"change-this-strong-password"}'
+```
+
+El valor enviado en `X-Setup-Secret` debe coincidir con el de `.env`. Tras el
+setup, elimina ese valor y reinicia la API. Luego entra en
+`http://localhost:5173`. Los nuevos usuarios reciben una password temporal que
+el superadmin puede copiar una sola vez; el primer login obliga a cambiarla.
+
+Los bearer tokens existentes quedan reservados para clientes tecnicos como CLI,
+MCP o scripts. No sustituyen la identidad humana ni se exponen en la UI.
 
 ## Gate final v1
 
