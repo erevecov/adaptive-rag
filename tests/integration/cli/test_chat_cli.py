@@ -48,6 +48,7 @@ from adaptive_rag.db.repositories import (
 )
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.provider_usage import (
     InMemoryProviderUsageTracker,
     ProviderCallRecord,
@@ -640,6 +641,77 @@ def test_chat_ask_command_uses_workspace_retrieval_settings(
     data = json.loads(result.stdout)
     assert len(data["citations"]) == 1
     assert data["citations"][0]["rerank_metadata"]["candidate_limit"] == 2
+
+
+def test_chat_ask_command_falls_back_on_rerank_configuration_error(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    workspace = _create_workspace(session)
+    _far_source, _far_document, _far_version, _far = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Far original evidence",
+        snippet="Far original evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Near original evidence",
+        snippet="Near original evidence",
+        embedding=_vector(0.1),
+    )
+    ChatRetrievalSettingsRepository(session).upsert_workspace_settings(
+        workspace_id=workspace.id,
+        retrieval_limit=1,
+        rerank_enabled=True,
+        rerank_candidate_limit=2,
+    )
+    session.commit()
+    runner = ToolCallingChatRunner(retrieval_query="alpha evidence")
+    _patch_chat_dependencies(
+        monkeypatch,
+        session=session,
+        provider=StaticQueryEmbeddingProvider(_vector(0.0)),
+        runner=runner,
+    )
+
+    def raise_configuration_error() -> PreservingRerankProvider:
+        raise ProviderConfigurationError("missing_provider_secret")
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.chat.get_cli_rerank_provider",
+        raise_configuration_error,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "chat",
+            "ask",
+            "--workspace-id",
+            str(workspace.id),
+            "--message",
+            "What supports alpha?",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert [item["chunk_id"] for item in data["citations"]] == [str(near.id)]
+    assert data["citations"][0]["fallback_reason"] == "rerank_not_configured"
+    assert data["citations"][0]["rerank_metadata"] == {
+        "candidate_limit": 2,
+        "fallback_reason": "rerank_not_configured",
+        "used_rerank": False,
+    }
 
 
 def test_chat_ask_command_reports_service_errors(

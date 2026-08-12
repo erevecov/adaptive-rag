@@ -127,6 +127,14 @@ class BudgetBlockedRerankProvider:
         raise ProviderBudgetExceededError("provider budget exceeded")
 
 
+class ExplodingRerankProvider:
+    provider_name = "fake-rerank"
+    model_name = "exploding-rerank-v1"
+
+    def rerank(self, _request: RerankRequest) -> RerankResult:
+        raise RuntimeError("programming defect")
+
+
 class RecordingGraphRetriever:
     def __init__(
         self,
@@ -943,26 +951,48 @@ def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
     assert provider.inputs == []
 
 
-def test_retrieval_service_requires_rerank_provider_when_enabled() -> None:
+def test_retrieval_service_falls_back_when_rerank_provider_is_not_configured() -> None:
     session = _make_session()
     workspace = _create_workspace(session, "demo")
+    _far_source, _far_document, _far_version, _far = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="far.md",
+        stable_id="far",
+        text="Far evidence",
+        snippet="Far evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near",
+        text="Near evidence",
+        snippet="Near evidence",
+        embedding=_vector(0.1),
+    )
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     session.commit()
 
-    with pytest.raises(
-        RetrievalServiceError,
-        match="rerank provider is required when rerank is enabled",
-    ):
-        RetrievalService(session, provider=provider).search(
-            RetrievalSearchRequest(
-                workspace_id=workspace.id,
-                query="alpha question",
-                limit=3,
-                rerank=RetrievalRerankOptions(candidate_limit=3),
-            )
+    results = RetrievalService(session, provider=provider).search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="alpha question",
+            limit=1,
+            strategy="dense",
+            rerank=RetrievalRerankOptions(candidate_limit=2),
         )
+    )
 
-    assert provider.inputs == []
+    assert provider.inputs == ["alpha question"]
+    assert [result.chunk_id for result in results] == [near.id]
+    assert results[0].fallback_reason == "rerank_not_configured"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 2,
+        "fallback_reason": "rerank_not_configured",
+        "used_rerank": False,
+    }
 
 
 def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
@@ -1051,10 +1081,10 @@ def test_retrieval_service_reranks_prefiltered_dense_candidates() -> None:
     }
 
 
-def test_retrieval_service_maps_rerank_provider_errors() -> None:
+def test_retrieval_service_falls_back_when_rerank_provider_is_unavailable() -> None:
     session = _make_session()
     workspace = _create_workspace(session, "demo")
-    _source, _document, _version, _chunk = _create_embedded_chunk(
+    _source, _document, _version, chunk = _create_embedded_chunk(
         session,
         workspace=workspace,
         external_id="near.md",
@@ -1066,29 +1096,171 @@ def test_retrieval_service_maps_rerank_provider_errors() -> None:
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     session.commit()
 
-    with pytest.raises(
-        RetrievalServiceError,
-        match="rerank failed: provider unavailable",
-    ):
-        RetrievalService(
-            session,
-            provider=provider,
-            reranker=FailingRerankProvider(),
-        ).search(
-            RetrievalSearchRequest(
-                workspace_id=workspace.id,
-                query="alpha question",
-                limit=1,
-                strategy="dense",
-                rerank=RetrievalRerankOptions(candidate_limit=1),
-            )
+    results = RetrievalService(
+        session,
+        provider=provider,
+        reranker=FailingRerankProvider(),
+    ).search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="alpha question",
+            limit=1,
+            strategy="dense",
+            rerank=RetrievalRerankOptions(candidate_limit=1),
+        )
+    )
+
+    assert [result.chunk_id for result in results] == [chunk.id]
+    assert results[0].fallback_reason == "rerank_unavailable"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 1,
+        "fallback_reason": "rerank_unavailable",
+        "used_rerank": False,
+    }
+
+
+def test_retrieval_service_falls_back_when_rerank_budget_is_exceeded() -> None:
+    session = _make_session()
+    workspace = _create_workspace(session, "demo")
+    _source, _document, _version, chunk = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        reranker=BudgetBlockedRerankProvider(),
+    ).search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="alpha question",
+            limit=1,
+            strategy="dense",
+            rerank=RetrievalRerankOptions(candidate_limit=1),
+        )
+    )
+
+    assert [result.chunk_id for result in results] == [chunk.id]
+    assert results[0].fallback_reason == "rerank_budget_exceeded"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 1,
+        "fallback_reason": "rerank_budget_exceeded",
+        "used_rerank": False,
+    }
+
+
+@pytest.mark.parametrize("invalid_result", ["empty", "duplicate", "unknown"])
+def test_retrieval_service_falls_back_for_invalid_rerank_results(
+    invalid_result: str,
+) -> None:
+    session = _make_session()
+    workspace = _create_workspace(session, "demo")
+    _source, _document, _version, chunk = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+    valid_score = RerankScore(
+        candidate_id=str(chunk.id),
+        score=0.9,
+        original_rank=1,
+        rerank_rank=1,
+    )
+    if invalid_result == "empty":
+        scores: tuple[RerankScore, ...] = ()
+    elif invalid_result == "duplicate":
+        scores = (valid_score, valid_score)
+    else:
+        scores = (
+            RerankScore(
+                candidate_id=str(uuid4()),
+                score=0.9,
+                original_rank=1,
+                rerank_rank=1,
+            ),
         )
 
+    results = RetrievalService(
+        session,
+        provider=provider,
+        reranker=RecordingRerankProvider(scores=scores),
+    ).search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="alpha question",
+            limit=1,
+            strategy="dense",
+            rerank=RetrievalRerankOptions(candidate_limit=1),
+        )
+    )
 
-def test_retrieval_service_maps_rerank_budget_errors() -> None:
+    assert [result.chunk_id for result in results] == [chunk.id]
+    assert results[0].fallback_reason == "rerank_unavailable"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 1,
+        "fallback_reason": "rerank_unavailable",
+        "used_rerank": False,
+    }
+
+
+def test_retrieval_service_preserves_an_earlier_fallback_when_rerank_fails() -> None:
     session = _make_session()
     workspace = _create_workspace(session, "demo")
-    _source, _document, _version, _chunk = _create_embedded_chunk(
+    _source, _document, _version, chunk = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near",
+        text="Alpha dense evidence",
+        snippet="Alpha dense evidence",
+        embedding=_vector(0.1),
+    )
+    session.add(Graphprojection(workspace_id=workspace.id, status="pending_backfill"))
+    provider = StaticQueryEmbeddingProvider(_vector(0.0))
+    session.commit()
+
+    results = RetrievalService(
+        session,
+        provider=provider,
+        reranker=FailingRerankProvider(),
+        graph_retriever=RecordingGraphRetriever(()),
+    ).search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="alpha question",
+            limit=1,
+            strategy="graph",
+            rerank=RetrievalRerankOptions(candidate_limit=1),
+        )
+    )
+
+    assert [result.chunk_id for result in results] == [chunk.id]
+    assert results[0].fallback_reason == "graph_projection_pending_backfill"
+    assert results[0].rerank_metadata == {
+        "candidate_limit": 1,
+        "fallback_reason": "rerank_unavailable",
+        "used_rerank": False,
+    }
+
+
+def test_retrieval_service_propagates_unexpected_rerank_errors() -> None:
+    session = _make_session()
+    workspace = _create_workspace(session, "demo")
+    _create_embedded_chunk(
         session,
         workspace=workspace,
         external_id="near.md",
@@ -1100,14 +1272,11 @@ def test_retrieval_service_maps_rerank_budget_errors() -> None:
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
     session.commit()
 
-    with pytest.raises(
-        RetrievalServiceError,
-        match="rerank failed: provider budget exceeded",
-    ):
+    with pytest.raises(RuntimeError, match="programming defect"):
         RetrievalService(
             session,
             provider=provider,
-            reranker=BudgetBlockedRerankProvider(),
+            reranker=ExplodingRerankProvider(),
         ).search(
             RetrievalSearchRequest(
                 workspace_id=workspace.id,

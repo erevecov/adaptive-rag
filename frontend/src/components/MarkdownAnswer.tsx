@@ -1,7 +1,8 @@
-import { type ReactNode, useMemo } from 'react'
+import { isValidElement, type ReactNode, useMemo, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 
+import { CodeStream } from '@/components/beautiful-ui'
 import type { RetrievalResult } from '@/lib/apiClient'
 import { cn } from '@/lib/utils'
 
@@ -86,29 +87,30 @@ export function MarkdownAnswer({
       }: {
         className?: string
         children?: ReactNode
-      }) => {
-        const isBlock = Boolean(codeClass) || String(node).includes('\n')
-        if (isBlock) {
-          return (
-            <code
-              className={cn(
-                'block overflow-x-auto rounded-md border border-border bg-muted/40 p-2.5 font-mono text-[12px] leading-relaxed',
-                codeClass,
-              )}
-            >
-              {node}
-            </code>
-          )
+      }) => (
+        <code
+          className={cn(
+            'rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.85em]',
+            codeClass,
+          )}
+        >
+          {node}
+        </code>
+      ),
+      pre: ({ children: node }: { children?: ReactNode }) => {
+        if (!isValidElement<{ children?: ReactNode; className?: string }>(node)) {
+          return <pre>{node}</pre>
         }
+        const code = String(node.props.children ?? '').replace(/\n$/, '')
+        const language = node.props.className?.match(
+          /(?:^|\s)language-([^\s]+)/,
+        )?.[1]
         return (
-          <code className="rounded bg-muted/50 px-1 py-0.5 font-mono text-[0.85em]">
-            {node}
-          </code>
+          <div className="mb-2 last:mb-0" data-slot="markdown-code-block">
+            <MarkdownCodeBlock code={code} language={language} />
+          </div>
         )
       },
-      pre: ({ children: node }: { children?: ReactNode }) => (
-        <pre className="mb-2 overflow-x-auto last:mb-0">{node}</pre>
-      ),
       blockquote: ({ children: node }: { children?: ReactNode }) => (
         <blockquote className="mb-2 border-l-2 border-primary/40 pl-3 text-muted-foreground last:mb-0">
           {node}
@@ -130,6 +132,53 @@ export function MarkdownAnswer({
         {children}
       </ReactMarkdown>
     </div>
+  )
+}
+
+function MarkdownCodeBlock({
+  code,
+  language,
+}: {
+  code: string
+  language?: string
+}) {
+  const [copyResult, setCopyResult] = useState<'error' | 'success' | null>(null)
+  const clipboard =
+    typeof navigator !== 'undefined' &&
+    typeof navigator.clipboard?.writeText === 'function'
+      ? navigator.clipboard
+      : null
+
+  async function copyCode(codeToCopy: string) {
+    if (clipboard === null) {
+      return
+    }
+
+    setCopyResult(null)
+    try {
+      await clipboard.writeText(codeToCopy)
+      setCopyResult('success')
+    } catch {
+      setCopyResult('error')
+    }
+  }
+
+  return (
+    <>
+      <CodeStream
+        code={code}
+        copyLabel="Copy code"
+        language={language}
+        onCopy={clipboard === null ? undefined : copyCode}
+      />
+      {copyResult !== null ? (
+        <span aria-live="polite" className="sr-only" role="status">
+          {copyResult === 'success'
+            ? 'Code copied to clipboard.'
+            : 'Code could not be copied.'}
+        </span>
+      ) : null}
+    </>
   )
 }
 

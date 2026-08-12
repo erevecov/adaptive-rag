@@ -598,6 +598,65 @@ describe('RuntimeSettingsPanel', () => {
     ).toBeNull()
   })
 
+  test('adopts bounded chat retrieval parameters without changing save ownership', () => {
+    const onGlobalChatRetrievalLimitChange = vi.fn()
+    const onGlobalChatRerankCandidateLimitChange = vi.fn()
+    const onSaveGlobalChatRetrieval = vi.fn(preventDefault)
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'global_defaults',
+      onGlobalChatRetrievalLimitChange,
+      onGlobalChatRerankCandidateLimitChange,
+      onSaveGlobalChatRetrieval,
+    })
+
+    const tuner = screen.getByRole('group', {
+      name: 'Chat retrieval parameters',
+    })
+    expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+    expect(screen.queryByRole('region', { name: 'Chat retrieval parameters' })).toBeNull()
+
+    const retrievalLimit = within(tuner).getByLabelText('Retrieval Limit')
+    expect(retrievalLimit.getAttribute('min')).toBe('1')
+    expect(retrievalLimit.getAttribute('max')).toBe('50')
+    expect(retrievalLimit.getAttribute('step')).toBe('1')
+    expect((retrievalLimit as HTMLInputElement).value).toBe('5')
+    fireEvent.change(retrievalLimit, { target: { value: '7' } })
+    expect(onGlobalChatRetrievalLimitChange).toHaveBeenCalledWith(7)
+
+    const candidateLimit = within(tuner).getByLabelText('Candidate Limit')
+    fireEvent.change(candidateLimit, { target: { value: '12' } })
+    expect(onGlobalChatRerankCandidateLimitChange).toHaveBeenCalledWith(12)
+
+    fireEvent.submit(screen.getByRole('button', { name: 'Save Chat Retrieval' }))
+    expect(onSaveGlobalChatRetrieval).toHaveBeenCalledTimes(1)
+  })
+
+  test('keeps workspace retrieval tuning on workspace callbacks', () => {
+    const onWorkspaceChatRetrievalLimitChange = vi.fn()
+    const onWorkspaceChatRerankCandidateLimitChange = vi.fn()
+    renderRuntimeSettingsPanel({
+      activeSubmodule: 'workspace_overrides',
+      onWorkspaceChatRetrievalLimitChange,
+      onWorkspaceChatRerankCandidateLimitChange,
+    })
+
+    const tuner = screen.getByRole('group', {
+      name: 'Workspace chat retrieval parameters',
+    })
+    expect(tuner.getAttribute('data-slot')).toBe('parameter-tuner')
+    expect(
+      screen.queryByRole('region', { name: 'Workspace chat retrieval parameters' }),
+    ).toBeNull()
+    fireEvent.change(within(tuner).getByLabelText('Retrieval Limit'), {
+      target: { value: '8' },
+    })
+    fireEvent.change(within(tuner).getByLabelText('Candidate Limit'), {
+      target: { value: '15' },
+    })
+    expect(onWorkspaceChatRetrievalLimitChange).toHaveBeenCalledWith(8)
+    expect(onWorkspaceChatRerankCandidateLimitChange).toHaveBeenCalledWith(15)
+  })
+
   test('does not render runtime submodule segmented controls in the content panel', () => {
     renderRuntimeSettingsPanel({
       activeSubmodule: 'global_defaults',
@@ -810,6 +869,132 @@ describe('RuntimeSettingsPanel', () => {
     expect(alert.textContent).toContain('[redacted]')
   })
 
+  test('uses the records pattern for provider connections and model catalogs', () => {
+    const connectionsView = renderRuntimeSettingsPanel()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Connections' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+    connectionsView.unmount()
+
+    renderRuntimeSettingsPanel({ activeSubmodule: 'model_catalog' })
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Model Catalog' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+
+    cleanup()
+    renderRuntimeSettingsPanel({ activeSubmodule: 'global_defaults' })
+    expect(
+      screen
+        .getByRole('region', { name: 'Global Chat Models' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
+  })
+
+  test('sorts runtime identity and numeric pricing without mutating caller data', async () => {
+    const user = userEvent.setup()
+    const connections = [...providerConnections]
+    const connectionsView = renderRuntimeSettingsPanel({ connections })
+    const connectionGrid = screen.getByRole('region', { name: 'Provider Connections' })
+    const connectionSort = within(connectionGrid).getByRole('button', { name: 'Connection' })
+
+    await user.click(connectionSort)
+    expect(within(connectionGrid).getAllByRole('row')[1]?.textContent).toContain('local-chat')
+    await user.click(connectionSort)
+    expect(within(connectionGrid).getAllByRole('row')[1]?.textContent).toContain('qwen-hosted')
+    expect(connections).toEqual(providerConnections)
+    connectionsView.unmount()
+
+    const models = [...pricedProviderModels]
+    render(<ProviderModelCatalogView providerModels={models} />)
+    const catalog = screen.getByRole('region', { name: 'Provider Model Catalog' })
+    const pricingSort = within(catalog).getByRole('button', { name: 'Pricing' })
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('text-embedding-v4'),
+      expect.stringContaining('qwen-plus'),
+      expect.stringContaining('experimental-preview'),
+    ])
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row')[1]?.textContent).toContain('experimental-preview')
+    expect(models).toEqual(pricedProviderModels)
+  })
+
+  test('sorts every visible provider price using formatter field priority', async () => {
+    const user = userEvent.setup()
+    const baseModel = pricedProviderModels[0]!
+    const models: ProviderModel[] = [
+      { ...baseModel, model_id: 'absent-price', pricing: null },
+      { ...baseModel, model_id: 'blank-price', pricing: { usd_per_image: ' ' } },
+      {
+        ...baseModel,
+        model_id: 'non-finite-price',
+        pricing: { input_per_10k_characters_usd: 'Infinity' },
+      },
+      {
+        ...baseModel,
+        model_id: 'malformed-price',
+        pricing: { input_per_million_tokens_usd: 'not-a-price' },
+      },
+      {
+        ...baseModel,
+        model_id: 'token-string-price',
+        pricing: {
+          input_per_million_tokens_usd: '0.07',
+          output_per_million_tokens_usd: '0.01',
+        },
+      },
+      {
+        ...baseModel,
+        model_id: 'character-price',
+        pricing: { input_per_10k_characters_usd: 0.2 },
+      },
+      { ...baseModel, model_id: 'image-price', pricing: { usd_per_image: 0.03 } },
+      {
+        ...baseModel,
+        model_id: 'multi-dimension-price',
+        pricing: {
+          usd_per_image: '0.5',
+          input_per_10k_characters_usd: 0.001,
+          input_per_million_tokens_usd: 0.0001,
+        },
+      },
+    ]
+    const originalModels = [...models]
+    render(<ProviderModelCatalogView providerModels={models} />)
+    const catalog = screen.getByRole('region', { name: 'Provider Model Catalog' })
+    const pricingSort = within(catalog).getByRole('button', { name: 'Pricing' })
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('image-price'),
+      expect.stringContaining('token-string-price'),
+      expect.stringContaining('character-price'),
+      expect.stringContaining('multi-dimension-price'),
+      expect.stringContaining('absent-price'),
+      expect.stringContaining('blank-price'),
+      expect.stringContaining('non-finite-price'),
+      expect.stringContaining('malformed-price'),
+    ])
+
+    await user.click(pricingSort)
+    expect(within(catalog).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('absent-price'),
+      expect.stringContaining('blank-price'),
+      expect.stringContaining('non-finite-price'),
+      expect.stringContaining('malformed-price'),
+      expect.stringContaining('multi-dimension-price'),
+      expect.stringContaining('character-price'),
+      expect.stringContaining('token-string-price'),
+      expect.stringContaining('image-price'),
+    ])
+    expect(models).toEqual(originalModels)
+  })
+
   test('enables delete confirmation only for the exact connection id', async () => {
     const user = userEvent.setup()
     render(<StatefulDeleteRuntimePanel />)
@@ -850,16 +1035,17 @@ describe('RuntimeSettingsPanel', () => {
   })
 
   test('shows loading connections instead of empty while busy', () => {
-    const { container } = renderRuntimeSettingsPanel({
+    renderRuntimeSettingsPanel({
       connections: [],
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading Connections…')).toBeTruthy()
-    expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
     expect(
-      container.querySelector('[data-slot-state="loading"]')?.className,
-    ).toMatch(/motion-safe:animate-pulse/)
+      screen.getByRole('status', { name: 'Loading Connections…' }).getAttribute(
+        'data-slot',
+      ),
+    ).toBe('loading-grid')
+    expect(screen.queryByText('No runtime connections loaded.')).toBeNull()
   })
 
   test('puts combobox ARIA on the capabilities filter input', async () => {
@@ -885,7 +1071,11 @@ describe('RuntimeSettingsPanel', () => {
       state: 'loading',
     })
 
-    expect(screen.getByText('Loading Provider Models…')).toBeTruthy()
+    expect(
+      screen
+        .getByRole('status', { name: 'Loading Provider Models…' })
+        .getAttribute('data-slot'),
+    ).toBe('loading-grid')
     expect(screen.queryByText('No provider models loaded.')).toBeNull()
   })
 

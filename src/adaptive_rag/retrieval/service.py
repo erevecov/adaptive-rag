@@ -56,6 +56,10 @@ class RetrievalServiceError(ValueError):
     """Error no retryable de la superficie compartida de retrieval."""
 
 
+class _RerankResultValidationError(ValueError):
+    """Error conocido al aplicar una respuesta invalida de rerank."""
+
+
 @dataclass(frozen=True, slots=True)
 class RetrievalMetadataFilter:
     """Filtros externos soportados por la superficie compartida."""
@@ -85,6 +89,11 @@ RetrievalStrategy = Literal[
     "sparse",
     "hybrid_rrf",
     "dense_sparse",
+]
+RerankFallbackReason = Literal[
+    "rerank_not_configured",
+    "rerank_unavailable",
+    "rerank_budget_exceeded",
 ]
 RRF_K = 60
 
@@ -154,7 +163,6 @@ class RetrievalService:
         rerank_options = _validate_rerank_options(
             request.rerank,
             limit=limit,
-            reranker=self._reranker,
         )
         if strategy in ("sparse", "dense_sparse") and self._sparse_provider is None:
             raise RetrievalServiceError(
@@ -469,8 +477,11 @@ class RetrievalService:
         options: RetrievalRerankOptions,
     ) -> list[RetrievalSearchResult]:
         if self._reranker is None:
-            raise RetrievalServiceError(
-                "rerank provider is required when rerank is enabled"
+            return _fallback_rerank_results(
+                results,
+                limit=limit,
+                candidate_limit=options.candidate_limit,
+                reason="rerank_not_configured",
             )
 
         top_k = min(limit, len(results))
@@ -489,14 +500,34 @@ class RetrievalService:
         try:
             request = RerankRequest(query=query, candidates=candidates, top_k=top_k)
             rerank_result = self._reranker.rerank(request)
-        except (ProviderBudgetExceededError, RerankProviderError) as exc:
-            raise RetrievalServiceError(f"rerank failed: {exc}") from exc
+        except ProviderBudgetExceededError:
+            return _fallback_rerank_results(
+                results,
+                limit=limit,
+                candidate_limit=options.candidate_limit,
+                reason="rerank_budget_exceeded",
+            )
+        except RerankProviderError:
+            return _fallback_rerank_results(
+                results,
+                limit=limit,
+                candidate_limit=options.candidate_limit,
+                reason="rerank_unavailable",
+            )
 
-        return _apply_rerank_result(
-            results=results,
-            rerank_result=rerank_result,
-            candidate_limit=options.candidate_limit,
-        )
+        try:
+            return _apply_rerank_result(
+                results=results,
+                rerank_result=rerank_result,
+                candidate_limit=options.candidate_limit,
+            )
+        except _RerankResultValidationError:
+            return _fallback_rerank_results(
+                results,
+                limit=limit,
+                candidate_limit=options.candidate_limit,
+                reason="rerank_unavailable",
+            )
 
 
 def _validate_query(query: str) -> str:
@@ -537,7 +568,6 @@ def _validate_rerank_options(
     rerank_options: RetrievalRerankOptions | None,
     *,
     limit: int,
-    reranker: RerankProvider | None,
 ) -> RetrievalRerankOptions | None:
     if rerank_options is None:
         return None
@@ -550,10 +580,6 @@ def _validate_rerank_options(
     if rerank_options.candidate_limit < limit:
         raise RetrievalServiceError(
             "rerank candidate_limit must be greater than or equal to limit"
-        )
-    if reranker is None:
-        raise RetrievalServiceError(
-            "rerank provider is required when rerank is enabled"
         )
     return rerank_options
 
@@ -631,6 +657,33 @@ def _with_fallback_reason(
     )
 
 
+def _fallback_rerank_results(
+    results: list[RetrievalSearchResult],
+    *,
+    limit: int,
+    candidate_limit: int,
+    reason: RerankFallbackReason,
+) -> list[RetrievalSearchResult]:
+    return [
+        RetrievalSearchResult(
+            chunk_id=result.chunk_id,
+            distance=result.distance,
+            score=result.score,
+            citation=result.citation,
+            embedding_metadata=_copy_metadata(result.embedding_metadata),
+            retrieval_metadata=_copy_metadata(result.retrieval_metadata),
+            rerank_metadata={
+                "candidate_limit": candidate_limit,
+                "fallback_reason": reason,
+                "used_rerank": False,
+            },
+            strategy=result.strategy,
+            fallback_reason=result.fallback_reason or reason,
+        )
+        for result in results[:limit]
+    ]
+
+
 def _apply_rerank_result(
     *,
     results: list[RetrievalSearchResult],
@@ -646,10 +699,10 @@ def _apply_rerank_result(
     reranked_results: list[RetrievalSearchResult] = []
     for score in rerank_result.scores:
         if score.candidate_id in seen_candidate_ids:
-            raise RetrievalServiceError("rerank returned duplicate candidate id")
+            raise _RerankResultValidationError("rerank returned duplicate candidate id")
         result = by_candidate_id.get(score.candidate_id)
         if result is None:
-            raise RetrievalServiceError("rerank returned unknown candidate id")
+            raise _RerankResultValidationError("rerank returned unknown candidate id")
         seen_candidate_ids.add(score.candidate_id)
         reranked_results.append(
             _with_rerank_metadata(
@@ -662,7 +715,7 @@ def _apply_rerank_result(
         )
 
     if not reranked_results:
-        raise RetrievalServiceError("rerank returned no scores")
+        raise _RerankResultValidationError("rerank returned no scores")
     return reranked_results
 
 

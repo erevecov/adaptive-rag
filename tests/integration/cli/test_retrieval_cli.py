@@ -34,6 +34,7 @@ from adaptive_rag.db.repositories import (
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
 from adaptive_rag.graph import GraphRetrievalResult
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
@@ -231,8 +232,12 @@ def _patch_retrieval_dependencies(
     )
     monkeypatch.setattr(
         "adaptive_rag.cli.retrieval.get_cli_sparse_embedding_provider",
-        lambda: sparse_provider
-        or StaticSparseEmbeddingProvider(SparseEmbeddingVector(indices=(), values=())),
+        lambda: (
+            sparse_provider
+            or StaticSparseEmbeddingProvider(
+                SparseEmbeddingVector(indices=(), values=())
+            )
+        ),
     )
     if reranker is not None:
         monkeypatch.setattr(
@@ -457,6 +462,73 @@ def test_retrieval_search_command_reranks_when_requested(
     }
 
 
+def test_retrieval_search_command_falls_back_on_rerank_configuration_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session = _make_session()
+    workspace = _create_workspace(session)
+    _far_source, _far_document, _far_version, _far = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Far original evidence",
+        snippet="Far original evidence",
+        embedding=_vector(0.9),
+    )
+    _near_source, _near_document, _near_version, near = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Near original evidence",
+        snippet="Near original evidence",
+        embedding=_vector(0.1),
+    )
+    session.commit()
+    _patch_retrieval_dependencies(
+        monkeypatch,
+        session=session,
+        provider=StaticQueryEmbeddingProvider(_vector(0.0)),
+    )
+
+    def raise_configuration_error() -> RecordingRerankProvider:
+        raise ProviderConfigurationError("missing_provider_secret")
+
+    monkeypatch.setattr(
+        "adaptive_rag.cli.retrieval.get_cli_rerank_provider",
+        raise_configuration_error,
+    )
+
+    result = CliRunner().invoke(
+        app,
+        [
+            "retrieval",
+            "search",
+            "--workspace-id",
+            str(workspace.id),
+            "--query",
+            "alpha question",
+            "--limit",
+            "1",
+            "--rerank-candidate-limit",
+            "2",
+            "--strategy",
+            "dense",
+        ],
+    )
+
+    assert result.exit_code == 0
+    data = json.loads(result.stdout)
+    assert [item["chunk_id"] for item in data["results"]] == [str(near.id)]
+    assert data["results"][0]["fallback_reason"] == "rerank_not_configured"
+    assert data["results"][0]["rerank_metadata"] == {
+        "candidate_limit": 2,
+        "fallback_reason": "rerank_not_configured",
+        "used_rerank": False,
+    }
+
+
 def test_retrieval_search_command_uses_lexical_strategy(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -473,17 +545,15 @@ def test_retrieval_search_command_uses_lexical_strategy(
             embedding=None,
         )
     )
-    _target_source, _target_document, _target_version, target = (
-        _create_embedded_chunk(
-            session,
-            workspace=workspace,
-            external_id="target.md",
-            stable_id="target-doc",
-            text="Header\n\nInstall the connector with the default path.",
-            snippet="Install the connector with the default path.",
-            embedding=None,
-            contextual_summary="SKU-42 connector installation reference.",
-        )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target-doc",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=None,
+        contextual_summary="SKU-42 connector installation reference.",
     )
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -526,16 +596,14 @@ def test_retrieval_search_command_uses_bm25_strategy(
     session = _make_session()
     workspace = _create_workspace(session)
     filler = " ".join(f"filler{i}" for i in range(80))
-    _long_source, _long_document, _long_version, long_match = (
-        _create_embedded_chunk(
-            session,
-            workspace=workspace,
-            external_id="long.md",
-            stable_id="long-doc",
-            text=f"SKU 42 manual {filler}",
-            snippet=f"SKU 42 manual {filler}",
-            embedding=None,
-        )
+    _long_source, _long_document, _long_version, long_match = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="long.md",
+        stable_id="long-doc",
+        text=f"SKU 42 manual {filler}",
+        snippet=f"SKU 42 manual {filler}",
+        embedding=None,
     )
     _short_source, _short_document, _short_version, short_match = (
         _create_embedded_chunk(
@@ -607,17 +675,15 @@ def test_retrieval_search_command_uses_hybrid_rrf_strategy(
             embedding=_vector(0.9),
         )
     )
-    _target_source, _target_document, _target_version, target = (
-        _create_embedded_chunk(
-            session,
-            workspace=workspace,
-            external_id="target.md",
-            stable_id="target-doc",
-            text="Header\n\nInstall the connector with the default path.",
-            snippet="Install the connector with the default path.",
-            embedding=_vector(0.1),
-            contextual_summary="SKU-42 connector installation reference.",
-        )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target-doc",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.1),
+        contextual_summary="SKU-42 connector installation reference.",
     )
     session.commit()
     provider = StaticQueryEmbeddingProvider(_vector(0.0))
@@ -672,17 +738,15 @@ def test_retrieval_search_command_uses_dense_sparse_strategy(
             embedding=_vector(0.1),
         )
     )
-    _target_source, _target_document, _target_version, target = (
-        _create_embedded_chunk(
-            session,
-            workspace=workspace,
-            external_id="target.md",
-            stable_id="target-doc",
-            text="Header\n\nInstall the connector with the default path.",
-            snippet="Install the connector with the default path.",
-            embedding=_vector(0.4),
-            contextual_summary="SKU-42 connector installation reference.",
-        )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target-doc",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
     )
     _create_sparse_embedding(
         session,
@@ -755,17 +819,15 @@ def test_retrieval_search_command_uses_sparse_strategy(
             embedding=_vector(0.1),
         )
     )
-    _target_source, _target_document, _target_version, target = (
-        _create_embedded_chunk(
-            session,
-            workspace=workspace,
-            external_id="target.md",
-            stable_id="target-doc",
-            text="Header\n\nInstall the connector with the default path.",
-            snippet="Install the connector with the default path.",
-            embedding=_vector(0.4),
-            contextual_summary="SKU-42 connector installation reference.",
-        )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target-doc",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
     )
     _create_sparse_embedding(
         session,
@@ -947,4 +1009,3 @@ def test_retrieval_search_command_reports_service_errors(
     assert result.exit_code == 1
     assert "query must not be empty" in result.output
     assert provider.inputs == []
-

@@ -176,9 +176,8 @@ describe('RetrievalPlaygroundPanel', () => {
       expect(badge.getAttribute('data-slot')).toBe('badge')
       expect(badge.getAttribute('data-tone')).toBe('warning')
     })
-    expect(
-      document.querySelector('[data-slot-state="loading"]'),
-    ).toBeTruthy()
+    expect(document.querySelector('[data-slot="loading-grid"]')).toBeTruthy()
+    expect(document.querySelector('[data-slot-state="loading"]')).toBeNull()
 
     resolveSearch(sampleResponse)
     await waitFor(() => {

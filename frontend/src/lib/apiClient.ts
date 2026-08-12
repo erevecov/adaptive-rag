@@ -547,6 +547,8 @@ export type ChatToolCall = {
   result_count?: number
   arguments?: JsonObject
   result_summary?: JsonObject
+  status?: string
+  error_message?: string | null
 }
 
 export type ChatResponseBody = {

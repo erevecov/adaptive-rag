@@ -37,6 +37,7 @@ describe('Select', () => {
     const trigger = screen.getByRole('combobox', { name: 'Provider' })
 
     expect(trigger.getAttribute('data-slot')).toBe('select-trigger')
+    expect(trigger.className).toContain('rounded-[2px]')
     expect(trigger.className).toContain('focus-visible:ring-ring')
     expect(trigger.className).toContain('motion-safe:transition-colors')
     expect(trigger.className).toContain('hover:border-primary/40')
@@ -76,9 +77,6 @@ describe('Select', () => {
     expect(option.className).toContain('max-[680px]:tracking-tighter')
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'focus-visible:ring-ring',
-    )
-    expect(option.closest('[data-slot="select-content"]')?.className).toContain(
-      'max-[680px]:rounded-sm',
     )
     expect(option.closest('[data-slot="select-content"]')?.className).toContain(
       'max-[680px]:p-0.5',

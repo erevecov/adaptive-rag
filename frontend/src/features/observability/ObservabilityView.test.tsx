@@ -139,21 +139,19 @@ describe('ObservabilityPanel', () => {
     expectNoLegacyObservabilityClasses(view.container)
   })
 
-  test('shows metric skeleton while loading without a prior summary', () => {
+  test('shows the shared loading pattern while loading without a prior summary', () => {
     const { view } = renderObservabilityPanel({
       state: 'loading',
       summary: null,
     })
 
-    expect(
-      view.container.querySelector('[data-slot="observability-metric-skeleton"]'),
-    ).toBeTruthy()
+    const loading = screen.getByRole('status', {
+      name: 'Chat Observability Metrics Loading',
+    })
+    expect(loading.getAttribute('data-slot')).toBe('loading-grid')
     expect(view.container.querySelector('[data-slot="empty-state"]')).toBeNull()
     expect(screen.queryByText(/No Observability Summary Yet/)).toBeNull()
     expect(screen.getByText('Refreshing').getAttribute('data-slot')).toBe('badge')
-    expect(screen.getByLabelText(/metrics loading/i).getAttribute('aria-busy')).toBe(
-      'true',
-    )
   })
 
   test('keeps prior summary visible with aria-busy while refreshing', () => {
@@ -228,12 +226,148 @@ describe('ObservabilityPanel', () => {
     expectNoLegacyObservabilityClasses(view.container)
   })
 
+  test('adopts operational insights using only real summary metrics', () => {
+    renderObservabilityPanel()
+
+    const insights = screen.getByRole('region', {
+      name: 'Operational insights',
+    })
+    expect(insights.getAttribute('data-slot')).toBe('insight-deck')
+    expect(within(insights).getByRole('heading', { name: 'Sessions' })).toBeTruthy()
+    expect(
+      within(insights).getByText('12 filtered chat sessions.').className,
+    ).toMatch(/tabular-nums/)
+    expect(within(insights).queryByRole('img')).toBeNull()
+  })
+
+  test('formats large summary counts consistently in insights and metric cards', () => {
+    renderObservabilityPanel({
+      summary: {
+        ...summary,
+        sessions: { ...summary.sessions, total: 1234 },
+      },
+    })
+
+    const insights = screen.getByRole('region', { name: 'Operational insights' })
+    expect(
+      within(insights).getByText('1,234 filtered chat sessions.').className,
+    ).toMatch(/tabular-nums/)
+    expect(
+      within(screen.getByLabelText('Chat Observability Metrics')).getByText('1,234'),
+    ).toBeTruthy()
+  })
+
+  test('sorts provider identity and numeric columns both ways without mutating summary data', async () => {
+    const user = userEvent.setup()
+    const sortableSummary: ChatObservabilitySummary = {
+      ...summary,
+      provider_usage: {
+        ...summary.provider_usage,
+        groups: [
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: 9,
+            provider: 'zeta',
+            record_count: 10,
+          },
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: 1,
+            provider: 'alpha',
+            record_count: 2,
+          },
+          {
+            ...summary.provider_usage.groups[0]!,
+            estimated_cost_usd: null,
+            provider: 'missing-cost',
+            record_count: 5,
+          },
+        ],
+      },
+    }
+    const originalGroups = [...sortableSummary.provider_usage.groups]
+    renderObservabilityPanel({ activeSubmodule: 'costs', summary: sortableSummary })
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+
+    await user.click(within(usage).getByRole('button', { name: 'Provider' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('alpha'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('zeta'),
+    ])
+    await user.click(within(usage).getByRole('button', { name: 'Provider' }))
+    expect(within(usage).getAllByRole('row')[1]?.textContent).toContain('zeta')
+
+    await user.click(within(usage).getByRole('button', { name: 'Calls' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('alpha'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('zeta'),
+    ])
+    await user.click(within(usage).getByRole('button', { name: 'Calls' }))
+    expect(within(usage).getAllByRole('row').slice(1).map((row) => row.textContent)).toEqual([
+      expect.stringContaining('zeta'),
+      expect.stringContaining('missing-cost'),
+      expect.stringContaining('alpha'),
+    ])
+
+    await user.click(within(usage).getByRole('button', { name: 'Cost' }))
+    expect(within(usage).getAllByRole('row').at(-1)?.textContent).toContain('N/A')
+    expect(sortableSummary.provider_usage.groups).toEqual(originalGroups)
+  })
+
+  test('keeps collision-prone provider row identity stable across reorder', () => {
+    const collisionGroups = [
+      {
+        ...summary.provider_usage.groups[0]!,
+        model: 'd',
+        operation: 'a-b',
+        provider: 'c',
+      },
+      {
+        ...summary.provider_usage.groups[0]!,
+        model: 'd',
+        operation: 'a',
+        provider: 'b-c',
+      },
+    ]
+    const firstSummary: ChatObservabilitySummary = {
+      ...summary,
+      provider_usage: { ...summary.provider_usage, groups: collisionGroups },
+    }
+    const { props, view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      summary: firstSummary,
+    })
+    const originalCell = screen.getByText('a-b')
+
+    view.rerender(
+      <ObservabilityPanel
+        {...props}
+        summary={{
+          ...firstSummary,
+          provider_usage: {
+            ...firstSummary.provider_usage,
+            groups: [...collisionGroups].reverse(),
+          },
+        }}
+      />,
+    )
+
+    expect(screen.getByText('a-b')).toBe(originalCell)
+  })
+
   test('cost and latency views use table primitives with stable headers', () => {
     const { view, view: { rerender } } = renderObservabilityPanel({
       activeSubmodule: 'costs',
     })
 
     expect(screen.getByRole('region', { name: 'Provider Usage' })).toBeTruthy()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Usage' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
     expect(screen.getByRole('columnheader', { name: 'Operation' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Tokens' })).toBeTruthy()
     expect(screen.getByText('1,840')).toBeTruthy()
@@ -263,6 +397,11 @@ describe('ObservabilityPanel', () => {
     )
 
     expect(screen.getByRole('region', { name: 'Provider Latency' })).toBeTruthy()
+    expect(
+      screen
+        .getByRole('region', { name: 'Provider Latency' })
+        .getAttribute('data-slot'),
+    ).toBe('records-grid')
     expect(screen.getByRole('columnheader', { name: 'Avg' })).toBeTruthy()
     expect(screen.getByRole('columnheader', { name: 'Max' })).toBeTruthy()
     expect(screen.getByText('420 ms')).toBeTruthy()
@@ -346,6 +485,68 @@ describe('ObservabilityPanel', () => {
       screen.getByText(/Showing last successful summary — Refresh Failed/),
     ).toBeTruthy()
     expect(screen.getByLabelText('Chat Observability Metrics')).toBeTruthy()
+  })
+
+  test('keeps stale provider sorting available to mouse input', async () => {
+    const user = userEvent.setup()
+    render(<style>{'.pointer-events-none { pointer-events: none; }'}</style>)
+    const { props, view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+    const staleContent = view.container.querySelector(
+      '[data-slot="observability-stale-failed"]',
+    )
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+    const providerHeader = within(usage).getByRole('columnheader', {
+      name: 'Provider',
+    })
+
+    expect(staleContent).toBeTruthy()
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      expect.stringContaining('refresh failed'),
+      expect.stringContaining('Showing last successful summary'),
+    ])
+    expect(within(usage).getByText('qwen')).toBeTruthy()
+    await user.click(within(providerHeader).getByRole('button', { name: 'Provider' }))
+
+    expect(providerHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(props.onRefresh).not.toHaveBeenCalled()
+    expect(screen.getByText(/Showing last successful summary/)).toBeTruthy()
+    expect(within(usage).getByText('qwen')).toBeTruthy()
+  })
+
+  test('keeps stale provider sorting available to keyboard input', async () => {
+    const user = userEvent.setup()
+    const { view } = renderObservabilityPanel({
+      activeSubmodule: 'costs',
+      error: 'refresh failed',
+      state: 'failed',
+      summary,
+    })
+    const usage = screen.getByRole('region', { name: 'Provider Usage' })
+    const providerHeader = within(usage).getByRole('columnheader', {
+      name: 'Provider',
+    })
+    const providerSort = within(providerHeader).getByRole('button', {
+      name: 'Provider',
+    })
+
+    providerSort.focus()
+    expect(document.activeElement).toBe(providerSort)
+    await user.keyboard('{Enter}')
+
+    expect(providerHeader.getAttribute('aria-sort')).toBe('ascending')
+    expect(
+      view.container.querySelector('[data-slot="observability-stale-failed"]'),
+    ).toBeTruthy()
+    expect(screen.getAllByRole('alert').map((alert) => alert.textContent)).toEqual([
+      expect.stringContaining('refresh failed'),
+      expect.stringContaining('Showing last successful summary'),
+    ])
+    expect(within(usage).getByText('qwen')).toBeTruthy()
   })
 
   test('breakdown EmptyStates carry data-slot-state=empty', () => {

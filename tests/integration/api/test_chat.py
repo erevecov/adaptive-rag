@@ -68,7 +68,12 @@ from adaptive_rag.provider_usage import (
     ProviderOperation,
     ProviderTokenUsage,
 )
-from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
+from adaptive_rag.rerank import (
+    RerankProviderError,
+    RerankRequest,
+    RerankResult,
+    RerankScore,
+)
 
 
 class StaticQueryEmbeddingProvider:
@@ -151,6 +156,12 @@ class ReversingRerankProvider(PreservingRerankProvider):
                 for rerank_rank, candidate in enumerate(selected, start=1)
             ),
         )
+
+
+class UnavailableRerankProvider(PreservingRerankProvider):
+    def rerank(self, request: RerankRequest) -> RerankResult:
+        self.requests.append(request)
+        raise RerankProviderError("rerank provider unavailable")
 
 
 class UsageRecordingQueryEmbeddingProvider(StaticQueryEmbeddingProvider):
@@ -676,6 +687,75 @@ def test_chat_endpoint_uses_workspace_retrieval_settings_for_rerank_window(
     retrieved_chunk = fresh_session.query(RetrievedChunk).one()
     assert retrieved_chunk.chunk_id == second.id
     assert first.id != second.id
+
+
+def test_chat_endpoint_completes_and_audits_when_rerank_is_unavailable(
+    tmp_path: Path,
+) -> None:
+    session_factory = _make_session_factory(tmp_path)
+    session = session_factory()
+    workspace = _create_workspace(session)
+    _source, _document, _version, near = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="near.md",
+        stable_id="near-doc",
+        text="Alpha near evidence",
+        snippet="Alpha near evidence",
+        embedding=_vector(0.1),
+    )
+    _source, _document, _version, _far = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="far.md",
+        stable_id="far-doc",
+        text="Alpha far evidence",
+        snippet="Alpha far evidence",
+        embedding=_vector(0.9),
+    )
+    from adaptive_rag.db.repositories import ChatRetrievalSettingsRepository
+
+    ChatRetrievalSettingsRepository(session).upsert_workspace_settings(
+        workspace_id=workspace.id,
+        retrieval_limit=1,
+        rerank_enabled=True,
+        rerank_candidate_limit=2,
+    )
+    session.commit()
+    reranker = UnavailableRerankProvider()
+    client = _client(
+        session=session,
+        provider=StaticQueryEmbeddingProvider(_vector(0.0)),
+        runner=ToolCallingChatRunner(retrieval_query="alpha evidence"),
+        reranker=reranker,
+    )
+
+    response = client.post(
+        f"/workspaces/{workspace.id}/chat",
+        json={"message": "What supports alpha?"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert [citation["chunk_id"] for citation in data["citations"]] == [str(near.id)]
+    assert data["citations"][0]["rerank_metadata"] == {
+        "candidate_limit": 2,
+        "fallback_reason": "rerank_unavailable",
+        "used_rerank": False,
+    }
+    fresh_session = session_factory()
+    retrieval_run = fresh_session.query(RetrievalRun).one()
+    retrieved_chunk = fresh_session.query(RetrievedChunk).one()
+    tool_call = fresh_session.query(ToolCall).one()
+    assert retrieval_run.used_rerank is False
+    assert retrieved_chunk.chunk_id == near.id
+    assert retrieved_chunk.rerank_score is None
+    assert tool_call.result_summary_json == {
+        "result_count": 1,
+        "strategy": "dense_sparse",
+        "fallback_reason": "rerank_unavailable",
+        "rerank_fallback_reason": "rerank_unavailable",
+    }
 
 
 def test_chat_endpoint_persists_current_user_as_session_owner(
