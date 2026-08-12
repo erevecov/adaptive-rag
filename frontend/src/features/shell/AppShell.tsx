@@ -22,6 +22,7 @@ import {
   type Workspace,
 } from '@/lib/apiClient'
 import { useFocusTrap } from '@/lib/focusTrap'
+import { useLocale, type TranslateFn } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 
 const WORKSPACE_NAME_COLLATOR = new Intl.Collator(undefined, {
@@ -316,11 +317,13 @@ export function WorkspaceTopline({
   sessionDetail: ChatSessionDetailResponse | null
   sessions: ChatSessionSummary[]
 }) {
-  const workspaceName = getWorkspaceName(workspaceId, workspaces)
+  const { t } = useLocale()
+  const workspaceName = getWorkspaceName(workspaceId, workspaces, t)
   const sessionName = getWorkspaceSessionName({
     selectedSessionId,
     sessionDetail,
     sessions,
+    t,
   })
 
   // Outside chat: no session title and no layout strip. Workspace chip only when
@@ -971,6 +974,7 @@ function SidebarWorkspaceSelector({
   workspaces: Workspace[]
   state: RequestState
 }) {
+  const { t } = useLocale()
   const [isOpen, setIsOpen] = useState(false)
   const [workspaceSearch, setWorkspaceSearch] = useState('')
   const trimmedWorkspaceId = workspaceId.trim()
@@ -1070,7 +1074,7 @@ function SidebarWorkspaceSelector({
                       aria-label={
                         canAccess
                           ? `Select Workspace ${workspace.name}`
-                          : `Workspace ${workspace.name}. No tienes acceso a ese workspace`
+                          : `Workspace ${workspace.name}. ${t('workspace.noAccess')}`
                       }
                       aria-selected={isSelected}
                       className={cn(
@@ -1088,9 +1092,7 @@ function SidebarWorkspaceSelector({
                       onClick={() => handleSelectWorkspace(workspace.id)}
                       role="option"
                       slotName="workspace-selector-option"
-                      title={
-                        canAccess ? undefined : 'No tienes acceso a ese workspace'
-                      }
+                      title={canAccess ? undefined : t('workspace.noAccess')}
                       type="button"
                       variant="ghost"
                     >
@@ -1101,10 +1103,10 @@ function SidebarWorkspaceSelector({
                       </span>
                       {!canAccess ? (
                         <span
-                          aria-label="No tienes acceso a ese workspace"
+                          aria-label={t('workspace.noAccess')}
                           className="inline-flex justify-self-end text-muted-foreground"
                           data-slot="workspace-selector-lock"
-                          title="No tienes acceso a ese workspace"
+                          title={t('workspace.noAccess')}
                         >
                           <LockKeyhole aria-hidden="true" className="size-3.5" />
                         </span>
@@ -1149,27 +1151,35 @@ function getVisibleWorkspaceOptions(workspaces: Workspace[], search: string): Wo
   })
 }
 
-function getWorkspaceName(workspaceId: string, workspaces: Workspace[]): string {
+function getWorkspaceName(
+  workspaceId: string,
+  workspaces: Workspace[],
+  t: TranslateFn,
+): string {
   const trimmedWorkspaceId = workspaceId.trim()
   const workspace = workspaces.find((item) => item.id === trimmedWorkspaceId)
   const name = workspace?.name.trim()
   if (name !== undefined && name.length > 0) {
     return name
   }
-  return trimmedWorkspaceId.length > 0 ? 'Workspace seleccionado' : 'Sin workspace'
+  return trimmedWorkspaceId.length > 0
+    ? t('workspace.selected')
+    : t('workspace.none')
 }
 
 function getWorkspaceSessionName({
   selectedSessionId,
   sessionDetail,
   sessions,
+  t,
 }: {
   selectedSessionId: string | null
   sessionDetail: ChatSessionDetailResponse | null
   sessions: ChatSessionSummary[]
+  t: TranslateFn
 }): string {
   if (selectedSessionId === null) {
-    return 'Nuevo chat'
+    return t('session.newChatTitle')
   }
 
   if (sessionDetail?.session.session_id === selectedSessionId) {

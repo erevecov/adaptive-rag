@@ -200,7 +200,7 @@ describe('SessionNavigationPanel', () => {
     expect(
       within(screen.getByRole('list', { name: 'Workspace Sessions' })).getByRole(
         'button',
-        { name: /Abrir sesión Architecture review/ },
+        { name: /Open session Architecture review/ },
       ),
     ).toBeTruthy()
     await user.type(searchbox, 'Architecture')
@@ -258,7 +258,7 @@ describe('SessionNavigationPanel', () => {
       />,
     )
 
-    expect(screen.getByRole('complementary', { name: 'Sesiones' })).toBeTruthy()
+    expect(screen.getByRole('complementary', { name: 'Sessions' })).toBeTruthy()
     // Scroll starts at the first session (chrome fixed above list).
     const listScroll = container.querySelector('[data-slot="session-list-scroll"]')
     expect(listScroll).toBeTruthy()
@@ -282,14 +282,14 @@ describe('SessionNavigationPanel', () => {
     ).toBe(false)
     expect(container.querySelector('[data-slot="segmented-control"]')).toBeTruthy()
     expect(
-      screen.getByRole('button', { name: 'Sesiones activas' }).getAttribute('aria-pressed'),
+      screen.getByRole('button', { name: 'Active sessions' }).getAttribute('aria-pressed'),
     ).toBe('true')
-    expect(screen.getByRole('button', { name: 'Sesiones con entrenamiento' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Sesiones archivadas' })).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Sesiones activas' }).textContent).toMatch(
-      /Activos/i,
+    expect(screen.getByRole('button', { name: 'Training sessions' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Archived sessions' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Active sessions' }).textContent).toMatch(
+      /Active/i,
     )
-    expect(screen.getByRole('button', { name: 'Nuevo chat' }).className).toMatch(
+    expect(screen.getByRole('button', { name: 'New chat' }).className).toMatch(
       /border-dashed/,
     )
     expect(container.querySelector('[data-slot="data-list-item"]')).toBeTruthy()
@@ -299,14 +299,14 @@ describe('SessionNavigationPanel', () => {
     expect(selectedRow?.className).toMatch(/bg-primary\/15/)
     expect(selectedRow?.className).not.toMatch(/bg-muted text-foreground/)
     expect(
-      screen.getByRole('button', { name: 'Sesiones activas' }).className,
+      screen.getByRole('button', { name: 'Active sessions' }).className,
     ).toMatch(/max-\[680px\]:min-h-11/)
     expect(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+      screen.getByRole('button', { name: /Options for Architecture review/ })
         .className,
     ).toMatch(/max-\[680px\]:size-11/)
     expect(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ })
+      screen.getByRole('button', { name: /Options for Architecture review/ })
         .className,
     ).toMatch(/hover:bg-primary\/15/)
     const actions = container.querySelector(
@@ -316,7 +316,7 @@ describe('SessionNavigationPanel', () => {
     // ⋮ must stay visible/clickable without hover (no opacity-0 / pointer-events-none).
     expect(actions?.className).not.toMatch(/opacity-0|pointer-events-none/)
     expect(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+      screen.getByRole('button', { name: /Options for Architecture review/ }),
     ).toBeTruthy()
     const age = container.querySelector('[data-slot="session-row-age"]')
     expect(age).toBeTruthy()
@@ -327,11 +327,11 @@ describe('SessionNavigationPanel', () => {
     expect(titleEl?.className).toMatch(/mask-image:linear-gradient/)
     expect(titleEl?.className).toMatch(/group-hover/)
 
-    await user.click(screen.getByRole('button', { name: 'Sesiones con entrenamiento' }))
+    await user.click(screen.getByRole('button', { name: 'Training sessions' }))
     expect(onStatusFilterChange).toHaveBeenCalledWith('training')
     await user.click(
       screen.getByRole('button', {
-        name: 'Abrir sesión Architecture review (entrenamiento aprobado)',
+        name: 'Open session Architecture review (approved training)',
       }),
     )
     expect(onSelectSession).toHaveBeenCalledWith('session-1')
@@ -366,7 +366,7 @@ describe('SessionNavigationPanel', () => {
     )
 
     const trigger = screen.getByRole('button', {
-      name: /Opciones de Architecture review/,
+      name: /Options for Architecture review/,
     })
 
     expect(trigger.getAttribute('data-state')).toBe('closed')
@@ -381,14 +381,14 @@ describe('SessionNavigationPanel', () => {
     expect(screen.getByRole('menu').className).toContain('tracking-tight')
     // beflow-parity session menu: copy id, rename, archive
     expect(
-      screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }),
+      screen.getByRole('menuitem', { name: 'Copy session ID' }),
     ).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: 'Renombrar' })).toBeTruthy()
-    expect(screen.getByRole('menuitem', { name: 'Archivar' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: 'Archive' })).toBeTruthy()
 
-    await user.click(screen.getByRole('menuitem', { name: 'Copiar ID de sesión' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Copy session ID' }))
     expect(writeText).toHaveBeenCalledWith('session-1')
-    expect(await screen.findByText('ID de sesión copiado.')).toBeTruthy()
+    expect(await screen.findByText('Session ID copied.')).toBeTruthy()
   })
 
   test('session action menu items keep DS primary highlight classes', async () => {
@@ -413,9 +413,9 @@ describe('SessionNavigationPanel', () => {
     )
 
     await user.click(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+      screen.getByRole('button', { name: /Options for Architecture review/ }),
     )
-    const copyItem = screen.getByRole('menuitem', { name: 'Copiar ID de sesión' })
+    const copyItem = screen.getByRole('menuitem', { name: 'Copy session ID' })
     expect(copyItem.className).toMatch(/hover:bg-primary\/15/)
     expect(copyItem.className).not.toMatch(/hover:bg-accent/)
   })
@@ -443,12 +443,12 @@ describe('SessionNavigationPanel', () => {
     )
 
     await user.click(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+      screen.getByRole('button', { name: /Options for Architecture review/ }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Rename' }))
 
     const input = (await screen.findByLabelText(
-      'Nuevo nombre de sesión',
+      'New session name',
     )) as HTMLInputElement
 
     await vi.waitFor(() => {
@@ -460,21 +460,21 @@ describe('SessionNavigationPanel', () => {
 
     // Unchanged blur cancels without save.
     await user.click(document.body)
-    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
+    expect(screen.queryByLabelText('New session name')).toBeNull()
     expect(onRenameSession).not.toHaveBeenCalled()
 
     await user.click(
-      screen.getByRole('button', { name: /Opciones de Architecture review/ }),
+      screen.getByRole('button', { name: /Options for Architecture review/ }),
     )
-    await user.click(screen.getByRole('menuitem', { name: 'Renombrar' }))
+    await user.click(screen.getByRole('menuitem', { name: 'Rename' }))
     const dirty = (await screen.findByLabelText(
-      'Nuevo nombre de sesión',
+      'New session name',
     )) as HTMLInputElement
     await user.clear(dirty)
     await user.type(dirty, 'Renamed session')
     await user.click(document.body)
     expect(onRenameSession).toHaveBeenCalledWith('session-1', 'Renamed session')
-    expect(screen.queryByLabelText('Nuevo nombre de sesión')).toBeNull()
+    expect(screen.queryByLabelText('New session name')).toBeNull()
   })
 
   test('uses the shared DropdownMenu wrapper for session actions', () => {
@@ -515,7 +515,7 @@ describe('SessionNavigationPanel', () => {
     const empty = container.querySelector('[data-slot="session-list-empty"]')
     expect(empty).toBeTruthy()
     expect(empty?.getAttribute('data-status-filter')).toBe('training')
-    expect(empty?.textContent).toContain('Aún no hay entrenamiento.')
+    expect(empty?.textContent).toContain('No training sessions yet.')
     expect(empty?.querySelector('[data-slot="empty-state"]')).toBeTruthy()
     unmount()
 
@@ -542,7 +542,7 @@ describe('SessionNavigationPanel', () => {
     )
     expect(archivedEmpty?.getAttribute('data-status-filter')).toBe('archived')
     expect(archivedEmpty?.textContent).toContain(
-      'Aún no hay conversaciones archivadas.',
+      'No archived conversations yet.',
     )
     archived.unmount()
 
@@ -568,7 +568,7 @@ describe('SessionNavigationPanel', () => {
       '[data-slot="session-list-empty"]',
     )
     expect(activeEmpty?.getAttribute('data-status-filter')).toBe('active')
-    expect(activeEmpty?.textContent).toContain('Aún no hay conversaciones.')
+    expect(activeEmpty?.textContent).toContain('No conversations yet.')
     active.unmount()
   })
 })
