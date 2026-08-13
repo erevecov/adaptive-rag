@@ -754,6 +754,7 @@ def _fuse_rrf_results(
     dense_results: list[DenseRetrievalResult],
     lexical_results: Sequence[LexicalRetrievalResult] = (),
     sparse_results: Sequence[SparseRetrievalResult] = (),
+    bm25_results: Sequence[Bm25RetrievalResult] = (),
     limit: int,
     strategy: Literal["hybrid_rrf", "dense_sparse"],
 ) -> list[RetrievalSearchResult]:
@@ -782,6 +783,14 @@ def _fuse_rrf_results(
         accumulator.sparse_result = sparse_result
         accumulator.sparse_rank = rank
         accumulator.rrf_score += _rrf_score(rank)
+    for rank, bm25_result in enumerate(bm25_results, start=1):
+        accumulator = by_chunk_id.setdefault(
+            bm25_result.chunk_id,
+            _RRFAccumulator(chunk_id=bm25_result.chunk_id),
+        )
+        accumulator.bm25_result = bm25_result
+        accumulator.bm25_rank = rank
+        accumulator.rrf_score += _rrf_score(rank)
 
     accumulators = sorted(
         by_chunk_id.values(),
@@ -794,6 +803,7 @@ def _fuse_rrf_results(
                 else 10**9
             ),
             (accumulator.sparse_rank if accumulator.sparse_rank is not None else 10**9),
+            (accumulator.bm25_rank if accumulator.bm25_rank is not None else 10**9),
             str(accumulator.chunk_id),
         ),
     )
@@ -810,9 +820,11 @@ class _RRFAccumulator:
     dense_rank: int | None = None
     lexical_rank: int | None = None
     sparse_rank: int | None = None
+    bm25_rank: int | None = None
     dense_result: DenseRetrievalResult | None = None
     lexical_result: LexicalRetrievalResult | None = None
     sparse_result: SparseRetrievalResult | None = None
+    bm25_result: Bm25RetrievalResult | None = None
 
 
 def _to_rrf_search_result(
@@ -824,6 +836,7 @@ def _to_rrf_search_result(
         accumulator.dense_result
         or accumulator.lexical_result
         or accumulator.sparse_result
+        or accumulator.bm25_result
     )
     if source is None:
         raise RetrievalServiceError("RRF accumulator has no retrieval result")
@@ -847,6 +860,10 @@ def _to_rrf_search_result(
         metadata["sparse_index_fingerprint"] = sparse_metadata[
             "sparse_index_fingerprint"
         ]
+    if accumulator.bm25_result is not None and accumulator.bm25_rank is not None:
+        metadata["bm25_rank"] = accumulator.bm25_rank
+        metadata["bm25_score"] = accumulator.bm25_result.score
+        metadata["used_bm25"] = True
 
     return RetrievalSearchResult(
         chunk_id=source.chunk_id,
@@ -867,6 +884,8 @@ def _rrf_source_strategies(accumulator: _RRFAccumulator) -> list[str]:
         strategies.append("lexical")
     if accumulator.sparse_result is not None:
         strategies.append("sparse")
+    if accumulator.bm25_result is not None:
+        strategies.append("bm25")
     return strategies
 
 
