@@ -111,3 +111,13 @@ MRR/nDCG. Ambos ganan contra `dense_sparse` fake en este fixture, pero
 introducen una regresion en
 `distractor-alpha-release-notes`. La medicion local/fake sigue siendo una smoke
 determinista; la decision de default se toma con la corrida live Qwen.
+
+## Fail-open (2026-08-12)
+
+`sparse` and `dense_sparse` fail open to Okapi BM25 when the sparse provider
+is not configured or fails at query embed / sparse retrieval time.
+
+- `dense_sparse` → dense + BM25 RRF, request strategy stays `dense_sparse`,
+  `fallback_reason` set, `source_strategies` includes `bm25`.
+- `sparse` → BM25-only with effective `strategy=bm25` and `fallback_reason`.
+- Explicit `strategy=bm25` remains opt-in without dense.
