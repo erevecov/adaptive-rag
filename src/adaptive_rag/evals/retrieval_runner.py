@@ -9,7 +9,6 @@ from sqlalchemy.orm import Session
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
-    FakeSparseEmbeddingProvider,
     SparseEmbeddingPipeline,
     SparseEmbeddingProvider,
 )
@@ -58,11 +57,10 @@ def run_retrieval_eval_suite(
         suite,
         provider=active_provider,
     )
-    if strategy in ("sparse", "dense_sparse"):
-        active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
+    if strategy in ("sparse", "dense_sparse") and sparse_provider is not None:
         sparse_pipeline = SparseEmbeddingPipeline(
             session,
-            provider=active_sparse_provider,
+            provider=sparse_provider,
         )
         for document_version_id in active_fixture_workspace.document_version_ids:
             sparse_pipeline.embed_document_version(
@@ -73,7 +71,7 @@ def run_retrieval_eval_suite(
         session,
         provider=active_provider,
         sparse_provider=(
-            (sparse_provider or FakeSparseEmbeddingProvider())
+            sparse_provider
             if strategy in ("sparse", "dense_sparse")
             else None
         ),

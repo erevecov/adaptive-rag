@@ -14,7 +14,6 @@ from adaptive_rag.db.repositories import GraphprojectionRepository
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
-    FakeSparseEmbeddingProvider,
     SparseEmbeddingProvider,
 )
 from adaptive_rag.evals.fixtures import (
@@ -121,7 +120,6 @@ def run_retrieval_strategy_gate_eval_suite(
     """Compare ready retrieval modes and emit conservative promotion decisions."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
-    active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
     active_reranker = reranker or FakeRerankProvider()
     fixture_workspace = build_retrieval_fixture_workspace(
         session,
@@ -141,7 +139,7 @@ def run_retrieval_strategy_gate_eval_suite(
             strategy=strategy,
             dense_report=dense_report,
             provider=active_provider,
-            sparse_provider=active_sparse_provider,
+            sparse_provider=sparse_provider,
             reranker=active_reranker,
             rerank_candidate_limit=(
                 rerank_candidate_limit or _default_rerank_candidate_limit(suite)
@@ -195,7 +193,7 @@ def _run_strategy_row(
     strategy: StrategyGateStrategy,
     dense_report: EvalRunReport,
     provider: DenseEmbeddingProvider,
-    sparse_provider: SparseEmbeddingProvider,
+    sparse_provider: SparseEmbeddingProvider | None,
     reranker: RerankProvider,
     rerank_candidate_limit: int,
     fixture_workspace: EvalRetrievalFixtureWorkspace,
@@ -276,7 +274,7 @@ def _run_strategy_report(
     *,
     strategy: StrategyGateStrategy,
     provider: DenseEmbeddingProvider,
-    sparse_provider: SparseEmbeddingProvider,
+    sparse_provider: SparseEmbeddingProvider | None,
     reranker: RerankProvider,
     rerank_candidate_limit: int,
     fixture_workspace: EvalRetrievalFixtureWorkspace,

@@ -16,7 +16,6 @@ from adaptive_rag.chat import (
 from adaptive_rag.embeddings import (
     DenseEmbeddingProvider,
     FakeDenseEmbeddingProvider,
-    FakeSparseEmbeddingProvider,
     SparseEmbeddingPipeline,
     SparseEmbeddingProvider,
 )
@@ -48,27 +47,27 @@ def run_chat_eval_suite(
     """Ejecuta casos de chat de una suite sin llamar providers hosted."""
 
     active_provider = provider or FakeDenseEmbeddingProvider()
-    active_sparse_provider = sparse_provider or FakeSparseEmbeddingProvider()
     fixture_workspace = build_retrieval_fixture_workspace(
         session,
         suite,
         provider=active_provider,
     )
-    sparse_pipeline = SparseEmbeddingPipeline(
-        session,
-        provider=active_sparse_provider,
-    )
-    for document_version_id in fixture_workspace.document_version_ids:
-        sparse_pipeline.embed_document_version(
-            workspace_id=fixture_workspace.workspace_id,
-            document_version_id=document_version_id,
+    if sparse_provider is not None:
+        sparse_pipeline = SparseEmbeddingPipeline(
+            session,
+            provider=sparse_provider,
         )
+        for document_version_id in fixture_workspace.document_version_ids:
+            sparse_pipeline.embed_document_version(
+                workspace_id=fixture_workspace.workspace_id,
+                document_version_id=document_version_id,
+            )
     service = ChatService(
         runner=runner or RetrievalGroundedChatRunner(),
         retrieval_service=RetrievalService(
             session,
             provider=active_provider,
-            sparse_provider=active_sparse_provider,
+            sparse_provider=sparse_provider,
         ),
     )
     cases = tuple(
