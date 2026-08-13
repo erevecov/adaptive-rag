@@ -381,10 +381,14 @@ def get_retrieval_service(
         Depends(get_sparse_embedding_provider_factory),
     ],
 ) -> RetrievalService:
+    try:
+        sparse_provider = sparse_provider_factory()
+    except ProviderConfigurationError:
+        sparse_provider = None
     return RetrievalService(
         session,
         provider=provider,
-        sparse_provider=sparse_provider_factory(),
+        sparse_provider=sparse_provider,
     )
 
 
@@ -410,14 +414,16 @@ class LazyChatRetrievalSearcher:
         self,
         request: RetrievalSearchRequest,
     ) -> list[RetrievalSearchResult]:
+        sparse_provider = None
+        if request.strategy in ("sparse", "dense_sparse"):
+            try:
+                sparse_provider = self._sparse_provider_factory()
+            except ProviderConfigurationError:
+                sparse_provider = None
         service = RetrievalService(
             self._session,
             provider=self._provider,
-            sparse_provider=(
-                self._sparse_provider_factory()
-                if request.strategy in ("sparse", "dense_sparse")
-                else None
-            ),
+            sparse_provider=sparse_provider,
             reranker=(
                 self._rerank_provider_factory() if request.rerank is not None else None
             ),
