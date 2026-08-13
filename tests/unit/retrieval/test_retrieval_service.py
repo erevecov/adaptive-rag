@@ -1027,7 +1027,10 @@ def test_retrieval_service_falls_back_to_bm25_when_sparse_provider_missing(
         assert "dense" in results[0].retrieval_metadata["source_strategies"]
 
 
-def test_retrieval_service_falls_back_when_sparse_query_embed_fails() -> None:
+@pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
+def test_retrieval_service_falls_back_when_sparse_query_embed_fails(
+    strategy: str,
+) -> None:
     session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
     service = RetrievalService(
         session,
@@ -1041,16 +1044,24 @@ def test_retrieval_service_falls_back_when_sparse_query_embed_fails() -> None:
             workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=5,
-            strategy="dense_sparse",
+            strategy=strategy,  # type: ignore[arg-type]
         )
     )
     assert results
     assert results[0].fallback_reason == "sparse_query_embed_failed"
-    assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+    if strategy == "sparse":
+        assert all(r.strategy == "bm25" for r in results)
+        assert results[0].retrieval_metadata["used_bm25"] is True
+    else:
+        assert all(r.strategy == "dense_sparse" for r in results)
+        assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+        assert "dense" in results[0].retrieval_metadata["source_strategies"]
 
 
+@pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
 def test_retrieval_service_falls_back_when_sparse_retrieval_fails(
     monkeypatch: pytest.MonkeyPatch,
+    strategy: str,
 ) -> None:
     session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
     sparse_provider = StaticSparseEmbeddingProvider(
@@ -1072,12 +1083,18 @@ def test_retrieval_service_falls_back_when_sparse_retrieval_fails(
             workspace_id=workspace.id,
             query="SKU-42 installation",
             limit=5,
-            strategy="dense_sparse",
+            strategy=strategy,  # type: ignore[arg-type]
         )
     )
     assert results
     assert results[0].fallback_reason == "sparse_retrieval_failed"
-    assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+    if strategy == "sparse":
+        assert all(r.strategy == "bm25" for r in results)
+        assert results[0].retrieval_metadata["used_bm25"] is True
+    else:
+        assert all(r.strategy == "dense_sparse" for r in results)
+        assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+        assert "dense" in results[0].retrieval_metadata["source_strategies"]
 
 
 def test_retrieval_service_falls_back_when_rerank_provider_is_not_configured() -> None:
