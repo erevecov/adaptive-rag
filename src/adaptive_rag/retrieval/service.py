@@ -411,11 +411,10 @@ class RetrievalService:
             return None, SPARSE_FALLBACK_UNAVAILABLE
         try:
             query_vector = self._sparse_provider.embed_query(query)
+        except ProviderBudgetExceededError:
+            raise
         except QwenEmbeddingProviderError:
             return None, SPARSE_FALLBACK_PROVIDER_ERROR
-        except Exception:
-            # Operational embed/provider failure — no raw message in metadata.
-            return None, SPARSE_FALLBACK_QUERY_EMBED
         try:
             hits = self._sparse_retriever.search(
                 workspace_id=workspace_id,

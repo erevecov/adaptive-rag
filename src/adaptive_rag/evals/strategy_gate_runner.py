@@ -225,6 +225,15 @@ def _run_strategy_row(
             metrics={},
             comparison_metrics={},
         )
+    if strategy in ("sparse", "dense_sparse") and sparse_provider is None:
+        return StrategyGateRow(
+            strategy=strategy,
+            status="skipped",
+            decision="needs_more_data",
+            reason="sparse provider is required to evaluate sparse quality",
+            metrics={},
+            comparison_metrics={},
+        )
 
     strategy_report = _run_strategy_report(
         session,

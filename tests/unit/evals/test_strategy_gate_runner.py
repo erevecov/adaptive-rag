@@ -40,7 +40,7 @@ class MappingEmbeddingProvider:
         return [list(self._mapping[text]) for text in texts]
 
 
-def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
+def test_strategy_gate_skips_unavailable_sparse_modes_and_keeps_dense_default(
     tmp_path: Path,
 ) -> None:
     suite = load_eval_suite(
@@ -122,16 +122,16 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
 
     assert report.status == "passed"
     assert report.default_strategy == "dense_sparse"
-    assert report.recommended_default == "dense_sparse"
+    assert report.recommended_default == "dense"
     assert report.dense_baseline.metrics["retrieval_hit_rate"] == 1.0
     decisions = {row.strategy: row.decision for row in report.rows}
     assert decisions == {
         "dense": "promote",
         "lexical": "keep_opt_in",
         "bm25": "keep_opt_in",
-        "sparse": "keep_opt_in",
+        "sparse": "needs_more_data",
         "hybrid_rrf": "keep_opt_in",
-        "dense_sparse": "promote",
+        "dense_sparse": "needs_more_data",
         "graph": "hold",
         "dense_rerank": "keep_opt_in",
     }
@@ -140,7 +140,7 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
     assert payload["suite_id"] == "strategy-gate-ready"
     assert payload["status"] == "passed"
     assert payload["default_strategy"] == "dense_sparse"
-    assert payload["recommended_default"] == "dense_sparse"
+    assert payload["recommended_default"] == "dense"
     decision_payloads = payload["strategy_decisions"]
     assert [row["strategy"] for row in decision_payloads] == [
         "dense",
@@ -155,11 +155,11 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
     payload_by_strategy = {row["strategy"]: row for row in decision_payloads}
     assert payload_by_strategy["dense"]["decision"] == "promote"
     assert payload_by_strategy["graph"]["decision"] == "hold"
-    assert payload_by_strategy["dense_sparse"]["decision"] == "promote"
+    assert payload_by_strategy["sparse"]["decision"] == "needs_more_data"
+    assert payload_by_strategy["dense_sparse"]["decision"] == "needs_more_data"
     for strategy in (
         "lexical",
         "bm25",
-        "sparse",
         "hybrid_rrf",
         "dense_rerank",
     ):
@@ -173,6 +173,11 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
         "retrieval_passed_count": 2.0,
     }
     for row in decision_payloads:
+        if row["strategy"] in ("sparse", "dense_sparse"):
+            assert row["status"] == "skipped"
+            assert row["metrics"] == {}
+            assert row["comparison_metrics"] == {}
+            continue
         assert row["status"] == "passed"
         assert row["metrics"] == expected_metrics
 
@@ -180,9 +185,7 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
     for strategy in (
         "lexical",
         "bm25",
-        "sparse",
         "hybrid_rrf",
-        "dense_sparse",
         "graph",
         "dense_rerank",
     ):
@@ -194,6 +197,53 @@ def test_strategy_gate_compares_ready_modes_and_promotes_dense_sparse_default(
         assert comparison_metrics[f"{strategy}_retrieval_mrr_at_k_delta"] == 0.0
         assert comparison_metrics[f"{strategy}_retrieval_ndcg_at_k"] == 1.0
         assert comparison_metrics[f"{strategy}_retrieval_ndcg_at_k_delta"] == 0.0
+
+
+def test_strategy_gate_skips_sparse_rows_without_sparse_provider(
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "strategy-gate-no-sparse-provider",
+                "thresholds": {"retrieval_hit_rate": 1.0},
+                "evidence": [
+                    {
+                        "id": "alpha",
+                        "text": "Alpha exact policy evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha.md",
+                    }
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "retrieve-alpha",
+                        "query": "Alpha exact policy evidence",
+                        "expected_evidence_ids": ["alpha"],
+                    }
+                ],
+                "chat_cases": [],
+            },
+        )
+    )
+
+    report = run_retrieval_strategy_gate_eval_suite(
+        _make_session(),
+        suite,
+        strategies=("sparse", "dense_sparse"),
+    )
+
+    assert report.recommended_default == "dense"
+    assert [(row.strategy, row.status, row.decision) for row in report.rows] == [
+        ("sparse", "skipped", "needs_more_data"),
+        ("dense_sparse", "skipped", "needs_more_data"),
+    ]
+    assert all(
+        row.reason == "sparse provider is required to evaluate sparse quality"
+        for row in report.rows
+    )
 
 
 def test_strategy_gate_marks_contextual_dense_needs_more_data_without_summaries(

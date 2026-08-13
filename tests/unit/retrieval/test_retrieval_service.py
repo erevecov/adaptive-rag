@@ -28,7 +28,7 @@ from adaptive_rag.db.repositories import (
     WorkspaceRepository,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
-from adaptive_rag.embeddings import SparseEmbeddingVector
+from adaptive_rag.embeddings import QwenEmbeddingProviderError, SparseEmbeddingVector
 from adaptive_rag.graph import GraphRetrievalResult, GraphStoreUnavailableError
 from adaptive_rag.provider_usage import ProviderBudgetExceededError
 from adaptive_rag.rerank import (
@@ -83,9 +83,18 @@ class StaticSparseEmbeddingProvider:
 
 
 class RaisingSparseEmbedProvider(StaticSparseEmbeddingProvider):
+    def __init__(
+        self,
+        query_vector: SparseEmbeddingVector,
+        *,
+        error: Exception,
+    ) -> None:
+        super().__init__(query_vector)
+        self.error = error
+
     def embed_query(self, text: str) -> SparseEmbeddingVector:
         self.query_inputs.append(text)
-        raise RuntimeError("sparse embed boom")
+        raise self.error
 
 
 class WrongDimensionQueryEmbeddingProvider:
@@ -1028,7 +1037,7 @@ def test_retrieval_service_falls_back_to_bm25_when_sparse_provider_missing(
 
 
 @pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
-def test_retrieval_service_falls_back_when_sparse_query_embed_fails(
+def test_retrieval_service_falls_back_when_sparse_provider_errors(
     strategy: str,
 ) -> None:
     session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
@@ -1036,7 +1045,8 @@ def test_retrieval_service_falls_back_when_sparse_query_embed_fails(
         session,
         provider=_dense_provider(),
         sparse_provider=RaisingSparseEmbedProvider(
-            query_vector=SparseEmbeddingVector(indices=(42,), values=(1.0,))
+            query_vector=SparseEmbeddingVector(indices=(42,), values=(1.0,)),
+            error=QwenEmbeddingProviderError("qwen unavailable"),
         ),
     )
     results = service.search(
@@ -1048,7 +1058,7 @@ def test_retrieval_service_falls_back_when_sparse_query_embed_fails(
         )
     )
     assert results
-    assert results[0].fallback_reason == "sparse_query_embed_failed"
+    assert results[0].fallback_reason == "sparse_provider_error"
     if strategy == "sparse":
         assert all(r.strategy == "bm25" for r in results)
         assert results[0].retrieval_metadata["used_bm25"] is True
@@ -1056,6 +1066,37 @@ def test_retrieval_service_falls_back_when_sparse_query_embed_fails(
         assert all(r.strategy == "dense_sparse" for r in results)
         assert "bm25" in results[0].retrieval_metadata["source_strategies"]
         assert "dense" in results[0].retrieval_metadata["source_strategies"]
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        ProviderBudgetExceededError("provider budget exceeded"),
+        RuntimeError("programming defect"),
+    ],
+)
+def test_retrieval_service_propagates_non_operational_sparse_embed_errors(
+    error: Exception,
+) -> None:
+    session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
+    service = RetrievalService(
+        session,
+        provider=_dense_provider(),
+        sparse_provider=RaisingSparseEmbedProvider(
+            query_vector=SparseEmbeddingVector(indices=(42,), values=(1.0,)),
+            error=error,
+        ),
+    )
+
+    with pytest.raises(type(error), match=str(error)):
+        service.search(
+            RetrievalSearchRequest(
+                workspace_id=workspace.id,
+                query="SKU-42 installation",
+                limit=5,
+                strategy="dense_sparse",
+            )
+        )
 
 
 @pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
