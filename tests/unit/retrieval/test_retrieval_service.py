@@ -43,6 +43,7 @@ from adaptive_rag.retrieval import (
     RetrievalSearchRequest,
     RetrievalService,
     RetrievalServiceError,
+    SparseRetrievalError,
 )
 
 WORKSPACE_ID = uuid4()
@@ -79,6 +80,12 @@ class StaticSparseEmbeddingProvider:
     def embed_query(self, text: str) -> SparseEmbeddingVector:
         self.query_inputs.append(text)
         return self.query_vector
+
+
+class RaisingSparseEmbedProvider(StaticSparseEmbeddingProvider):
+    def embed_query(self, text: str) -> SparseEmbeddingVector:
+        self.query_inputs.append(text)
+        raise RuntimeError("sparse embed boom")
 
 
 class WrongDimensionQueryEmbeddingProvider:
@@ -266,6 +273,70 @@ def _create_sparse_embedding(
         index_fingerprint=fingerprint,
         extra_metadata={"provider": "fake"},
     )
+
+
+def _dense_provider() -> StaticQueryEmbeddingProvider:
+    return StaticQueryEmbeddingProvider(_vector(0.0))
+
+
+def _session_with_sku_installation_corpus() -> tuple[Session, Workspace]:
+    session = _make_session()
+    workspace = _create_workspace(session, "demo")
+    _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="dense.md",
+        stable_id="dense",
+        text="Alpha semantic evidence",
+        snippet="Alpha semantic evidence",
+        embedding=_vector(0.1),
+    )
+    _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    session.commit()
+    return session, workspace
+
+
+def _session_with_dense_sparse_corpus() -> tuple[Session, Workspace, Chunk, Chunk]:
+    session = _make_session()
+    workspace = _create_workspace(session, "demo")
+    _dense_source, _dense_document, _dense_version, dense_only = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="dense.md",
+        stable_id="dense",
+        text="Alpha semantic evidence",
+        snippet="Alpha semantic evidence",
+        embedding=_vector(0.1),
+    )
+    _target_source, _target_document, _target_version, target = _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target",
+        text="Header\n\nInstall the connector with the default path.",
+        snippet="Install the connector with the default path.",
+        embedding=_vector(0.4),
+        contextual_summary="SKU-42 connector installation reference.",
+    )
+    _create_sparse_embedding(
+        session,
+        workspace=workspace,
+        chunk=target,
+        indices=(42,),
+        values=(3.0,),
+        fingerprint="sparse-fp:target",
+    )
+    session.commit()
+    return session, workspace, target, dense_only
 
 
 def test_retrieval_service_embeds_query_and_returns_dense_results() -> None:
@@ -515,6 +586,7 @@ def test_retrieval_service_fuses_dense_and_sparse_with_rrf() -> None:
     assert sparse_provider.query_inputs == ["SKU-42 installation"]
     assert [result.chunk_id for result in results] == [target.id, dense_only.id]
     assert [result.strategy for result in results] == ["dense_sparse", "dense_sparse"]
+    assert all(result.fallback_reason is None for result in results)
     assert results[0].retrieval_metadata == {
         "dense_rank": 2,
         "dense_score": pytest.approx(1 / 1.4),
@@ -927,28 +999,85 @@ def test_retrieval_service_rejects_invalid_requests_without_provider_call(
 
 
 @pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
-def test_retrieval_service_requires_sparse_provider_for_sparse_strategies(
+def test_retrieval_service_falls_back_to_bm25_when_sparse_provider_missing(
     strategy: str,
 ) -> None:
-    session = _make_session()
-    workspace = _create_workspace(session, "demo")
-    provider = StaticQueryEmbeddingProvider(_vector(0.0))
-    session.commit()
-
-    with pytest.raises(
-        RetrievalServiceError,
-        match="sparse embedding provider is required for sparse retrieval",
-    ):
-        RetrievalService(session, provider=provider).search(
-            RetrievalSearchRequest(
-                workspace_id=workspace.id,
-                query="alpha question",
-                limit=3,
-                strategy=strategy,
-            )
+    session, workspace = _session_with_sku_installation_corpus()
+    service = RetrievalService(
+        session,
+        provider=_dense_provider(),
+        sparse_provider=None,
+    )
+    results = service.search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="SKU-42 installation",
+            limit=5,
+            strategy=strategy,  # type: ignore[arg-type]
         )
+    )
+    assert results
+    assert all(r.fallback_reason == "sparse_provider_unavailable" for r in results)
+    if strategy == "sparse":
+        assert all(r.strategy == "bm25" for r in results)
+        assert results[0].retrieval_metadata["used_bm25"] is True
+    else:
+        assert all(r.strategy == "dense_sparse" for r in results)
+        assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+        assert "dense" in results[0].retrieval_metadata["source_strategies"]
 
-    assert provider.inputs == []
+
+def test_retrieval_service_falls_back_when_sparse_query_embed_fails() -> None:
+    session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
+    service = RetrievalService(
+        session,
+        provider=_dense_provider(),
+        sparse_provider=RaisingSparseEmbedProvider(
+            query_vector=SparseEmbeddingVector(indices=(42,), values=(1.0,))
+        ),
+    )
+    results = service.search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="SKU-42 installation",
+            limit=5,
+            strategy="dense_sparse",
+        )
+    )
+    assert results
+    assert results[0].fallback_reason == "sparse_query_embed_failed"
+    assert "bm25" in results[0].retrieval_metadata["source_strategies"]
+
+
+def test_retrieval_service_falls_back_when_sparse_retrieval_fails(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    session, workspace, _target, _dense_only = _session_with_dense_sparse_corpus()
+    sparse_provider = StaticSparseEmbeddingProvider(
+        SparseEmbeddingVector(indices=(42,), values=(1.0,))
+    )
+    service = RetrievalService(
+        session,
+        provider=_dense_provider(),
+        sparse_provider=sparse_provider,
+    )
+
+    def _raising_search(*_args: object, **_kwargs: object) -> list[object]:
+        raise SparseRetrievalError("index failed")
+
+    monkeypatch.setattr(service._sparse_retriever, "search", _raising_search)
+
+    results = service.search(
+        RetrievalSearchRequest(
+            workspace_id=workspace.id,
+            query="SKU-42 installation",
+            limit=5,
+            strategy="dense_sparse",
+        )
+    )
+    assert results
+    assert results[0].fallback_reason == "sparse_retrieval_failed"
+    assert "bm25" in results[0].retrieval_metadata["source_strategies"]
 
 
 def test_retrieval_service_falls_back_when_rerank_provider_is_not_configured() -> None:
