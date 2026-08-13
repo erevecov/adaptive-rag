@@ -21,10 +21,12 @@ from adaptive_rag.db.models import (
     Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
+from adaptive_rag.embeddings import FakeSparseEmbeddingProvider
 from adaptive_rag.evals import (
     EvalRunOptions,
     load_eval_suite,
     run_hosted_chat_eval_suite,
+    run_hosted_eval_suite,
     serialize_eval_report,
 )
 from adaptive_rag.provider_usage import (
@@ -222,6 +224,86 @@ def test_run_hosted_chat_eval_suite_reports_usage_and_quality(
             },
         ],
     }
+
+
+def test_run_hosted_eval_suite_without_rerank_keeps_sparse_provider(
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "hosted-sparse",
+                "thresholds": {
+                    "retrieval_hit_rate": 1.0,
+                    "chat_citation_coverage": 1.0,
+                },
+                "evidence": [
+                    {
+                        "id": "alpha",
+                        "text": "Alpha original evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha.md",
+                    },
+                    {
+                        "id": "far",
+                        "text": "Far unrelated evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "far.md",
+                    },
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "retrieve-alpha",
+                        "query": "Alpha original evidence",
+                        "limit": 2,
+                        "expected_evidence_ids": ["alpha"],
+                    }
+                ],
+                "chat_cases": [
+                    {
+                        "id": "chat-alpha",
+                        "message": "Alpha original evidence",
+                        "retrieval_limit": 2,
+                        "expected_evidence_ids": ["alpha"],
+                        "expected_tool_queries": ["Alpha original evidence"],
+                    }
+                ],
+            },
+        )
+    )
+    tracker = InMemoryProviderUsageTracker()
+    provider = UsageRecordingEmbeddingProvider(
+        {
+            "Alpha original evidence": _vector(0.0),
+            "Far unrelated evidence": _vector(0.9),
+        },
+        tracker=tracker,
+    )
+    sparse_provider = FakeSparseEmbeddingProvider()
+
+    report = run_hosted_eval_suite(
+        _make_session(),
+        suite,
+        provider=provider,
+        sparse_provider=sparse_provider,
+        runner=UsageRecordingChatRunner(tracker=tracker),
+        usage_tracker=tracker,
+        options=EvalRunOptions(mode="hosted", provider="qwen", max_cost_usd=0.05),
+    )
+
+    assert report.status == "passed"
+    assert sparse_provider.document_inputs == [
+        "Alpha original evidence",
+        "Far unrelated evidence",
+        "Alpha original evidence",
+        "Far unrelated evidence",
+    ]
+    assert sparse_provider.query_inputs == [
+        "Alpha original evidence",
+        "Alpha original evidence",
+    ]
 
 
 def _make_session() -> Session:

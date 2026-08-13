@@ -186,6 +186,7 @@ def run_hosted_eval_suite(
             session,
             suite,
             provider=provider,
+            sparse_provider=sparse_provider,
             chat_runner=runner,
         )
         return replace(

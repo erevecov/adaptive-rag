@@ -25,6 +25,7 @@ from adaptive_rag.api.schemas.retrieval import (
 from adaptive_rag.db.models import Workspace
 from adaptive_rag.embeddings import DenseEmbeddingProvider
 from adaptive_rag.graph import GraphRetriever
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.retrieval import RetrievalService, RetrievalServiceError
 
 router = APIRouter(
@@ -59,14 +60,16 @@ def search_retrieval(
     try:
         body.validate_rerank_options()
         request = body.to_service_request(workspace_id)
+        sparse_provider = None
+        if request.strategy in ("sparse", "dense_sparse"):
+            try:
+                sparse_provider = sparse_provider_factory()
+            except ProviderConfigurationError:
+                sparse_provider = None
         service = RetrievalService(
             session,
             provider=provider,
-            sparse_provider=(
-                sparse_provider_factory()
-                if request.strategy in ("sparse", "dense_sparse")
-                else None
-            ),
+            sparse_provider=sparse_provider,
             reranker=(
                 rerank_provider_factory() if request.rerank is not None else None
             ),

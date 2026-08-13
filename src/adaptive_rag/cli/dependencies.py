@@ -19,6 +19,7 @@ from adaptive_rag.evals import (
 )
 from adaptive_rag.graph import GraphRetriever, GraphStore, get_graph_store
 from adaptive_rag.provider_runtime import (
+    ProviderConfigurationError,
     get_chat_runner,
     get_dense_embedding_provider,
     get_rerank_provider,
@@ -35,7 +36,7 @@ from adaptive_rag.retrieval.providers import (
 @dataclass(frozen=True, slots=True)
 class CliHostedEvalRuntime:
     provider: DenseEmbeddingProvider
-    sparse_provider: SparseEmbeddingProvider
+    sparse_provider: SparseEmbeddingProvider | None
     chat_runner: ChatRunner
     reranker: RerankProvider | None
     usage_tracker: InMemoryProviderUsageTracker
@@ -160,15 +161,20 @@ def get_cli_hosted_eval_runtime(
         qwen_base_url=settings.qwen_base_url,
     )
     usage_tracker = InMemoryProviderUsageTracker()
+    provider = get_dense_embedding_provider(
+        settings,
+        usage_tracker=usage_tracker,
+    )
+    try:
+        sparse_provider = get_sparse_embedding_provider(
+            settings,
+            usage_tracker=usage_tracker,
+        )
+    except ProviderConfigurationError:
+        sparse_provider = None
     return CliHostedEvalRuntime(
-        provider=get_dense_embedding_provider(
-            settings,
-            usage_tracker=usage_tracker,
-        ),
-        sparse_provider=get_sparse_embedding_provider(
-            settings,
-            usage_tracker=usage_tracker,
-        ),
+        provider=provider,
+        sparse_provider=sparse_provider,
         chat_runner=get_chat_runner(
             settings,
             usage_tracker=usage_tracker,

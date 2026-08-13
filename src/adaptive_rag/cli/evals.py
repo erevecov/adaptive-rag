@@ -18,7 +18,7 @@ from adaptive_rag.cli.dependencies import (
 )
 from adaptive_rag.config.settings import get_settings
 from adaptive_rag.db.session import session_scope
-from adaptive_rag.embeddings import QwenEmbeddingProviderError
+from adaptive_rag.embeddings import QwenEmbeddingProviderError, SparseEmbeddingProvider
 from adaptive_rag.evals import (
     EvalConfigurationError,
     EvalDatasetError,
@@ -122,15 +122,16 @@ def run(
                 )
         else:
             with session_scope() as session:
+                sparse_provider = (
+                    _get_optional_sparse_embedding_provider()
+                    if active_retrieval_strategy in ("sparse", "dense_sparse")
+                    else None
+                )
                 report = run_eval_suite(
                     session,
                     suite,
                     provider=get_cli_dense_embedding_provider(),
-                    sparse_provider=(
-                        get_cli_sparse_embedding_provider()
-                        if active_retrieval_strategy in ("sparse", "dense_sparse")
-                        else None
-                    ),
+                    sparse_provider=sparse_provider,
                     chat_runner=get_cli_chat_runner(),
                     retrieval_strategy=active_retrieval_strategy,
                 )
@@ -203,15 +204,20 @@ def strategy_gate(
             _validate_live_qwen_sparse_strategy_gate_config()
         usage_tracker = InMemoryProviderUsageTracker()
         with session_scope() as session:
+            sparse_provider = (
+                get_cli_sparse_embedding_provider(usage_tracker=usage_tracker)
+                if require_live_qwen_sparse
+                else _get_optional_sparse_embedding_provider(
+                    usage_tracker=usage_tracker
+                )
+            )
             report = run_retrieval_strategy_gate_eval_suite(
                 session,
                 suite,
                 provider=get_cli_dense_embedding_provider(
                     usage_tracker=usage_tracker,
                 ),
-                sparse_provider=get_cli_sparse_embedding_provider(
-                    usage_tracker=usage_tracker,
-                ),
+                sparse_provider=sparse_provider,
             )
         if usage_tracker.records:
             report = replace(
@@ -261,6 +267,18 @@ def _validate_live_qwen_sparse_strategy_gate_config() -> None:
         raise EvalConfigurationError(
             "live Qwen sparse strategy gate requires " + ", ".join(missing)
         )
+
+
+def _get_optional_sparse_embedding_provider(
+    *,
+    usage_tracker: InMemoryProviderUsageTracker | None = None,
+) -> SparseEmbeddingProvider | None:
+    try:
+        if usage_tracker is None:
+            return get_cli_sparse_embedding_provider()
+        return get_cli_sparse_embedding_provider(usage_tracker=usage_tracker)
+    except ProviderConfigurationError:
+        return None
 
 
 @app.command("graph-quality-gate")

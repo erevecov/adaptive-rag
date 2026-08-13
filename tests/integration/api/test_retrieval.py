@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 
 import pytest
 from _legacy_auth_support import install_legacy_auth_override
@@ -46,6 +46,7 @@ from adaptive_rag.db.repositories import (
 from adaptive_rag.db.session import create_session_factory
 from adaptive_rag.embeddings import SparseEmbeddingVector
 from adaptive_rag.graph import GraphRetrievalResult
+from adaptive_rag.provider_runtime import ProviderConfigurationError
 from adaptive_rag.rerank import RerankRequest, RerankResult, RerankScore
 
 
@@ -155,6 +156,7 @@ def _client(
     session: Session,
     provider: StaticQueryEmbeddingProvider,
     sparse_provider: StaticSparseEmbeddingProvider | None = None,
+    sparse_provider_factory: Callable[[], StaticSparseEmbeddingProvider] | None = None,
     rerank_provider_factory: Iterator[RecordingRerankProvider | None] | None = None,
     graph_retriever: RecordingGraphRetriever | None = None,
 ) -> TestClient:
@@ -174,8 +176,8 @@ def _client(
     app.dependency_overrides[get_session] = override_session
     install_legacy_auth_override(app, session)
     app.dependency_overrides[get_dense_embedding_provider] = override_provider
-    app.dependency_overrides[get_sparse_embedding_provider_factory] = lambda: (
-        override_sparse_provider
+    app.dependency_overrides[get_sparse_embedding_provider_factory] = (
+        lambda: sparse_provider_factory or override_sparse_provider
     )
     if graph_retriever is not None:
         app.dependency_overrides[get_graph_retriever] = lambda: graph_retriever
@@ -876,6 +878,64 @@ def test_retrieval_search_endpoint_uses_sparse_strategy_when_requested() -> None
         "sparse_score": 3.0,
         "used_sparse": True,
     }
+
+
+@pytest.mark.parametrize("strategy", ["sparse", "dense_sparse"])
+def test_retrieval_search_endpoint_fails_open_when_sparse_factory_is_unavailable(
+    strategy: str,
+) -> None:
+    session = _make_session()
+    workspace = _create_workspace(session)
+    _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="general.md",
+        stable_id="general-doc",
+        text="General installation notes",
+        snippet="General installation notes",
+        embedding=_vector(0.1),
+    )
+    _create_embedded_chunk(
+        session,
+        workspace=workspace,
+        external_id="target.md",
+        stable_id="target-doc",
+        text="Header\n\nInstall the SKU-42 connector.",
+        snippet="Install the SKU-42 connector.",
+        embedding=_vector(0.4),
+    )
+    session.commit()
+
+    def unavailable_sparse_provider() -> StaticSparseEmbeddingProvider:
+        raise ProviderConfigurationError("sparse provider is not configured")
+
+    client = _client(
+        session=session,
+        provider=StaticQueryEmbeddingProvider(_vector(0.0)),
+        sparse_provider_factory=unavailable_sparse_provider,
+    )
+
+    response = client.post(
+        f"/workspaces/{workspace.id}/retrieval/search",
+        json={
+            "query": "SKU-42 installation",
+            "limit": 2,
+            "strategy": strategy,
+        },
+    )
+
+    assert response.status_code == 200
+    results = response.json()["results"]
+    assert results
+    assert results[0]["fallback_reason"] == "sparse_provider_unavailable"
+    if strategy == "sparse":
+        assert results[0]["strategy"] == "bm25"
+    else:
+        assert results[0]["strategy"] == "dense_sparse"
+        assert results[0]["retrieval_metadata"]["source_strategies"] == [
+            "dense",
+            "bm25",
+        ]
 
 
 def test_retrieval_search_endpoint_uses_graph_strategy_when_requested() -> None:

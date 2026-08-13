@@ -12,7 +12,11 @@ from sqlalchemy.orm import Session
 
 from adaptive_rag.db.models import CHAT_RETRIEVAL_MAX_LIMIT, EMBEDDING_DIMENSIONS
 from adaptive_rag.db.repositories import GraphprojectionRepository
-from adaptive_rag.embeddings import DenseEmbeddingProvider, SparseEmbeddingProvider
+from adaptive_rag.embeddings import (
+    DenseEmbeddingProvider,
+    QwenEmbeddingProviderError,
+    SparseEmbeddingProvider,
+)
 from adaptive_rag.graph import (
     GraphRetrievalResult,
     GraphRetriever,
@@ -96,6 +100,10 @@ RerankFallbackReason = Literal[
     "rerank_budget_exceeded",
 ]
 RRF_K = 60
+SPARSE_FALLBACK_UNAVAILABLE = "sparse_provider_unavailable"
+SPARSE_FALLBACK_PROVIDER_ERROR = "sparse_provider_error"
+SPARSE_FALLBACK_QUERY_EMBED = "sparse_query_embed_failed"
+SPARSE_FALLBACK_RETRIEVAL = "sparse_retrieval_failed"
 
 
 @dataclass(frozen=True, slots=True)
@@ -164,10 +172,6 @@ class RetrievalService:
             request.rerank,
             limit=limit,
         )
-        if strategy in ("sparse", "dense_sparse") and self._sparse_provider is None:
-            raise RetrievalServiceError(
-                "sparse embedding provider is required for sparse retrieval"
-            )
 
         filters = _to_dense_filters(request.metadata_filter)
         candidate_limit = (
@@ -189,12 +193,29 @@ class RetrievalService:
                 filters=filters,
             )
         elif strategy == "sparse":
-            search_results = self._sparse_results(
+            sparse_hits, reason = self._try_sparse_results(
                 workspace_id=request.workspace_id,
                 query=query,
                 limit=candidate_limit,
                 filters=filters,
             )
+            if sparse_hits is not None:
+                search_results = [
+                    _to_sparse_search_result(result) for result in sparse_hits
+                ]
+            else:
+                search_results = [
+                    _with_fallback_reason(
+                        result,
+                        reason or SPARSE_FALLBACK_UNAVAILABLE,
+                    )
+                    for result in self._bm25_results(
+                        workspace_id=request.workspace_id,
+                        query=query,
+                        limit=candidate_limit,
+                        filters=filters,
+                    )
+                ]
         else:
             query_embedding = self._embed_query(query)
             try:
@@ -221,18 +242,39 @@ class RetrievalService:
                     strategy="hybrid_rrf",
                 )
             elif strategy == "dense_sparse":
-                sparse_results = self._raw_sparse_results(
+                sparse_hits, reason = self._try_sparse_results(
                     workspace_id=request.workspace_id,
                     query=query,
                     limit=candidate_limit,
                     filters=filters,
                 )
-                search_results = _fuse_rrf_results(
-                    dense_results=dense_results,
-                    sparse_results=sparse_results,
-                    limit=candidate_limit,
-                    strategy="dense_sparse",
-                )
+                if sparse_hits is not None:
+                    search_results = _fuse_rrf_results(
+                        dense_results=dense_results,
+                        sparse_results=sparse_hits,
+                        limit=candidate_limit,
+                        strategy="dense_sparse",
+                    )
+                else:
+                    bm25_hits = self._raw_bm25_results(
+                        workspace_id=request.workspace_id,
+                        query=query,
+                        limit=candidate_limit,
+                        filters=filters,
+                    )
+                    search_results = _fuse_rrf_results(
+                        dense_results=dense_results,
+                        bm25_results=bm25_hits,
+                        limit=candidate_limit,
+                        strategy="dense_sparse",
+                    )
+                    search_results = [
+                        _with_fallback_reason(
+                            result,
+                            reason or SPARSE_FALLBACK_UNAVAILABLE,
+                        )
+                        for result in search_results
+                    ]
             else:
                 search_results = [_to_search_result(result) for result in dense_results]
                 if strategy == "graph":
@@ -355,6 +397,34 @@ class RetrievalService:
             )
         except SparseRetrievalError as exc:
             raise RetrievalServiceError(str(exc)) from exc
+
+    def _try_sparse_results(
+        self,
+        *,
+        workspace_id: UUID,
+        query: str,
+        limit: int,
+        filters: DenseRetrievalFilters,
+    ) -> tuple[list[SparseRetrievalResult] | None, str | None]:
+        """Return (sparse_hits, None) or (None, fallback_reason)."""
+        if self._sparse_provider is None:
+            return None, SPARSE_FALLBACK_UNAVAILABLE
+        try:
+            query_vector = self._sparse_provider.embed_query(query)
+        except ProviderBudgetExceededError:
+            raise
+        except QwenEmbeddingProviderError:
+            return None, SPARSE_FALLBACK_PROVIDER_ERROR
+        try:
+            hits = self._sparse_retriever.search(
+                workspace_id=workspace_id,
+                query_vector=query_vector,
+                limit=limit,
+                filters=filters,
+            )
+        except SparseRetrievalError:
+            return None, SPARSE_FALLBACK_RETRIEVAL
+        return hits, None
 
     def _sparse_results(
         self,
@@ -754,6 +824,7 @@ def _fuse_rrf_results(
     dense_results: list[DenseRetrievalResult],
     lexical_results: Sequence[LexicalRetrievalResult] = (),
     sparse_results: Sequence[SparseRetrievalResult] = (),
+    bm25_results: Sequence[Bm25RetrievalResult] = (),
     limit: int,
     strategy: Literal["hybrid_rrf", "dense_sparse"],
 ) -> list[RetrievalSearchResult]:
@@ -782,6 +853,14 @@ def _fuse_rrf_results(
         accumulator.sparse_result = sparse_result
         accumulator.sparse_rank = rank
         accumulator.rrf_score += _rrf_score(rank)
+    for rank, bm25_result in enumerate(bm25_results, start=1):
+        accumulator = by_chunk_id.setdefault(
+            bm25_result.chunk_id,
+            _RRFAccumulator(chunk_id=bm25_result.chunk_id),
+        )
+        accumulator.bm25_result = bm25_result
+        accumulator.bm25_rank = rank
+        accumulator.rrf_score += _rrf_score(rank)
 
     accumulators = sorted(
         by_chunk_id.values(),
@@ -794,6 +873,7 @@ def _fuse_rrf_results(
                 else 10**9
             ),
             (accumulator.sparse_rank if accumulator.sparse_rank is not None else 10**9),
+            (accumulator.bm25_rank if accumulator.bm25_rank is not None else 10**9),
             str(accumulator.chunk_id),
         ),
     )
@@ -810,9 +890,11 @@ class _RRFAccumulator:
     dense_rank: int | None = None
     lexical_rank: int | None = None
     sparse_rank: int | None = None
+    bm25_rank: int | None = None
     dense_result: DenseRetrievalResult | None = None
     lexical_result: LexicalRetrievalResult | None = None
     sparse_result: SparseRetrievalResult | None = None
+    bm25_result: Bm25RetrievalResult | None = None
 
 
 def _to_rrf_search_result(
@@ -824,6 +906,7 @@ def _to_rrf_search_result(
         accumulator.dense_result
         or accumulator.lexical_result
         or accumulator.sparse_result
+        or accumulator.bm25_result
     )
     if source is None:
         raise RetrievalServiceError("RRF accumulator has no retrieval result")
@@ -847,6 +930,10 @@ def _to_rrf_search_result(
         metadata["sparse_index_fingerprint"] = sparse_metadata[
             "sparse_index_fingerprint"
         ]
+    if accumulator.bm25_result is not None and accumulator.bm25_rank is not None:
+        metadata["bm25_rank"] = accumulator.bm25_rank
+        metadata["bm25_score"] = accumulator.bm25_result.score
+        metadata["used_bm25"] = True
 
     return RetrievalSearchResult(
         chunk_id=source.chunk_id,
@@ -867,6 +954,8 @@ def _rrf_source_strategies(accumulator: _RRFAccumulator) -> list[str]:
         strategies.append("lexical")
     if accumulator.sparse_result is not None:
         strategies.append("sparse")
+    if accumulator.bm25_result is not None:
+        strategies.append("bm25")
     return strategies
 
 

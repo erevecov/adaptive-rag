@@ -1,3 +1,6 @@
+/* Context modules export the provider plus locale helpers/hooks together. */
+/* eslint-disable react-refresh/only-export-components */
+
 import {
   createContext,
   useCallback,

@@ -8,18 +8,27 @@ from pathlib import Path
 import pytest
 from sqlalchemy.orm import Session
 
+from adaptive_rag.cli import evals as cli_evals
 from adaptive_rag.db.base import Base
 from adaptive_rag.db.models import (
     EMBEDDING_DIMENSIONS,
     Chunk,
+    ChunkSparseEmbedding,
     Document,
     DocumentVersion,
     Source,
     Workspace,
 )
 from adaptive_rag.db.session import create_engine_from_url, create_session_factory
-from adaptive_rag.evals import load_eval_suite, serialize_eval_report
+from adaptive_rag.embeddings import SparseEmbeddingProvider
+from adaptive_rag.evals import load_eval_suite, retrieval_runner, serialize_eval_report
 from adaptive_rag.evals.retrieval_runner import run_retrieval_eval_suite
+from adaptive_rag.provider_runtime import ProviderConfigurationError
+from adaptive_rag.retrieval import (
+    RetrievalSearchRequest,
+    RetrievalSearchResult,
+    RetrievalService,
+)
 
 
 class MappingEmbeddingProvider:
@@ -376,6 +385,90 @@ def test_run_retrieval_eval_suite_reports_ranking_metrics(
     )
 
 
+def test_sparse_factory_error_reaches_eval_service_as_absent_provider(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    suite = load_eval_suite(
+        _write_suite(
+            tmp_path,
+            {
+                "schema_version": 1,
+                "suite_id": "sparse-config-fallback",
+                "thresholds": {"retrieval_hit_rate": 1.0},
+                "evidence": [
+                    {
+                        "id": "alpha",
+                        "text": "Alpha exact evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "alpha.md",
+                    },
+                    {
+                        "id": "far",
+                        "text": "Far unrelated evidence",
+                        "source_type": "markdown",
+                        "source_external_id": "far.md",
+                    },
+                ],
+                "retrieval_cases": [
+                    {
+                        "id": "retrieve-alpha",
+                        "query": "Alpha",
+                        "limit": 2,
+                        "expected_evidence_ids": ["alpha"],
+                    }
+                ],
+                "chat_cases": [],
+            },
+        )
+    )
+    provider = MappingEmbeddingProvider(
+        {
+            "Alpha exact evidence": _vector(0.0),
+            "Far unrelated evidence": _vector(0.9),
+        }
+    )
+
+    def raise_configuration_error() -> SparseEmbeddingProvider:
+        raise ProviderConfigurationError(
+            "ADAPTIVE_RAG_SPARSE_EMBEDDING_MODEL must be set"
+        )
+
+    monkeypatch.setattr(
+        cli_evals,
+        "get_cli_sparse_embedding_provider",
+        raise_configuration_error,
+    )
+    sparse_provider = cli_evals._get_optional_sparse_embedding_provider()
+    observed_results: list[RetrievalSearchResult] = []
+    service_search = RetrievalService.search
+
+    def record_results(
+        self: RetrievalService,
+        request: RetrievalSearchRequest,
+    ) -> list[RetrievalSearchResult]:
+        results = service_search(self, request)
+        observed_results.extend(results)
+        return results
+
+    monkeypatch.setattr(retrieval_runner.RetrievalService, "search", record_results)
+
+    report = run_retrieval_eval_suite(
+        _make_session(),
+        suite,
+        provider=provider,
+        sparse_provider=sparse_provider,
+        strategy="sparse",
+    )
+
+    assert report.status == "passed"
+    assert observed_results
+    assert {result.fallback_reason for result in observed_results} == {
+        "sparse_provider_unavailable"
+    }
+    assert {result.strategy for result in observed_results} == {"bm25"}
+
+
 def _make_session() -> Session:
     engine = create_engine_from_url("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(
@@ -386,6 +479,7 @@ def _make_session() -> Session:
             Document.__table__,
             DocumentVersion.__table__,
             Chunk.__table__,
+            ChunkSparseEmbedding.__table__,
         ],
     )
     return create_session_factory(engine)()

@@ -163,16 +163,19 @@ def _get_sparse_embedding_provider(
     *,
     workspace_id: UUID,
     session: Session,
-) -> SparseEmbeddingProvider:
+) -> SparseEmbeddingProvider | None:
     kwargs = _workspace_runtime_kwargs(
         get_cli_sparse_embedding_provider,
         workspace_id=workspace_id,
         session=session,
     )
-    return cast(
-        SparseEmbeddingProvider,
-        cast(Any, get_cli_sparse_embedding_provider)(**kwargs),
-    )
+    try:
+        return cast(
+            SparseEmbeddingProvider,
+            cast(Any, get_cli_sparse_embedding_provider)(**kwargs),
+        )
+    except ProviderConfigurationError:
+        return None
 
 
 def _get_rerank_provider(
